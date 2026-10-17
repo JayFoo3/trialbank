@@ -53,6 +53,7 @@
           return new Query([]);
         },
         rpc(name, args) {
+          if (name === 'signup_reason') return Promise.resolve({ data: null, error: null });
           if (name === 'is_admin') return Promise.resolve({ data: true, error: null });
           if (name === 'admin_users') return Promise.resolve({ data: [{ email: 'demo@example.com', created_at: new Date().toISOString(), last_sign_in_at: null, attempts: attempts.length }], error: null });
           if (name === 'admin_remove_user') return Promise.resolve({ data: null, error: null });

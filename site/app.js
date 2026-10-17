@@ -51,7 +51,10 @@
     try {
       let r;
       if (signup) {
-        r = await sb.auth.signUp({ email, password, options: { data: { invite: f.get('invite').trim() } } });
+        const invite = f.get('invite').trim();
+        const { data: reason } = await sb.rpc('signup_reason', { p_email: email, p_code: invite });
+        if (reason) throw new Error(reason);
+        r = await sb.auth.signUp({ email, password, options: { data: { invite } } });
         if (!r.error && !r.data.session) {
           // email confirmation is on in the project: tell them, then they sign in after clicking the link
           throw new Error('Check your email for a confirmation link, then sign in.');
@@ -73,6 +76,7 @@
     if (/invite/i.test(msg)) return 'That invite code is wrong. It is on the Classroom post.';
     if (/Invalid login/i.test(msg)) return 'Wrong email or password.';
     if (/already registered/i.test(msg)) return 'That email already has an account. Sign in instead.';
+    if (/Database error saving new user/i.test(msg)) return 'Sign-up was refused. Check your email and invite code, or ask Jayden.';
     return msg;
   }
   $('signout').onclick = () => sb.auth.signOut();
