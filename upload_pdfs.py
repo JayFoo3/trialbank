@@ -4,7 +4,7 @@ Finds each source PDF by sha256 (searching --root, default ~/Documents), uploads
   <slug>/paper.pdf  (pages before the solutions)  and  <slug>/full.pdf (whole file, with solutions)
 then records the paths on the papers table.
 Usage: SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python3 upload_pdfs.py [--root DIR] [--only SLUG]"""
-import argparse, glob, hashlib, json, os, subprocess, sys, tempfile
+import argparse, shutil, glob, hashlib, json, os, subprocess, sys, tempfile
 import requests
 
 URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
@@ -54,10 +54,14 @@ def main():
         patch = {}
         put(f'{slug}/full.pdf', full)
         patch['pdf_sol_path'] = f'{slug}/full.pdf'
-        if sf and 1 < sf <= n:
+        pre = os.path.join(HERE, 'output', slug, 'paper.pdf')   # pre-split paper-only file, if present
+        if os.path.exists(pre):
+            put(f'{slug}/paper.pdf', open(pre, 'rb').read())
+            patch['pdf_path'] = f'{slug}/paper.pdf'
+        elif sf and 1 < sf <= n and shutil.which('qpdf'):
             with tempfile.TemporaryDirectory() as t:
                 out = os.path.join(t, 'paper.pdf')
-                subprocess.run(['qpdf', src, '--pages', '.', f'1-{sf - 1}', '--', out], check=True)
+                subprocess.run(['qpdf', src, '--pages', '.', f'1-{sf - 1}', '--', out])
                 put(f'{slug}/paper.pdf', open(out, 'rb').read())
             patch['pdf_path'] = f'{slug}/paper.pdf'
         else:
