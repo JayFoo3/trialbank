@@ -155,8 +155,22 @@
     </div>
 
     <div class="card">
+      <h2>Phone alerts</h2>
+      <p class="muted small">Install the free <b>ntfy</b> app, tap + and subscribe to this topic. You get a push whenever someone signs up who is not on your class list.</p>
+      <p><code id="ntfy-topic">…</code></p>
+      <div class="row"><button class="primary" id="alert-test">Send test alert</button><span class="muted small" id="alert-msg"></span></div>
+    </div>
+
+    <div class="card">
+      <h2>Class names <span class="muted small" id="roster-count"></span></h2>
+      <p class="muted small">Paste the class list, one full name per line. Accounts whose email does not contain a first name and surname from this list get flagged and trigger an alert.</p>
+      <textarea id="roster-add" rows="4" placeholder="Jane Citizen&#10;John Smith"></textarea>
+      <div class="row"><button class="primary" id="roster-add-btn">Add names</button><button class="link" id="roster-clear">Clear all</button><span class="muted small" id="roster-msg"></span></div>
+    </div>
+
+    <div class="card">
       <h2>Accounts <span class="muted small" id="users-count"></span></h2>
-      <table class="tbl" id="users-table"><thead><tr><th>Email</th><th>Joined</th><th>Last seen</th><th>Attempts</th><th></th></tr></thead><tbody></tbody></table>
+      <table class="tbl" id="users-table"><thead><tr><th>Email</th><th>Joined</th><th>Last seen</th><th>Attempts</th><th>Class list</th><th></th></tr></thead><tbody></tbody></table>
     </div>
   </section>
 </main>

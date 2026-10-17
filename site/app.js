@@ -286,13 +286,17 @@
 
   // ---------- admin ----------
   const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
-  let allowed = [];
+  let allowed = [], rosterN = 0;
   async function renderAdmin() {
-    const [{ data: settings }, { data: emails }, { data: users }] = await Promise.all([
+    const [{ data: settings }, { data: emails }, { data: users }, { data: roster }] = await Promise.all([
       sb.from('settings').select('*'),
       sb.from('allowed_emails').select('email').order('email'),
       sb.rpc('admin_users'),
+      sb.from('roster').select('name'),
     ]);
+    rosterN = (roster || []).length;
+    $('roster-count').textContent = `· ${rosterN}`;
+    $('ntfy-topic').textContent = (settings || []).find(r => r.key === 'ntfy_topic')?.value || 'not set';
     const s = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
     document.querySelectorAll('#admin-mode button').forEach(b => b.classList.toggle('on', b.dataset.v === (s.signup_mode || 'domain')));
     $('admin-code').value = s.invite_code || '';
@@ -302,7 +306,7 @@
     const tb = $('users-table').querySelector('tbody'); tb.innerHTML = '';
     (users || []).forEach(u => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${u.email}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td></td>`;
+      tr.innerHTML = `<td>${u.email}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? u.roster_name : '<b style="color:#c0392b">Not on list</b>') : '—'}</td><td></td>`;
       const b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
       b.onclick = async () => {
         if (u.email.toLowerCase() === state.user.email.toLowerCase()) return;
@@ -355,6 +359,24 @@
     ];
     const { error } = await sb.from('settings').upsert(rows, { onConflict: 'key' });
     $('admin-saved').textContent = error ? error.message : 'Saved.';
+  };
+
+  $('roster-add-btn').onclick = async () => {
+    const names = [...new Set($('roster-add').value.split(/\n/).map(x => x.replace(/[^A-Za-z' -]/g, ' ').trim().replace(/\s+/g, ' ')).filter(x => x.split(' ').length >= 2))];
+    if (!names.length) { $('roster-msg').textContent = 'Need full names, one per line.'; return; }
+    const { error } = await sb.from('roster').upsert(names.map(name => ({ name })), { onConflict: 'name' });
+    $('roster-msg').textContent = error ? error.message : `Added ${names.length}.`;
+    if (!error) { $('roster-add').value = ''; renderAdmin(); }
+  };
+  $('roster-clear').onclick = async () => {
+    if (!confirm('Remove every name from the class names list?')) return;
+    const { error } = await sb.from('roster').delete().neq('name', '');
+    $('roster-msg').textContent = error ? error.message : 'Cleared.';
+    renderAdmin();
+  };
+  $('alert-test').onclick = async () => {
+    const { error } = await sb.rpc('admin_test_alert');
+    $('alert-msg').textContent = error ? error.message : 'Sent. Check your phone.';
   };
 
   // ---------- boot ----------
