@@ -158,6 +158,7 @@
     <div class="row">
       <button class="primary" id="paper-practise">Practise this paper</button>
       <button class="secondary" id="paper-exam">Sit it as an exam</button>
+      <button class="secondary" id="paper-automark">Auto-mark a paper I've done</button>
       <button class="secondary" id="paper-pdf">Download PDF</button>
       <button class="link" id="paper-pdf-sol">PDF with solutions</button>
     </div>
@@ -234,6 +235,18 @@
       <p class="muted small">Install the free <b>ntfy</b> app, tap + and subscribe to this topic. You get a push whenever someone signs up who is not on your class list.</p>
       <p><code id="ntfy-topic">…</code></p>
       <div class="row"><button class="primary" id="alert-test">Send test alert</button><span class="muted small" id="alert-msg"></span></div>
+    </div>
+
+    <div class="card">
+      <h2>Auto-marking</h2>
+      <p class="muted small">Uploaded papers are marked by Claude (Sonnet 5.5) on your Anthropic API credit. It stops for everyone once this month's spend reaches the cap.</p>
+      <p id="am-spend" class="small">…</p>
+      <div class="row">
+        <label class="small">Monthly cap (US$) <input id="am-cap" type="number" min="0" step="1" style="width:90px"></label>
+        <label class="small">Requests per student per day <input id="am-daily" type="number" min="0" step="1" style="width:70px"></label>
+        <label class="small"><input id="am-on" type="checkbox"> On</label>
+        <button class="primary" id="am-save">Save</button><span class="muted small" id="am-msg"></span>
+      </div>
     </div>
 
     <div class="card">

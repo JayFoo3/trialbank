@@ -419,6 +419,7 @@
     ]);
     rosterN = (roster || []).length;
     $('roster-count').textContent = `· ${rosterN}`;
+    renderAutomarkAdmin(s0 => s0, settings);
     $('ntfy-topic').textContent = (settings || []).find(r => r.key === 'ntfy_topic')?.value || 'not set';
     const s = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
     document.querySelectorAll('#admin-mode button').forEach(b => b.classList.toggle('on', b.dataset.v === (s.signup_mode || 'domain')));
@@ -496,6 +497,25 @@
     const { error } = await sb.from('roster').delete().neq('name', '');
     $('roster-msg').textContent = error ? error.message : 'Cleared.';
     renderAdmin();
+  };
+  async function renderAutomarkAdmin(_, settings) {
+    const s = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
+    $('am-cap').value = s.automark_monthly_cap_usd ?? 20;
+    $('am-daily').value = s.automark_daily_calls ?? 16;
+    $('am-on').checked = (s.automark_enabled ?? 'on') !== 'off';
+    const { data, error } = await sb.rpc('automark_spend');
+    const r = data && data[0];
+    $('am-spend').textContent = error ? error.message
+      : `This month: US$${Number(r?.month_usd || 0).toFixed(2)} across ${r?.month_runs || 0} marking requests (about 4 per paper). All time: US$${Number(r?.all_usd || 0).toFixed(2)}.`;
+  }
+  $('am-save').onclick = async () => {
+    const rows = [
+      { key: 'automark_monthly_cap_usd', value: String(Math.max(0, Number($('am-cap').value) || 0)) },
+      { key: 'automark_daily_calls', value: String(Math.max(0, Math.round(Number($('am-daily').value) || 0))) },
+      { key: 'automark_enabled', value: $('am-on').checked ? 'on' : 'off' },
+    ];
+    const { error } = await sb.from('settings').upsert(rows, { onConflict: 'key' });
+    $('am-msg').textContent = error ? error.message : 'Saved.';
   };
   $('alert-test').onclick = async () => {
     const { error } = await sb.rpc('admin_test_alert');
@@ -728,6 +748,17 @@
       catch (err) { $('paper-error').textContent = err.message; $('paper-error').hidden = false; }
       finally { b.disabled = false; }
     };
+    $('paper-automark').onclick = async (ev) => {
+      const b = ev.currentTarget; b.disabled = true;
+      try {
+        state.subject = p.subject;
+        const now = Date.now();
+        await prepareExam(p, { startedAt: now, readingSec: 0, workSec: 0, finishedAt: now, uploaded: true });
+        saveExam(); location.hash = '#examrun'; await finishExam(false);
+        $('exam-note').textContent = 'Upload your written paper below and it will be marked for you.';
+      } catch (err) { $('paper-error').textContent = err.message; $('paper-error').hidden = false; }
+      finally { b.disabled = false; }
+    };
     box.innerHTML = '';
     qs.forEach(q => {
       const c = mk('div', 'card qcard');
@@ -750,7 +781,7 @@
   const saveKey = () => 'tb_exam_' + (state.user ? state.user.id : '');
   function saveExam() {
     const e = state.exam; if (!e) return;
-    lsSet(saveKey(), { paperId: e.paper.id, startedAt: e.startedAt, readingSec: e.readingSec, workSec: e.workSec, answers: e.answers, marks: e.marks, lost: e.lost || {}, finishedAt: e.finishedAt || null });
+    lsSet(saveKey(), { paperId: e.paper.id, startedAt: e.startedAt, readingSec: e.readingSec, workSec: e.workSec, answers: e.answers, marks: e.marks, lost: e.lost || {}, ai: e.ai || {}, uploaded: !!e.uploaded, finishedAt: e.finishedAt || null });
   }
   function renderExamSetup() {
     tabs('exam-tabs', renderExamSetup);
@@ -888,6 +919,7 @@
     const e = state.exam, body = $('exam-body'), marking = e.phase === 'marking';
     body.innerHTML = '';
     const jump = $('exam-jump'); jump.innerHTML = '';
+    if (marking) body.appendChild(automarkCard());
     e.qs.forEach((q, idx) => {
       const chip = mk('button', e.answers[q.id] || e.marks[q.id] != null ? 'done' : '', qLabel(q).replace(/^Q/, ''));
       chip.onclick = () => document.getElementById('xq' + idx).scrollIntoView({ block: 'start' });
@@ -895,6 +927,8 @@
       const c = mk('div', 'card qcard'); c.id = 'xq' + idx;
       c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)}</span></div>`;
       c.appendChild(qImg(q.imageUrl, 'Question ' + qLabel(q)));
+      const ai = marking && e.ai && e.ai[q.id];
+      if (ai) c.appendChild(mk('p', 'ai-note', `<b>Auto-marker: ${ai.found ? `${ai.awarded}/${ai.out_of}` : 'not found in your upload'}</b> ${esc(ai.feedback || '')}`));
       if (q.type === 'mcq') {
         const ch = mk('div', 'choices');
         ['A', 'B', 'C', 'D'].forEach(l => {
@@ -987,7 +1021,7 @@
     const tb = $('exam-history').querySelector('tbody'); tb.innerHTML = '';
     (ex || []).forEach(r => {
       const tr = mk('tr');
-      tr.innerHTML = `<td>${day(r.started_at)}</td><td>${r.papers.school} ${r.papers.year}</td><td>${r.score}/${r.out_of} (${r.out_of ? Math.round(100 * r.score / r.out_of) : 0}%)</td><td>${Math.round((r.seconds_used || 0) / 60)} of ${r.work_minutes} min</td>`;
+      tr.innerHTML = `<td>${day(r.started_at)}</td><td>${r.papers.school} ${r.papers.year}</td><td>${r.score}/${r.out_of} (${r.out_of ? Math.round(100 * r.score / r.out_of) : 0}%)</td><td>${r.work_minutes ? `${Math.round((r.seconds_used || 0) / 60)} of ${r.work_minutes} min` : 'Uploaded'}</td>`;
       tb.appendChild(tr);
     });
     $('exam-history-empty').hidden = !!(ex && ex.length);
@@ -1027,6 +1061,140 @@
       if (!(await setFromIds((data || []).map(r => r.question_id), 20))) reviewError('No starred questions in this subject yet. Tap the star on any question.');
     } catch (err) { reviewError(err.message); }
   };
+
+  // ---------- automarker ----------
+  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let pdfjsP = null;
+  function loadPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    return pdfjsP = pdfjsP || new Promise((res, rej) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      sc.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(window.pdfjsLib); };
+      sc.onerror = () => { pdfjsP = null; rej(new Error('Could not load the PDF reader. Check your connection.')); };
+      document.head.appendChild(sc);
+    });
+  }
+  const LONG_SIDE = 1600, MAX_PAGES = 30;
+  const toJpeg = (cv) => new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.75));
+  function fitCanvas(w, h) {
+    const k = Math.min(1, LONG_SIDE / Math.max(w, h));
+    const cv = document.createElement('canvas'); cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+    return { cv, k };
+  }
+  async function filesToPages(files, step) {
+    const out = [];
+    for (const f of files) {
+      if (out.length >= MAX_PAGES) break;
+      if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
+        const lib = await loadPdfJs();
+        const doc = await lib.getDocument({ data: await f.arrayBuffer() }).promise;
+        for (let i = 1; i <= doc.numPages && out.length < MAX_PAGES; i++) {
+          step(`Reading page ${out.length + 1}…`);
+          const pg = await doc.getPage(i);
+          const v = pg.getViewport({ scale: 1 });
+          const scale = LONG_SIDE / Math.max(v.width, v.height);
+          const vp = pg.getViewport({ scale });
+          const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+          const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+          await pg.render({ canvasContext: ctx, viewport: vp }).promise;
+          out.push(await toJpeg(cv));
+        }
+      } else if (f.type.startsWith('image/') || /\.(jpe?g|png|heic|webp)$/i.test(f.name)) {
+        step(`Reading page ${out.length + 1}…`);
+        let bmp;
+        try { bmp = await createImageBitmap(f, { imageOrientation: 'from-image' }); }
+        catch { throw new Error(`Couldn't read ${f.name}. Use JPEG/PNG photos or a PDF.`); }
+        const { cv, k } = fitCanvas(bmp.width, bmp.height);
+        cv.getContext('2d').drawImage(bmp, 0, 0, bmp.width * k, bmp.height * k);
+        out.push(await toJpeg(cv));
+      }
+    }
+    if (!out.length) throw new Error('Choose a PDF or photos of your written answers.');
+    return out;
+  }
+  function markGroups(qs) {
+    // keep each question number together (they share a solution), at most ~24 marks per request
+    const blocks = [];
+    qs.filter(q => (q.type === 'mcq' && q.answer) || (q.type !== 'mcq' && q.marks)).forEach(q => {
+      const key = q.type === 'mcq' ? 'mcq' : 'n' + q.number, last = blocks[blocks.length - 1];
+      if (last && last.key === key) last.qs.push(q); else blocks.push({ key, qs: [q] });
+    });
+    const groups = []; let cur = [], m = 0;
+    blocks.forEach(b => {
+      const bm = b.qs.reduce((a, q) => a + (q.type === 'mcq' ? 1 : q.marks), 0);
+      if (cur.length && (m + bm > 24 || cur.length + b.qs.length > 24)) { groups.push(cur); cur = []; m = 0; }
+      cur.push(...b.qs); m += bm;
+    });
+    if (cur.length) groups.push(cur);
+    return groups;
+  }
+  function automarkCard() {
+    const e = state.exam;
+    const c = mk('div', 'card automark');
+    c.innerHTML = `<h2>Auto-mark from your written paper</h2>
+      <p class="muted small">Upload a PDF scan or photos of your answers, including your multiple choice answer sheet. Claude reads your working against the marking guidelines and suggests a mark for every question. Check each one: you can change any mark before saving. Your pages are sent to Anthropic's Claude for marking, then deleted from Trialbank.</p>`;
+    const row = mk('div', 'row');
+    const inp = mk('input'); inp.type = 'file'; inp.accept = 'application/pdf,image/*'; inp.multiple = true;
+    const go = mk('button', 'primary', e.ai && Object.keys(e.ai).length ? 'Re-mark' : 'Auto-mark');
+    const st = mk('p', 'small'); st.hidden = true;
+    row.append(inp, go); c.append(row, st);
+    if (e.ai && Object.keys(e.ai).length) { st.hidden = false; st.textContent = 'Auto-marked. Suggested marks are filled in below; check them against the solutions.'; }
+    go.onclick = () => runAutomark(inp.files, go, st);
+    return c;
+  }
+  async function runAutomark(files, btn, st) {
+    const e = state.exam; if (!e) return;
+    const say = (t, cls = '') => { st.hidden = false; st.className = 'small ' + cls; st.textContent = t; };
+    if (!files || !files.length) return say('Choose your PDF or photos first.', 'error');
+    btn.disabled = true;
+    const run = Date.now().toString(36), uid = state.user.id, paths = [];
+    try {
+      const blobs = await filesToPages([...files], say);
+      for (let i = 0; i < blobs.length; i++) {
+        say(`Uploading page ${i + 1} of ${blobs.length}…`);
+        const path = `${uid}/${run}/p${String(i + 1).padStart(2, '0')}.jpg`;
+        const { error } = await sb.storage.from('submissions').upload(path, blobs[i], { contentType: 'image/jpeg', upsert: true });
+        if (error) throw error;
+        paths.push(path);
+      }
+      const groups = markGroups(e.qs);
+      let done = 0, cost = 0; const failed = [];
+      const call = async (g) => {
+        const { data, error } = await sb.functions.invoke('automark', { body: { paper_id: e.paper.id, pages: paths, question_ids: g.map(q => q.id) } });
+        if (error) {
+          let msg = error.message;
+          try { msg = (await error.context.json()).error || msg; } catch {}
+          throw new Error(msg);
+        }
+        applyMarks(data.results); cost += data.cost_usd || 0;
+        say(`Marking… ${++done} of ${groups.length} sections done.`);
+      };
+      say(`Marking… 0 of ${groups.length} sections done. This takes a minute or two.`);
+      // first section alone so your pages are cached, then the rest together
+      try { await call(groups[0]); } catch (err) { if (groups.length === 1 || /limit|budget|switched off|sign in|set up/i.test(err.message)) throw err; failed.push(err.message); }
+      const rest = await Promise.allSettled(groups.slice(1).map(call));
+      rest.forEach(r => { if (r.status === 'rejected') failed.push(r.reason.message); });
+      saveExam(); renderExamBody(); updateRunning();
+      const msg = failed.length ? `Marked ${done} of ${groups.length} sections. ${failed.length} failed (${failed[0]}). Tap Re-mark to try again, or mark those yourself.` : 'Auto-marked. Suggested marks are filled in below; check each one against the solutions.';
+      const st2 = document.querySelector('.automark p.small'); if (st2) { st2.hidden = false; st2.className = 'small ' + (failed.length ? 'error' : ''); st2.textContent = msg; }
+    } catch (err) {
+      say(err.message || String(err), 'error');
+    } finally {
+      btn.disabled = false;
+      if (paths.length) sb.storage.from('submissions').remove(paths).catch(() => {});
+    }
+  }
+  function applyMarks(results) {
+    const e = state.exam; if (!e) return;
+    e.ai = e.ai || {}; e.lost = e.lost || {};
+    (results || []).forEach(x => {
+      const q = e.qs.find(q => q.id === x.id); if (!q) return;
+      if (q.type === 'mcq') { if (x.choice) e.answers[q.id] = x.choice; }
+      else { e.marks[q.id] = x.awarded; if (x.lost && x.lost.length) e.lost[q.id] = x.lost; else delete e.lost[q.id]; }
+      e.ai[q.id] = { found: x.found, awarded: x.awarded, out_of: x.out_of, feedback: x.feedback };
+    });
+  }
 
   // ---------- boot ----------
   sb.auth.getSession().then(async ({ data }) => { state.user = data.session?.user || null; await checkAdmin(); route(); });

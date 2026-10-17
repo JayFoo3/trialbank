@@ -133,3 +133,7 @@ ul.plain li .link { color: var(--bad); font-size: .85rem; }
 .chips button.tagged { background: #fef3c7; border-color: #d97706; color: #92400e; }
 .bar.clickable { cursor: pointer; }
 .bar.clickable:hover .lbl span:first-child { text-decoration: underline; }
+
+/* automarker */
+.automark input[type=file] { flex: 1; min-width: 0; }
+.ai-note { background: #eef2ff; border-left: 3px solid #4f46e5; padding: 8px 10px; border-radius: 6px; font-size: .92rem; margin: 8px 0; }
