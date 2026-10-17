@@ -30,6 +30,16 @@ def put(path, data, tries=5):
     sys.exit(f'upload {path} -> {err}')
 
 
+def paper_end(m):
+    """Last page (1-based) of the paper itself, before the solutions.
+    Albert's readings give solutionsFrom = number of paper pages; the OCR'd ones give the first solution page."""
+    sf = m.get('solutions_from')
+    if not sf:
+        return m['pages']
+    last_q = max((pg for q in m['questions'] for pg in q.get('pages', [])), default=0)
+    return max(1, min(m['pages'], max(last_q, sf - 1 if m.get('ocr') else sf)))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--root', default=os.path.expanduser('~/Documents'))
@@ -68,10 +78,10 @@ def main():
         if os.path.exists(pre):
             put(f'{slug}/paper.pdf', open(pre, 'rb').read())
             patch['pdf_path'] = f'{slug}/paper.pdf'
-        elif sf and 1 < sf <= n and shutil.which('qpdf'):
+        elif paper_end(m) < n and shutil.which('qpdf'):
             with tempfile.TemporaryDirectory() as t:
                 out = os.path.join(t, 'paper.pdf')
-                subprocess.run(['qpdf', src, '--pages', '.', f'1-{sf - 1}', '--', out])
+                subprocess.run(['qpdf', src, '--pages', '.', f'1-{paper_end(m)}', '--', out])
                 put(f'{slug}/paper.pdf', open(out, 'rb').read())
             patch['pdf_path'] = f'{slug}/paper.pdf'
         else:
@@ -79,7 +89,7 @@ def main():
         r = requests.patch(f'{URL}/rest/v1/papers?slug=eq.{slug}', headers={**H, 'Content-Type': 'application/json'}, data=json.dumps(patch))
         if r.status_code >= 300:
             sys.exit(f'PATCH {slug} -> {r.status_code}: {r.text[:300]}')
-        print(f'{slug}: paper pages 1-{(sf - 1) if sf else n} of {n}')
+        print(f'{slug}: paper pages 1-{paper_end(m)} of {n}')
     print('done')
 
 
