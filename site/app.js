@@ -275,13 +275,13 @@
   // ---------- lost marks: which mark, and why ----------
   const REASONS = [
     ['concept', "Didn't know the concept"], ['method', 'Wrong method'], ['algebra', 'Algebra slip'],
-    ['careless', 'Careless'], ['time', "Didn't finish"], ['cfpe', 'CFPE (correct from previous error)'],
+    ['careless', 'Careless'], ['time', "Didn't finish"], ['cfpe', 'Earned it CFPE (earlier slip carried)'],
   ];
   const reasonName = Object.fromEntries(REASONS);
   function showLost(res, nLost) {
     res.lost = res.lost || [];
     const box = $('lost-box'), marks = $('lost-marks'), outOf = res.outOf;
-    $('lost-hint').textContent = `You dropped ${nLost} of ${outOf}. Tag each one.`;
+    $('lost-hint').textContent = `You dropped ${nLost} of ${outOf}. Tag why, and tag any mark you still earned CFPE.`;
     $('lost-reason-wrap').hidden = true;
     let cur = null;
     const draw = () => {
@@ -296,7 +296,7 @@
     const drawReasons = () => {
       const wrap = $('lost-reason-wrap'), rs = $('lost-reasons');
       wrap.hidden = cur == null; if (cur == null) return;
-      $('lost-reason-q').textContent = `Why did you lose mark ${cur}?`;
+      $('lost-reason-q').textContent = `Mark ${cur}: why was it lost, or did you earn it CFPE?`;
       const t = res.lost.find(l => l.mark === cur);
       rs.innerHTML = '';
       REASONS.forEach(([k, name]) => {
@@ -305,7 +305,7 @@
           res.lost = res.lost.filter(l => l.mark !== cur);
           if (!(t && t.reason === k)) res.lost.push({ mark: cur, reason: k });
           res.lost.sort((a, b) => a.mark - b.mark);
-          if (res.lost.length >= nLost) cur = null;
+          if (res.lost.filter(l => l.reason !== 'cfpe').length >= nLost) cur = null;
           else { const next = [...Array(outOf).keys()].map(i => i + 1).find(m => m > (cur || 0) && !res.lost.some(l => l.mark === m)); cur = next || null; }
           draw(); drawReasons(); saveLost(res);
         };
@@ -332,9 +332,15 @@
       r.n++; r.ids.add(a.question_id);
       const tp = a.questions.topic || 'Other'; r.topics[tp] = (r.topics[tp] || 0) + 1;
     }));
+    const cfpe = by.cfpe; delete by.cfpe;
     const total = Object.values(by).reduce((x, r) => x + r.n, 0);
     el.innerHTML = '';
-    if (!total) { el.innerHTML = '<p class="muted small">Nothing tagged yet. After checking a solution, tap which marks you lost and why.</p>'; return; }
+    if (!total && !cfpe) { el.innerHTML = '<p class="muted small">Nothing tagged yet. After checking a solution, tap which marks you lost and why.</p>'; return; }
+    if (cfpe) {
+      const top = Object.entries(cfpe.topics).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t} (${n})`).join(', ');
+      const p = mk('p', 'small', `<b>${cfpe.n} mark${cfpe.n === 1 ? '' : 's'} still earned CFPE</b> <span class="muted">· your method held up after an earlier slip · mostly ${top}</span>`);
+      el.appendChild(p);
+    }
     Object.entries(by).sort((a, b) => b[1].n - a[1].n).forEach(([k, r]) => {
       const pct = Math.round(100 * r.n / total);
       const top = Object.entries(r.topics).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t} (${n})`).join(', ');
