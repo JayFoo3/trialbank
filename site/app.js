@@ -275,7 +275,7 @@
   // ---------- lost marks: which mark, and why ----------
   const REASONS = [
     ['concept', "Didn't know the concept"], ['method', 'Wrong method'], ['algebra', 'Algebra slip'],
-    ['careless', 'Careless'], ['time', "Didn't finish"], ['cfpe', 'CFPE'],
+    ['careless', 'Careless'], ['time', "Didn't finish"], ['cfpe', 'CFPE (correct from previous error)'],
   ];
   const reasonName = Object.fromEntries(REASONS);
   function showLost(res, nLost) {
