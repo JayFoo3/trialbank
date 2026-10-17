@@ -80,11 +80,15 @@
     return msg;
   }
   $('signout').onclick = () => sb.auth.signOut();
-  sb.auth.onAuthStateChange(async (_evt, session) => {
-    state.user = session?.user || null;
-    if (!state.user) state.set = null;
-    await checkAdmin();
-    route();
+  sb.auth.onAuthStateChange((_evt, session) => {
+    // supabase-js holds a lock while this callback runs: any other supabase call inside it deadlocks,
+    // so the admin check and routing are deferred to the next tick.
+    setTimeout(async () => {
+      state.user = session?.user || null;
+      if (!state.user) state.set = null;
+      await checkAdmin();
+      route();
+    }, 0);
   });
   async function checkAdmin() {
     state.admin = false;
