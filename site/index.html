@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trialbank</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#home" id="brand">Trialbank</a>
+  <nav id="nav" hidden>
+    <a href="#home">Practise</a>
+    <a href="#progress">Progress</a>
+    <button class="link" id="signout">Sign out</button>
+  </nav>
+</header>
+
+<main id="app">
+  <!-- ===== auth ===== -->
+  <section id="view-auth" class="view" hidden>
+    <div class="card narrow">
+      <h1 id="auth-title">Sign in</h1>
+      <p class="muted">Past trial questions for our year, by topic. School email only.</p>
+      <form id="auth-form">
+        <label>School email <input type="email" name="email" required autocomplete="email" placeholder="first.last@education.nsw.gov.au"></label>
+        <label>Password <input type="password" name="password" required minlength="6" autocomplete="current-password"></label>
+        <label id="invite-row" hidden>Invite code <input type="text" name="invite" autocomplete="off" placeholder="from the Classroom post"></label>
+        <p class="error" id="auth-error" hidden></p>
+        <button class="primary" type="submit" id="auth-submit">Sign in</button>
+      </form>
+      <p class="muted small"><button class="link" id="auth-toggle">New here? Create an account</button></p>
+    </div>
+  </section>
+
+  <!-- ===== home: build a set ===== -->
+  <section id="view-home" class="view" hidden>
+    <h1>Build a set</h1>
+    <div class="row" id="subject-tabs"></div>
+
+    <div class="card">
+      <div class="between">
+        <h2>Topics</h2>
+        <div><button class="link" id="topics-all">All</button> · <button class="link" id="topics-none">None</button></div>
+      </div>
+      <div class="chips" id="topic-chips"></div>
+    </div>
+
+    <div class="card options">
+      <div class="opt">
+        <span>Questions</span>
+        <div class="seg" data-opt="count"><button data-v="5">5</button><button data-v="10" class="on">10</button><button data-v="20">20</button></div>
+      </div>
+      <div class="opt">
+        <span>Type</span>
+        <div class="seg" data-opt="type"><button data-v="all" class="on">Both</button><button data-v="mcq">Multiple choice</button><button data-v="short">Written</button></div>
+      </div>
+      <div class="opt">
+        <span>Difficulty</span>
+        <div class="seg" data-opt="diff"><button data-v="all" class="on">Any</button><button data-v="Easier">Easier</button><button data-v="Medium">Medium</button><button data-v="Hard">Hard</button></div>
+      </div>
+      <div class="opt">
+        <span>Unseen first</span>
+        <div class="seg" data-opt="fresh"><button data-v="1" class="on">On</button><button data-v="0">Off</button></div>
+      </div>
+    </div>
+
+    <p class="error" id="home-error" hidden></p>
+    <button class="primary big" id="start">Start</button>
+  </section>
+
+  <!-- ===== set: one question at a time ===== -->
+  <section id="view-set" class="view" hidden>
+    <div class="between">
+      <span class="muted" id="set-pos"></span>
+      <span class="muted" id="set-meta"></span>
+    </div>
+    <div class="progress"><div id="set-bar"></div></div>
+
+    <div class="card question">
+      <img id="q-img" alt="Question">
+      <p class="muted small" id="q-coarse" hidden>Whole page shown: find the part named above.</p>
+    </div>
+
+    <div id="mcq-controls" class="choices" hidden>
+      <button data-l="A">A</button><button data-l="B">B</button><button data-l="C">C</button><button data-l="D">D</button>
+    </div>
+
+    <div id="short-controls" hidden>
+      <button class="secondary" id="show-sol">Show solution</button>
+      <div id="sol-wrap" hidden>
+        <p class="muted small">The whole question's solution; scroll to your part.</p>
+        <div class="card scroll"><img id="sol-img" alt="Solution"></div>
+        <p>How many marks would you have got?</p>
+        <div class="choices" id="self-mark"></div>
+      </div>
+    </div>
+
+    <p class="verdict" id="verdict" hidden></p>
+    <div class="row end">
+      <button class="link" id="skip">Skip</button>
+      <button class="primary" id="next" hidden>Next</button>
+    </div>
+  </section>
+
+  <!-- ===== summary ===== -->
+  <section id="view-summary" class="view" hidden>
+    <h1>Set done</h1>
+    <p class="big-number" id="summary-score"></p>
+    <div id="summary-topics" class="bars"></div>
+    <div class="row">
+      <a class="primary button" href="#home">Another set</a>
+      <a class="secondary button" href="#progress">See progress</a>
+    </div>
+  </section>
+
+  <!-- ===== progress ===== -->
+  <section id="view-progress" class="view" hidden>
+    <h1>Progress</h1>
+    <div class="row" id="progress-tabs"></div>
+    <div class="card">
+      <h2>You</h2>
+      <p class="muted small">Accuracy by topic across everything you've attempted. Weakest first.</p>
+      <div class="bars" id="my-bars"></div>
+    </div>
+    <div class="card">
+      <h2>Whole cohort</h2>
+      <p class="muted small">Anonymous. Where the year as a whole is bleeding marks.</p>
+      <div class="bars" id="cohort-bars"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="muted small">Questions from past trial papers, used for study within our school only.</footer>
+
+<script src="config.js"></script>
+<script>
+  // demo mode (config.demo = true) runs on bundled sample data with no backend; otherwise load supabase-js
+  if (window.APP_CONFIG.demo) {
+    document.write('<script src="mock-data.js"><\/script><script src="mock.js"><\/script>');  // demo files are built locally (see README) and not committed
+  } else {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"><\/script>');
+  }
+</script>
+<script src="app.js"></script>
+</body>
+</html>

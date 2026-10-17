@@ -1,0 +1,8 @@
+output/
+_old/
+__pycache__/
+*.tsv
+*.log
+.env
+site/demo/
+site/mock-data.js
