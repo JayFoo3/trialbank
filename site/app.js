@@ -511,6 +511,19 @@
     catch (err) { if (errEl) { errEl.textContent = err.message; errEl.hidden = false; } }
     finally { btn.textContent = old; btn.disabled = false; }
   }
+  // original PDF from the private bucket; falls back to a rebuilt PDF if the file isn't uploaded
+  async function officialPdf(btn, p, key, opts, errEl) {
+    const path = p && p[key];
+    if (!path) return pdfAction(btn, opts, errEl);
+    const old = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…';
+    if (errEl) errEl.hidden = true;
+    try {
+      const { data, error } = await sb.storage.from('questions').createSignedUrl(path, 300, { download: opts.filename });
+      if (error) throw error;
+      const a = document.createElement('a'); a.href = data.signedUrl; a.download = opts.filename; document.body.appendChild(a); a.click(); a.remove();
+    } catch (err) { if (errEl) { errEl.textContent = err.message; errEl.hidden = false; } }
+    finally { setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 800); }
+  }
   const paperFile = (p) => `${p.school}-${p.year}-${p.subject}`.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.pdf';
   const lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
@@ -606,8 +619,8 @@
     qs.forEach(q => { q.imageUrl = urls[q.image_path]; q.solutionUrl = q.solution_path ? urls[q.solution_path] : null; });
     const total = qs.reduce((a, q) => a + (q.marks || 0), 0);
     const pdfBase = { title: `${p.school} ${p.year} · ${C.subjects[p.subject] || p.subject}`, sub: `${qs.length} questions${total ? ' · ' + total + ' marks' : ''}`, filename: paperFile(p), qs: qs.filter(q => q.image_path) };
-    $('paper-pdf').onclick = () => pdfAction($('paper-pdf'), pdfBase, $('paper-error'));
-    $('paper-pdf-sol').onclick = () => pdfAction($('paper-pdf-sol'), { ...pdfBase, filename: paperFile(p).replace('.pdf', '-solutions.pdf'), withSolutions: true }, $('paper-error'));
+    $('paper-pdf').onclick = () => officialPdf($('paper-pdf'), p, 'pdf_path', pdfBase, $('paper-error'));
+    $('paper-pdf-sol').onclick = () => officialPdf($('paper-pdf-sol'), p, 'pdf_sol_path', { ...pdfBase, filename: paperFile(p).replace('.pdf', '-solutions.pdf'), withSolutions: true }, $('paper-error'));
     $('paper-title').textContent = `${p.school} ${p.year}`;
     $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, diffOf(p), `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · ');
     $('paper-practise').onclick = async () => {
@@ -729,7 +742,7 @@
   $('exam-pdf').onclick = () => {
     const e = state.exam; if (!e) return;
     const total = e.qs.reduce((a, q) => a + (q.marks || 0), 0);
-    pdfAction($('exam-pdf'), {
+    officialPdf($('exam-pdf'), e.paper, 'pdf_path', {
       title: `${e.paper.school} ${e.paper.year} · ${C.subjects[e.paper.subject] || e.paper.subject}`,
       sub: `${e.qs.length} questions${total ? ' · ' + total + ' marks' : ''} · Reading time ${Math.round(e.readingSec / 60)} min · Working time ${Math.round(e.workSec / 60)} min`,
       filename: paperFile(e.paper), qs: e.qs,
