@@ -228,7 +228,7 @@
     $('star').textContent = '☆ Star';
     loadStars().then(s => { $('star').textContent = s.has(x.id) ? '★ Starred' : '☆ Star'; });
     $('star').onclick = () => toggleStar(x.id, $('star'));
-    $('verdict').hidden = true; $('verdict').className = 'verdict';
+    $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true;
     $('next').hidden = true; $('skip').hidden = false;
     $('mcq-controls').hidden = x.type !== 'mcq';
     $('short-controls').hidden = x.type !== 'short';
@@ -267,8 +267,86 @@
     s.results[s.i] = { q: x, score, outOf };
     if (x.type === 'short') verdict(score === outOf ? 'Full marks.' : score === 0 ? 'Mark it, move on. It will come back around.' : `${score}/${outOf}.`, score === outOf ? 'good' : score === 0 ? 'bad' : 'warn');
     $('next').hidden = false; $('skip').hidden = true;
-    const { error } = await sb.from('attempts').insert({ user_id: state.user.id, question_id: x.id, score, out_of: outOf, chosen });
+    if (x.type === 'short' && score < outOf) showLost(s.results[s.i], outOf - score);
+    const { data: row, error } = await sb.from('attempts').insert({ user_id: state.user.id, question_id: x.id, score, out_of: outOf, chosen }).select('id').single();
     if (error) console.warn('attempt not saved', error.message);
+    else { s.results[s.i].attemptId = row.id; if (s.results[s.i].lost?.length) saveLost(s.results[s.i]); }
+  }
+  // ---------- lost marks: which mark, and why ----------
+  const REASONS = [
+    ['concept', "Didn't know the concept"], ['method', 'Wrong method'], ['algebra', 'Algebra slip'],
+    ['careless', 'Careless'], ['time', "Didn't finish"], ['cfpe', 'CFPE'],
+  ];
+  const reasonName = Object.fromEntries(REASONS);
+  function showLost(res, nLost) {
+    res.lost = res.lost || [];
+    const box = $('lost-box'), marks = $('lost-marks'), outOf = res.outOf;
+    $('lost-hint').textContent = `You dropped ${nLost} of ${outOf}. Tag each one.`;
+    $('lost-reason-wrap').hidden = true;
+    let cur = null;
+    const draw = () => {
+      marks.innerHTML = '';
+      for (let m = 1; m <= outOf; m++) {
+        const t = res.lost.find(l => l.mark === m);
+        const b = mk('button', (t ? 'tagged' : '') + (cur === m ? ' on' : ''), t ? `Mark ${m} · ${reasonName[t.reason]}` : `Mark ${m}`);
+        b.onclick = () => { cur = cur === m ? null : m; draw(); drawReasons(); };
+        marks.appendChild(b);
+      }
+    };
+    const drawReasons = () => {
+      const wrap = $('lost-reason-wrap'), rs = $('lost-reasons');
+      wrap.hidden = cur == null; if (cur == null) return;
+      $('lost-reason-q').textContent = `Why did you lose mark ${cur}?`;
+      const t = res.lost.find(l => l.mark === cur);
+      rs.innerHTML = '';
+      REASONS.forEach(([k, name]) => {
+        const b = mk('button', t && t.reason === k ? 'on' : '', name);
+        b.onclick = () => {
+          res.lost = res.lost.filter(l => l.mark !== cur);
+          if (!(t && t.reason === k)) res.lost.push({ mark: cur, reason: k });
+          res.lost.sort((a, b) => a.mark - b.mark);
+          if (res.lost.length >= nLost) cur = null;
+          else { const next = [...Array(outOf).keys()].map(i => i + 1).find(m => m > (cur || 0) && !res.lost.some(l => l.mark === m)); cur = next || null; }
+          draw(); drawReasons(); saveLost(res);
+        };
+        rs.appendChild(b);
+      });
+    };
+    draw(); box.hidden = false;
+  }
+  async function saveLost(res) {
+    if (!res.attemptId) return;   // saved once the attempt row exists
+    const { error } = await sb.from('attempts').update({ lost: res.lost.length ? res.lost : null }).eq('id', res.attemptId);
+    if (error) console.warn('lost marks not saved', error.message);
+  }
+  async function renderLostBars() {
+    const el = $('lost-bars'); $('lost-error').hidden = true;
+    const { data, error } = await sb.from('attempts')
+      .select('question_id, lost, created_at, questions!inner(topic, papers!inner(subject))')
+      .eq('user_id', state.user.id).eq('questions.papers.subject', state.subject)
+      .not('lost', 'is', null).order('created_at', { ascending: false }).limit(1000);
+    if (error) { el.innerHTML = `<p class="muted small">${error.message}</p>`; return; }
+    const by = {};
+    (data || []).forEach(a => (a.lost || []).forEach(l => {
+      const r = by[l.reason] = by[l.reason] || { n: 0, topics: {}, ids: new Set() };
+      r.n++; r.ids.add(a.question_id);
+      const tp = a.questions.topic || 'Other'; r.topics[tp] = (r.topics[tp] || 0) + 1;
+    }));
+    const total = Object.values(by).reduce((x, r) => x + r.n, 0);
+    el.innerHTML = '';
+    if (!total) { el.innerHTML = '<p class="muted small">Nothing tagged yet. After checking a solution, tap which marks you lost and why.</p>'; return; }
+    Object.entries(by).sort((a, b) => b[1].n - a[1].n).forEach(([k, r]) => {
+      const pct = Math.round(100 * r.n / total);
+      const top = Object.entries(r.topics).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t} (${n})`).join(', ');
+      const d = mk('div', 'bar clickable ' + (pct >= 40 ? 'low' : pct >= 20 ? 'mid' : 'high'));
+      d.innerHTML = `<div class="lbl"><span>${reasonName[k] || k}</span><span class="muted">${r.n} mark${r.n === 1 ? '' : 's'} · mostly ${top}</span></div>
+                     <div class="track"><div class="fill" style="width:${pct}%"></div></div>`;
+      d.onclick = async () => {
+        try { if (!(await setFromIds([...r.ids], 15))) throw new Error('Those questions are not available any more.'); }
+        catch (err) { $('lost-error').textContent = err.message; $('lost-error').hidden = false; }
+      };
+      el.appendChild(d);
+    });
   }
   $('next').onclick = advance;
   $('skip').onclick = advance;
@@ -297,6 +375,7 @@
       sb.rpc('cohort_topic_stats', { subj: state.subject }),
     ]);
     bars($('my-bars'), mine || [], 'Nothing attempted yet in this subject.');
+    renderLostBars();
     bars($('cohort-bars'), (cohort || []).map(r => ({ ...r, extra: `${r.students} student${r.students == 1 ? '' : 's'}` })), 'No attempts yet.');
   }
   function bars(el, rows, empty) {

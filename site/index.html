@@ -102,6 +102,14 @@
     </div>
 
     <p class="verdict" id="verdict" hidden></p>
+    <div class="lost" id="lost-box" hidden>
+      <p><b>Which marks did you lose?</b> <span class="muted small" id="lost-hint"></span></p>
+      <div class="chips" id="lost-marks"></div>
+      <div id="lost-reason-wrap" hidden>
+        <p class="small" id="lost-reason-q"></p>
+        <div class="chips" id="lost-reasons"></div>
+      </div>
+    </div>
     <div class="row end">
       <button class="link" id="skip">Skip</button>
       <button class="primary" id="next" hidden>Next</button>
@@ -128,6 +136,12 @@
       <h2>You</h2>
       <p class="muted small">Accuracy by topic across everything you've attempted. Weakest first.</p>
       <div class="bars" id="my-bars"></div>
+    </div>
+    <div class="card">
+      <h2>Why you lose marks</h2>
+      <p class="muted small">From the marks you tagged after checking solutions. Tap one to drill those questions.</p>
+      <div class="bars" id="lost-bars"></div>
+      <p class="error" id="lost-error" hidden></p>
     </div>
     <div class="card">
       <h2>Whole cohort</h2>
