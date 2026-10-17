@@ -12,6 +12,7 @@
   <nav id="nav" hidden>
     <a href="#home">Practise</a>
     <a href="#progress">Progress</a>
+    <a href="#admin" id="nav-admin" hidden>Admin</a>
     <button class="link" id="signout">Sign out</button>
   </nav>
 </header>
@@ -127,6 +128,35 @@
       <h2>Whole cohort</h2>
       <p class="muted small">Anonymous. Where the year as a whole is bleeding marks.</p>
       <div class="bars" id="cohort-bars"></div>
+    </div>
+  </section>
+  <!-- ===== admin ===== -->
+  <section id="view-admin" class="view" hidden>
+    <h1>Admin</h1>
+
+    <div class="card">
+      <h2>Who can sign up</h2>
+      <div class="opt">
+        <span>Mode</span>
+        <div class="seg" id="admin-mode"><button data-v="whitelist">Class list only</button><button data-v="domain">Any school email</button></div>
+      </div>
+      <label>Invite code (blank = none needed) <input id="admin-code" type="text" autocomplete="off"></label>
+      <label>Admin emails (comma-separated) <input id="admin-admins" type="text" autocomplete="off"></label>
+      <div class="row"><button class="primary" id="admin-save">Save settings</button><span class="muted small" id="admin-saved"></span></div>
+    </div>
+
+    <div class="card">
+      <h2>Class list <span class="muted small" id="allowed-count"></span></h2>
+      <p class="muted small">Paste emails, one per line or comma-separated. Anything else on the line is ignored.</p>
+      <textarea id="allowed-add" rows="4" placeholder="jane.citizen3@education.nsw.gov.au&#10;john.smith@education.nsw.gov.au"></textarea>
+      <div class="row"><button class="primary" id="allowed-add-btn">Add to list</button><span class="muted small" id="allowed-msg"></span></div>
+      <input id="allowed-filter" type="search" placeholder="Filter list" autocomplete="off">
+      <ul class="plain" id="allowed-list"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Accounts <span class="muted small" id="users-count"></span></h2>
+      <table class="tbl" id="users-table"><thead><tr><th>Email</th><th>Joined</th><th>Last seen</th><th>Attempts</th><th></th></tr></thead><tbody></tbody></table>
     </div>
   </section>
 </main>

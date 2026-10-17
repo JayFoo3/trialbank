@@ -3,7 +3,7 @@
   const C = window.APP_CONFIG;
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey);
   const $ = (id) => document.getElementById(id);
-  const views = ['auth', 'home', 'set', 'summary', 'progress'];
+  const views = ['auth', 'home', 'set', 'summary', 'progress', 'admin'];
 
   document.title = C.name;
   $('brand').textContent = C.name;
@@ -26,6 +26,7 @@
     const h = (location.hash || '#home').slice(1);
     if (!state.user) return show('auth');
     if (h === 'progress') { await renderProgress(); return show('progress'); }
+    if (h === 'admin' && state.admin) { await renderAdmin(); return show('admin'); }
     if (h === 'set' && state.set) return show('set');
     if (h === 'summary' && state.set) return show('summary');
     await renderHome(); show('home');
@@ -67,6 +68,7 @@
     }
   };
   function friendly(msg) {
+    if (/class list/i.test(msg)) return 'That email is not on the class list. Ask Jayden to add it.';
     if (/school email/i.test(msg)) return `Use your ${C.schoolDomain} address.`;
     if (/invite/i.test(msg)) return 'That invite code is wrong. It is on the Classroom post.';
     if (/Invalid login/i.test(msg)) return 'Wrong email or password.';
@@ -74,11 +76,17 @@
     return msg;
   }
   $('signout').onclick = () => sb.auth.signOut();
-  sb.auth.onAuthStateChange((_evt, session) => {
+  sb.auth.onAuthStateChange(async (_evt, session) => {
     state.user = session?.user || null;
     if (!state.user) state.set = null;
+    await checkAdmin();
     route();
   });
+  async function checkAdmin() {
+    state.admin = false;
+    if (state.user) { const { data } = await sb.rpc('is_admin'); state.admin = !!data; }
+    $('nav-admin').hidden = !state.admin;
+  }
 
   // ---------- home ----------
   let topicCounts = null;   // [{subject, topic, type, n}]
@@ -268,6 +276,79 @@
       });
   }
 
+  // ---------- admin ----------
+  const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
+  let allowed = [];
+  async function renderAdmin() {
+    const [{ data: settings }, { data: emails }, { data: users }] = await Promise.all([
+      sb.from('settings').select('*'),
+      sb.from('allowed_emails').select('email').order('email'),
+      sb.rpc('admin_users'),
+    ]);
+    const s = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
+    document.querySelectorAll('#admin-mode button').forEach(b => b.classList.toggle('on', b.dataset.v === (s.signup_mode || 'domain')));
+    $('admin-code').value = s.invite_code || '';
+    $('admin-admins').value = s.admin_emails || '';
+    allowed = (emails || []).map(r => r.email);
+    drawAllowed();
+    const tb = $('users-table').querySelector('tbody'); tb.innerHTML = '';
+    (users || []).forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${u.email}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td></td>`;
+      const b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
+      b.onclick = async () => {
+        if (u.email.toLowerCase() === state.user.email.toLowerCase()) return;
+        b.disabled = true; b.textContent = 'Removing…';
+        const { error } = await sb.rpc('admin_remove_user', { target: u.email });
+        if (error) { b.textContent = error.message; return; }
+        renderAdmin();
+      };
+      tr.lastElementChild.appendChild(b); tb.appendChild(tr);
+    });
+    $('users-count').textContent = `· ${(users || []).length}`;
+  }
+  function day(ts) { return ts ? new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '—'; }
+  function drawAllowed() {
+    const f = $('allowed-filter').value.trim().toLowerCase();
+    const ul = $('allowed-list'); ul.innerHTML = '';
+    allowed.filter(e => e.includes(f)).forEach(e => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${e}</span>`;
+      const b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
+      b.onclick = async () => {
+        const { error } = await sb.from('allowed_emails').delete().eq('email', e);
+        if (!error) { allowed = allowed.filter(x => x !== e); drawAllowed(); }
+      };
+      li.appendChild(b); ul.appendChild(li);
+    });
+    $('allowed-count').textContent = `· ${allowed.length}`;
+  }
+  $('allowed-filter').oninput = drawAllowed;
+  $('allowed-add-btn').onclick = async () => {
+    const found = [...new Set(($('allowed-add').value.match(EMAIL_RE) || []).map(e => e.toLowerCase()))];
+    const fresh = found.filter(e => !allowed.includes(e));
+    if (!fresh.length) { $('allowed-msg').textContent = found.length ? 'Already on the list.' : 'No emails found.'; return; }
+    const { error } = await sb.from('allowed_emails').upsert(fresh.map(email => ({ email })), { onConflict: 'email' });
+    if (error) { $('allowed-msg').textContent = error.message; return; }
+    allowed = [...allowed, ...fresh].sort();
+    $('allowed-add').value = '';
+    $('allowed-msg').textContent = `Added ${fresh.length}.`;
+    drawAllowed();
+  };
+  document.querySelectorAll('#admin-mode button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#admin-mode button').forEach(x => x.classList.remove('on')); b.classList.add('on');
+  });
+  $('admin-save').onclick = async () => {
+    const mode = document.querySelector('#admin-mode button.on')?.dataset.v || 'domain';
+    const rows = [
+      { key: 'signup_mode', value: mode },
+      { key: 'invite_code', value: $('admin-code').value.trim() },
+      { key: 'admin_emails', value: $('admin-admins').value.trim() },
+    ];
+    const { error } = await sb.from('settings').upsert(rows, { onConflict: 'key' });
+    $('admin-saved').textContent = error ? error.message : 'Saved.';
+  };
+
   // ---------- boot ----------
-  sb.auth.getSession().then(({ data }) => { state.user = data.session?.user || null; route(); });
+  sb.auth.getSession().then(async ({ data }) => { state.user = data.session?.user || null; await checkAdmin(); route(); });
 })();

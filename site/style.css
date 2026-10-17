@@ -91,3 +91,14 @@ button:disabled { opacity: .5; cursor: default; }
   .opt { flex-direction: column; align-items: flex-start; }
   .choices button { flex: 1; }
 }
+
+textarea { display: block; width: 100%; margin: 6px 0; padding: 10px 12px; font: inherit; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px; background: #fff; resize: vertical; }
+textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+ul.plain { list-style: none; padding: 0; margin: 8px 0 0; max-height: 320px; overflow-y: auto; border-top: 1px solid var(--line); }
+ul.plain li { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+ul.plain li .link { color: var(--bad); font-size: .85rem; }
+.tbl { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.tbl th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+.tbl td { padding: 7px 4px; border-bottom: 1px solid var(--line); }
+.tbl td .link { color: var(--bad); font-size: .85rem; }
