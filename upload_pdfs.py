@@ -4,7 +4,7 @@ Finds each source PDF by sha256 (searching --root, default ~/Documents), uploads
   <slug>/paper.pdf  (pages before the solutions)  and  <slug>/full.pdf (whole file, with solutions)
 then records the paths on the papers table.
 Usage: SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python3 upload_pdfs.py [--root DIR] [--only SLUG]"""
-import argparse, shutil, glob, hashlib, json, os, subprocess, sys, tempfile
+import argparse, shutil, time, glob, hashlib, json, os, subprocess, sys, tempfile
 import requests
 
 URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
@@ -14,10 +14,20 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BUCKET = 'questions'
 
 
-def put(path, data):
-    r = requests.post(f'{URL}/storage/v1/object/{BUCKET}/{path}', headers={**H, 'Content-Type': 'application/pdf', 'x-upsert': 'true'}, data=data)
-    if r.status_code >= 300:
-        sys.exit(f'upload {path} -> {r.status_code}: {r.text[:300]}')
+def put(path, data, tries=5):
+    for i in range(tries):
+        try:
+            r = requests.post(f'{URL}/storage/v1/object/{BUCKET}/{path}', headers={**H, 'Content-Type': 'application/pdf', 'x-upsert': 'true'}, data=data, timeout=120)
+            if r.status_code < 300:
+                return
+            err = f'{r.status_code}: {r.text[:200]}'
+            if r.status_code < 500 and r.status_code != 429:
+                break
+        except requests.RequestException as ex:
+            err = str(ex)
+        print(f'  {path}: retry {i + 1} after error {err[:60]}')
+        time.sleep(3 * (i + 1))
+    sys.exit(f'upload {path} -> {err}')
 
 
 def main():
