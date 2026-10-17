@@ -80,7 +80,7 @@ def main():
         if a.dry:
             print(f'{slug}: {len(m["questions"])} questions, {len(uploaded)} images')
             continue
-        paper = rest('POST', 'papers', headers={'Prefer': 'resolution=merge-duplicates,return=representation'},
+        paper = rest('POST', 'papers?on_conflict=slug', headers={'Prefer': 'resolution=merge-duplicates,return=representation'},
                      data=json.dumps(dict(slug=slug, subject=m['subject'], school=m['school'], year=m['year'],
                                           difficulty=m['difficulty'], sha256=m['sha256'], pages=m['pages'],
                                           scanned=m.get('scanned', False))))[0]
@@ -93,6 +93,10 @@ def main():
                 image_path=uploaded.get(q.get('image')), solution_path=uploaded.get(q.get('solution')),
                 coarse=bool(q.get('coarse')), text=(q.get('text') or '')[:4000]))
         rest('POST', 'questions', headers={'Prefer': 'resolution=merge-duplicates'}, data=json.dumps(rows))
+        keep = {r['id'] for r in rows}
+        for old_q in rest('GET', f'questions?paper_id=eq.{paper["id"]}&select=id'):
+            if old_q['id'] not in keep:
+                rest('DELETE', 'questions?id=eq.' + requests.utils.quote(old_q['id'], safe=''))
         print(f'{slug}: {len(rows)} questions, {len(uploaded)} images')
     print(f'done, {total_bytes / 1e6:.1f} MB of images')
 
