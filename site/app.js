@@ -278,11 +278,14 @@
     ['careless', 'Careless'], ['time', "Didn't finish"], ['cfpe', 'Earned it CFPE (earlier slip carried)'],
   ];
   const reasonName = Object.fromEntries(REASONS);
-  function showLost(res, nLost) {
+  // builds the "which marks did you lose, and why" tagger; res = { outOf, lost: [...] }
+  function lostTagger(res, nLost, onChange) {
     res.lost = res.lost || [];
-    const box = $('lost-box'), marks = $('lost-marks'), outOf = res.outOf;
-    $('lost-hint').textContent = `You dropped ${nLost} of ${outOf}. Tag why, and tag any mark you still earned CFPE.`;
-    $('lost-reason-wrap').hidden = true;
+    const outOf = res.outOf;
+    const root = mk('div', 'lost');
+    root.appendChild(mk('p', '', `<b>Which marks did you lose?</b> <span class="muted small">You dropped ${nLost} of ${outOf}. Tag why, and tag any mark you still earned CFPE.</span>`));
+    const marks = mk('div', 'chips'), wrap = mk('div'), q = mk('p', 'small'), rs = mk('div', 'chips');
+    wrap.hidden = true; wrap.append(q, rs); root.append(marks, wrap);
     let cur = null;
     const draw = () => {
       marks.innerHTML = '';
@@ -294,9 +297,8 @@
       }
     };
     const drawReasons = () => {
-      const wrap = $('lost-reason-wrap'), rs = $('lost-reasons');
       wrap.hidden = cur == null; if (cur == null) return;
-      $('lost-reason-q').textContent = `Mark ${cur}: why was it lost, or did you earn it CFPE?`;
+      q.textContent = `Mark ${cur}: why was it lost, or did you earn it CFPE?`;
       const t = res.lost.find(l => l.mark === cur);
       rs.innerHTML = '';
       REASONS.forEach(([k, name]) => {
@@ -307,12 +309,19 @@
           res.lost.sort((a, b) => a.mark - b.mark);
           if (res.lost.filter(l => l.reason !== 'cfpe').length >= nLost) cur = null;
           else { const next = [...Array(outOf).keys()].map(i => i + 1).find(m => m > (cur || 0) && !res.lost.some(l => l.mark === m)); cur = next || null; }
-          draw(); drawReasons(); saveLost(res);
+          draw(); drawReasons(); onChange && onChange(res.lost);
         };
         rs.appendChild(b);
       });
     };
-    draw(); box.hidden = false;
+    draw();
+    return root;
+  }
+  function showLost(res, nLost) {
+    const box = $('lost-box');
+    box.innerHTML = ''; box.className = '';
+    box.appendChild(lostTagger(res, nLost, () => saveLost(res)));
+    box.hidden = false;
   }
   async function saveLost(res) {
     if (!res.attemptId) return;   // saved once the attempt row exists
@@ -741,7 +750,7 @@
   const saveKey = () => 'tb_exam_' + (state.user ? state.user.id : '');
   function saveExam() {
     const e = state.exam; if (!e) return;
-    lsSet(saveKey(), { paperId: e.paper.id, startedAt: e.startedAt, readingSec: e.readingSec, workSec: e.workSec, answers: e.answers, marks: e.marks, finishedAt: e.finishedAt || null });
+    lsSet(saveKey(), { paperId: e.paper.id, startedAt: e.startedAt, readingSec: e.readingSec, workSec: e.workSec, answers: e.answers, marks: e.marks, lost: e.lost || {}, finishedAt: e.finishedAt || null });
   }
   function renderExamSetup() {
     tabs('exam-tabs', renderExamSetup);
@@ -920,11 +929,21 @@
             b.onclick = () => {
               e.marks[q.id] = m; saveExam();
               mkr.querySelectorAll('button').forEach(x => x.classList.toggle('picked', x === b));
-              chip.classList.add('done'); updateRunning();
+              chip.classList.add('done'); updateRunning(); drawTags();
             };
             mkr.appendChild(b);
           }
           c.appendChild(mkr);
+          const tagBox = mk('div'); c.appendChild(tagBox);
+          const drawTags = () => {
+            tagBox.innerHTML = '';
+            const got = e.marks[q.id];
+            if (got == null || got >= q.marks) { if (e.lost) delete e.lost[q.id]; return; }
+            e.lost = e.lost || {};
+            const res = { outOf: q.marks, lost: (e.lost[q.id] || []).filter(l => l.mark <= q.marks) };
+            tagBox.appendChild(lostTagger(res, q.marks - got, (lost) => { e.lost[q.id] = lost; saveExam(); }));
+          };
+          drawTags();
         }
       }
       body.appendChild(c);
@@ -936,7 +955,7 @@
     const rs = examResults(e);
     const score = rs.reduce((a, r) => a + r.score, 0), outOf = rs.reduce((a, r) => a + r.outOf, 0);
     try {
-      const { error: e1 } = await sb.from('attempts').insert(rs.map(r => ({ user_id: state.user.id, question_id: r.q.id, score: r.score, out_of: r.outOf, chosen: r.chosen })));
+      const { error: e1 } = await sb.from('attempts').insert(rs.map(r => ({ user_id: state.user.id, question_id: r.q.id, score: r.score, out_of: r.outOf, chosen: r.chosen, lost: (e.lost && e.lost[r.q.id] && e.lost[r.q.id].length) ? e.lost[r.q.id] : null })));
       if (e1) throw e1;
       const { error: e2 } = await sb.from('exams').insert({ user_id: state.user.id, paper_id: e.paper.id, started_at: new Date(e.startedAt).toISOString(), seconds_used: e.secondsUsed, score, out_of: outOf, work_minutes: Math.round(e.workSec / 60) });
       if (e2) throw e2;
