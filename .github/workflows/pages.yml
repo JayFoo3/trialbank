@@ -19,6 +19,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Cache-bust assets with the commit hash
+        run: sed -i "s/?v=dev/?v=${GITHUB_SHA::8}/g" site/index.html
       - uses: actions/configure-pages@v5
         with:
           enablement: true
