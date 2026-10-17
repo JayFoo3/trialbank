@@ -411,6 +411,8 @@
   // ======================================================================
   // v2: papers library, exam mode, review tools
   // ======================================================================
+  const qLabel = (q) => label(q);
+  const diffOf = (p) => (['Easier', 'Medium', 'Hard'].includes(p.difficulty) ? p.difficulty : null);
   const lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
   const lsDel = (k) => { try { localStorage.removeItem(k); } catch {} };
@@ -483,7 +485,7 @@
         const s = sum[p.id] || {};
         const a = mk('a', 'prow');
         a.href = '#paper/' + encodeURIComponent(p.slug);
-        const bits = [p.difficulty, s.n_questions ? s.n_questions + ' questions' : null, s.total_marks ? s.total_marks + ' marks' : null, p.scanned ? 'scanned' : null].filter(Boolean).join(' · ');
+        const bits = [diffOf(p), s.n_questions ? s.n_questions + ' questions' : null, s.total_marks ? s.total_marks + ' marks' : null, p.scanned ? 'scanned' : null].filter(Boolean).join(' · ');
         a.innerHTML = `<span class="yr">${p.year}</span><span class="muted small">${bits}</span>${best[p.id] != null ? `<span class="tag">Sat · ${best[p.id]}%</span>` : ''}`;
         d.appendChild(a);
       });
@@ -504,7 +506,7 @@
     const urls = await signed(qs.flatMap(q => [q.image_path, q.solution_path]));
     const total = qs.reduce((a, q) => a + (q.marks || 0), 0);
     $('paper-title').textContent = `${p.school} ${p.year}`;
-    $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, p.difficulty, `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · ');
+    $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, diffOf(p), `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · ');
     $('paper-practise').onclick = async () => {
       const usable = qs.filter(q => q.image_path);
       if (!usable.length) return;
