@@ -6,3 +6,4 @@ __pycache__/
 .env
 site/demo/
 site/mock-data.js
+_preview/
