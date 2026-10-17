@@ -223,7 +223,7 @@
     $('set-pos').textContent = `${s.i + 1} of ${s.qs.length} · ${x.topic}`;
     $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
-    $('q-img').src = x.imageUrl;
+    const qi = $('q-img'); qi.dataset.trimmed = ''; qi.crossOrigin = 'anonymous'; qi.onload = () => trimImg(qi); qi.src = x.imageUrl;
     $('q-coarse').hidden = !x.coarse;
     $('star').textContent = '☆ Star';
     loadStars().then(s => { $('star').textContent = s.has(x.id) ? '★ Starred' : '☆ Star'; });
@@ -413,6 +413,105 @@
   // ======================================================================
   const qLabel = (q) => label(q);
   const diffOf = (p) => (['Easier', 'Medium', 'Hard'].includes(p.difficulty) ? p.difficulty : null);
+
+  // ---------- image trimming and PDF export ----------
+  // Question crops come with blank bands above and below. Trim them in the browser (top and bottom only,
+  // so every question keeps the same scale). Needs CORS on the storage URL; if the canvas is blocked the
+  // original image is simply left alone.
+  function trimCanvas(im) {
+    const w = im.naturalWidth, h = im.naturalHeight;
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(im, 0, 0);
+    const d = ctx.getImageData(0, 0, w, h).data;
+    const inked = (y) => { const row = y * w * 4; for (let x = 0; x < w; x++) { const i = row + x * 4; if (d[i] + d[i + 1] + d[i + 2] < 690) return true; } return false; };
+    let y0 = 0, y1 = h - 1;
+    while (y0 < h && !inked(y0)) y0++;
+    if (y0 >= h) return cv;                       // blank image: leave it
+    while (y1 > y0 && !inked(y1)) y1--;
+    y0 = Math.max(0, y0 - 12); y1 = Math.min(h - 1, y1 + 12);
+    const out = document.createElement('canvas'); out.width = w; out.height = y1 - y0 + 1;
+    out.getContext('2d').drawImage(cv, 0, y0, w, out.height, 0, 0, w, out.height);
+    return out;
+  }
+  function trimImg(im) {
+    if (im.dataset.trimmed) return;
+    im.dataset.trimmed = '1';
+    try {
+      const cv = trimCanvas(im);
+      if (cv.height >= im.naturalHeight - 6) return;
+      cv.toBlob(b => { if (b) im.src = URL.createObjectURL(b); }, 'image/png');
+    } catch (e) { /* tainted canvas or decode problem: keep the original */ }
+  }
+  function qImg(url, alt) {
+    const im = mk('img'); im.alt = alt; im.crossOrigin = 'anonymous';
+    im.onload = () => trimImg(im); im.src = url; return im;
+  }
+  async function loadTrimmed(url) {
+    const im = new Image(); im.crossOrigin = 'anonymous';
+    await new Promise((res, rej) => { im.onload = res; im.onerror = () => rej(new Error('Could not load an image for the PDF.')); im.src = url; });
+    return trimCanvas(im);
+  }
+  async function pool(items, n, fn) {
+    const out = new Array(items.length); let i = 0;
+    await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) { const k = i++; out[k] = await fn(items[k], k); } }));
+    return out;
+  }
+  async function loadJsPdf() {
+    if (window.jspdf) return window.jspdf.jsPDF;
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = res; s.onerror = () => rej(new Error('Could not load the PDF tool.'));
+      document.head.appendChild(s);
+    });
+    return window.jspdf.jsPDF;
+  }
+  async function makePdf({ title, sub, filename, qs, withSolutions, onProgress }) {
+    const JsPDF = await loadJsPdf();
+    const pdf = new JsPDF({ unit: 'mm', format: 'a4' });
+    const W = 210, H = 297, M = 15, CW = W - 2 * M, DPI = 150;
+    const sols = withSolutions ? qs.filter(q => q.solutionUrl) : [];
+    let done = 0; const total = qs.length + sols.length;
+    const tick_ = () => onProgress && onProgress(++done, total);
+    const qc = await pool(qs, 6, async q => { const c = await loadTrimmed(q.imageUrl); tick_(); return c; });
+    const sc = await pool(sols, 6, async q => { const c = await loadTrimmed(q.solutionUrl); tick_(); return c; });
+    let y = M;
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16); pdf.text(title, M, y + 6); y += 12;
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(100); pdf.text(sub, M, y); y += 8; pdf.setTextColor(0);
+    const put = (cv) => {
+      let w = Math.min(CW, cv.width * 25.4 / DPI), h = w * cv.height / cv.width;
+      const maxH = H - 2 * M - 8;
+      if (h > maxH) { h = maxH; w = h * cv.width / cv.height; }
+      if (y + h > H - M - 6) { pdf.addPage(); y = M; }
+      pdf.addImage(cv.toDataURL('image/jpeg', 0.9), 'JPEG', M, y, w, h);
+      y += h + 5;
+    };
+    qc.forEach(put);
+    if (sols.length) {
+      pdf.addPage(); y = M;
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.text('Solutions', M, y + 5); y += 12;
+      sc.forEach((cv, i) => {
+        if (y + 14 > H - M) { pdf.addPage(); y = M; }
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.text(qLabel(sols[i]), M, y + 3); y += 6;
+        put(cv);
+      });
+    }
+    const n = pdf.getNumberOfPages();
+    for (let p = 1; p <= n; p++) {
+      pdf.setPage(p); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(130);
+      pdf.text(`Trialbank  ·  for study within our school only  ·  page ${p} of ${n}`, W / 2, H - 7, { align: 'center' });
+    }
+    pdf.save(filename);
+  }
+  async function pdfAction(btn, opts, errEl) {
+    const old = btn.textContent; btn.disabled = true;
+    if (errEl) errEl.hidden = true;
+    try { await makePdf({ ...opts, onProgress: (d, t) => { btn.textContent = `Building PDF ${d}/${t}`; } }); }
+    catch (err) { if (errEl) { errEl.textContent = err.message; errEl.hidden = false; } }
+    finally { btn.textContent = old; btn.disabled = false; }
+  }
+  const paperFile = (p) => `${p.school}-${p.year}-${p.subject}`.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.pdf';
   const lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
   const lsDel = (k) => { try { localStorage.removeItem(k); } catch {} };
@@ -504,7 +603,11 @@
     if (error) { box.innerHTML = `<p class="error">${error.message}</p>`; return; }
     qs.sort(byOrder);
     const urls = await signed(qs.flatMap(q => [q.image_path, q.solution_path]));
+    qs.forEach(q => { q.imageUrl = urls[q.image_path]; q.solutionUrl = q.solution_path ? urls[q.solution_path] : null; });
     const total = qs.reduce((a, q) => a + (q.marks || 0), 0);
+    const pdfBase = { title: `${p.school} ${p.year} · ${C.subjects[p.subject] || p.subject}`, sub: `${qs.length} questions${total ? ' · ' + total + ' marks' : ''}`, filename: paperFile(p), qs: qs.filter(q => q.image_path) };
+    $('paper-pdf').onclick = () => pdfAction($('paper-pdf'), pdfBase, $('paper-error'));
+    $('paper-pdf-sol').onclick = () => pdfAction($('paper-pdf-sol'), { ...pdfBase, filename: paperFile(p).replace('.pdf', '-solutions.pdf'), withSolutions: true }, $('paper-error'));
     $('paper-title').textContent = `${p.school} ${p.year}`;
     $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, diffOf(p), `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · ');
     $('paper-practise').onclick = async () => {
@@ -522,7 +625,7 @@
     qs.forEach(q => {
       const c = mk('div', 'card qcard');
       c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)} · ${q.topic || 'Untagged'}</span></div>`;
-      if (q.image_path) { const im = mk('img'); im.loading = 'lazy'; im.src = urls[q.image_path]; im.alt = qLabel(q); c.appendChild(im); }
+      if (q.image_path) { const im = qImg(urls[q.image_path], qLabel(q)); im.loading = 'lazy'; c.appendChild(im); }
       else c.appendChild(mk('p', 'muted small', 'No image for this question.'));
       const row = mk('div', 'row');
       row.appendChild(starButton(q));
@@ -623,6 +726,15 @@
     const e = state.exam; if (!e) return;
     e.startedAt = Date.now() - e.readingSec * 1000; saveExam(); tick();
   };
+  $('exam-pdf').onclick = () => {
+    const e = state.exam; if (!e) return;
+    const total = e.qs.reduce((a, q) => a + (q.marks || 0), 0);
+    pdfAction($('exam-pdf'), {
+      title: `${e.paper.school} ${e.paper.year} · ${C.subjects[e.paper.subject] || e.paper.subject}`,
+      sub: `${e.qs.length} questions${total ? ' · ' + total + ' marks' : ''} · Reading time ${Math.round(e.readingSec / 60)} min · Working time ${Math.round(e.workSec / 60)} min`,
+      filename: paperFile(e.paper), qs: e.qs,
+    }, $('exam-note'));
+  };
   let armed = null;
   $('exam-finish').onclick = async () => {
     const e = state.exam; if (!e) return;
@@ -674,7 +786,8 @@
       chip.onclick = () => document.getElementById('xq' + idx).scrollIntoView({ block: 'start' });
       jump.appendChild(chip);
       const c = mk('div', 'card qcard'); c.id = 'xq' + idx;
-      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)}</span></div><img src="${q.imageUrl}" alt="Question ${qLabel(q)}">`;
+      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)}</span></div>`;
+      c.appendChild(qImg(q.imageUrl, 'Question ' + qLabel(q)));
       if (q.type === 'mcq') {
         const ch = mk('div', 'choices');
         ['A', 'B', 'C', 'D'].forEach(l => {
