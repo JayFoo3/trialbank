@@ -1137,7 +1137,7 @@
     const row = mk('div', 'row');
     const inp = mk('input'); inp.type = 'file'; inp.accept = 'application/pdf,image/*'; inp.multiple = true;
     const go = mk('button', 'primary', e.ai && Object.keys(e.ai).length ? 'Re-mark' : 'Auto-mark');
-    const st = mk('p', 'small'); st.hidden = true;
+    const st = mk('p', 'small am-status'); st.hidden = true;
     row.append(inp, go); c.append(row, st);
     if (e.ai && Object.keys(e.ai).length) { st.hidden = false; st.textContent = 'Auto-marked. Suggested marks are filled in below; check them against the solutions.'; }
     go.onclick = () => runAutomark(inp.files, go, st);
@@ -1145,7 +1145,7 @@
   }
   async function runAutomark(files, btn, st) {
     const e = state.exam; if (!e) return;
-    const say = (t, cls = '') => { st.hidden = false; st.className = 'small ' + cls; st.textContent = t; };
+    const say = (t, cls = '') => { st.hidden = false; st.className = 'small am-status ' + cls; st.textContent = t; };
     if (!files || !files.length) return say('Choose your PDF or photos first.', 'error');
     btn.disabled = true;
     const run = Date.now().toString(36), uid = state.user.id, paths = [];
@@ -1158,10 +1158,12 @@
         if (error) throw error;
         paths.push(path);
       }
+      const pagePaths = paths.slice();
       const groups = markGroups(e.qs);
+      const chunks = await sliceTallImages(groups.flat(), `${uid}/${run}`, say, paths);
       let done = 0, cost = 0; const failed = [];
       const call = async (g) => {
-        const { data, error } = await sb.functions.invoke('automark', { body: { paper_id: e.paper.id, pages: paths, question_ids: g.map(q => q.id) } });
+        const { data, error } = await sb.functions.invoke('automark', { body: { paper_id: e.paper.id, pages: pagePaths, question_ids: g.map(q => q.id), chunks: pick(chunks, g) } });
         if (error) {
           let msg = error.message;
           try { msg = (await error.context.json()).error || msg; } catch {}
@@ -1177,7 +1179,7 @@
       rest.forEach(r => { if (r.status === 'rejected') failed.push(r.reason.message); });
       saveExam(); renderExamBody(); updateRunning();
       const msg = failed.length ? `Marked ${done} of ${groups.length} sections. ${failed.length} failed (${failed[0]}). Tap Re-mark to try again, or mark those yourself.` : 'Auto-marked. Suggested marks are filled in below; check each one against the solutions.';
-      const st2 = document.querySelector('.automark p.small'); if (st2) { st2.hidden = false; st2.className = 'small ' + (failed.length ? 'error' : ''); st2.textContent = msg; }
+      const st2 = document.querySelector('.automark .am-status'); if (st2) { st2.hidden = false; st2.className = 'small am-status ' + (failed.length ? 'error' : ''); st2.textContent = msg; }
     } catch (err) {
       say(err.message || String(err), 'error');
     } finally {
@@ -1185,6 +1187,43 @@
       if (paths.length) sb.storage.from('submissions').remove(paths).catch(() => {});
     }
   }
+  // The API rejects images over ~2000px in many-image requests. Tall solution/question images are
+  // cut into overlapping strips here and uploaded beside the student's pages.
+  async function sliceTallImages(qs, folder, say, paths) {
+    const MAXW = 1600, STRIP = 1800, OVER = 80, out = {};
+    const want = new Map();
+    qs.forEach(q => {
+      if (q.image_path && q.imageUrl) want.set(q.image_path, q.imageUrl);
+      if (q.type !== 'mcq' && q.solution_path && q.solutionUrl) want.set(q.solution_path, q.solutionUrl);
+    });
+    let n = 0;
+    for (const [path, url] of want) {
+      let bmp;
+      try { bmp = await createImageBitmap(await (await fetch(url, { cache: 'no-store' })).blob()); } catch { continue; }
+      if (bmp.width <= 1900 && bmp.height <= 1900) continue;
+      const k = Math.min(1, MAXW / bmp.width), W = Math.round(bmp.width * k), H = Math.round(bmp.height * k);
+      const list = [];
+      for (let y = 0; y < H; y += STRIP - OVER) {
+        const h = Math.min(STRIP, H - y);
+        const cv = document.createElement('canvas'); cv.width = W; cv.height = h;
+        const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, h);
+        ctx.drawImage(bmp, 0, y / k, bmp.width, h / k, 0, 0, W, h);
+        const cp = `${folder}/ref${String(++n).padStart(3, '0')}.jpg`;
+        say(`Preparing marking guidelines (${n})…`);
+        const { error } = await sb.storage.from('submissions').upload(cp, await toJpeg(cv), { contentType: 'image/jpeg', upsert: true });
+        if (error) throw error;
+        paths.push(cp); list.push(cp);
+        if (y + h >= H) break;
+      }
+      out[path] = list;
+    }
+    return out;
+  }
+  const pick = (chunks, g) => {
+    const o = {};
+    g.forEach(q => [q.image_path, q.solution_path].forEach(p => { if (p && chunks[p]) o[p] = chunks[p]; }));
+    return o;
+  };
   function applyMarks(results) {
     const e = state.exam; if (!e) return;
     e.ai = e.ai || {}; e.lost = e.lost || {};

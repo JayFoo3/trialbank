@@ -89,9 +89,14 @@ Deno.serve(async (req) => {
   const user = ures?.user;
   if (uerr || !user) return json({ error: 'Please sign in again.' }, 401);
 
-  let body: { paper_id?: number; pages?: string[]; question_ids?: string[] };
+  let body: { paper_id?: number; pages?: string[]; question_ids?: string[]; chunks?: Record<string, string[]> };
   try { body = await req.json(); } catch { return json({ error: 'Bad request' }, 400); }
   const { paper_id, pages, question_ids } = body;
+  // tall question/solution images arrive pre-sliced by the browser (the API caps image size)
+  const chunks: Record<string, string[]> = {};
+  for (const [k, v] of Object.entries(body.chunks ?? {})) {
+    if (Array.isArray(v) && v.length <= 12 && v.every((p) => typeof p === 'string' && p.startsWith(user.id + '/') && !p.includes('..'))) chunks[k] = v;
+  }
   if (!Number.isInteger(paper_id)) return json({ error: 'Bad paper' }, 400);
   if (!Array.isArray(pages) || !pages.length || pages.length > 30 ||
       pages.some((p) => typeof p !== 'string' || !p.startsWith(user.id + '/') || p.includes('..')))
@@ -125,6 +130,8 @@ Deno.serve(async (req) => {
     return { type: 'image', source: { type: 'base64', media_type: mediaType(path, data.type), data: encodeBase64(new Uint8Array(await data.arrayBuffer())) } };
   };
 
+  const pics = async (path: string) => chunks[path] ? Promise.all(chunks[path].map((c) => img('submissions', c))) : [await img('questions', path)];
+
   try {
     // student pages first (identical across a paper's groups, so they are cached after the first call)
     const content: Record<string, unknown>[] = [{ type: 'text', text: `The student's handwritten pages (${pages.length}):` }];
@@ -139,10 +146,10 @@ Deno.serve(async (req) => {
       const extra = q.type === 'mcq' ? ` Multiple choice, 1 mark. Answer key: ${q.answer ?? 'not given'}.` : ` ${q.marks ?? '?'} marks.`
         + (q.subparts?.length ? ` Parts: ${q.subparts.join(', ')}.` : '');
       content.push({ type: 'text', text: `--- id "${q.id}" = ${label}.${extra}` });
-      if (q.image_path) content.push(await img('questions', q.image_path));
+      if (q.image_path) content.push(...await pics(q.image_path));
       if (q.type !== 'mcq' && q.solution_path && !seenSol.has(q.solution_path)) {
         seenSol.add(q.solution_path);
-        content.push({ type: 'text', text: `Solutions / marking guideline for Question ${q.number}:` }, await img('questions', q.solution_path));
+        content.push({ type: 'text', text: `Solutions / marking guideline for Question ${q.number}:` }, ...await pics(q.solution_path));
       }
     }
 
@@ -151,7 +158,7 @@ Deno.serve(async (req) => {
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
         model: MODEL, max_tokens: 6000, system: SYSTEM,
-        tools: [TOOL], tool_choice: { type: 'tool', name: 'record_marks' },
+        tools: [TOOL], tool_choice: { type: 'auto' },
         messages: [{ role: 'user', content }],
       }),
     });
@@ -166,7 +173,13 @@ Deno.serve(async (req) => {
     });
     if (!r.ok) return json({ error: `The marker failed (${out.error?.type ?? r.status}). Try again in a minute.` }, 502);
 
-    const call = (out.content ?? []).find((c: { type: string; name?: string }) => c.type === 'tool_use' && c.name === 'record_marks');
+    let call = (out.content ?? []).find((c: { type: string; name?: string }) => c.type === 'tool_use' && c.name === 'record_marks');
+    if (!call) {   // fallback: JSON written as plain text
+      const txt = (out.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('\n');
+      const m = txt.match(/\{[\s\S]*"results"[\s\S]*\}/);
+      if (m) { try { call = { input: JSON.parse(m[0]) }; } catch { /* ignore */ } }
+    }
+    if (!call) return json({ error: 'The marker did not return marks for this section. Tap Re-mark to try again.' }, 502);
     const byId = new Map(qs.map((q) => [q.id, q]));
     const results = ((call?.input?.results ?? []) as Record<string, unknown>[])
       .filter((x) => byId.has(String(x.id)))
