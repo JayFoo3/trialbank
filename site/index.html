@@ -11,6 +11,9 @@
   <a class="brand" href="#home" id="brand">Trialbank</a>
   <nav id="nav" hidden>
     <a href="#home">Practise</a>
+    <a href="#papers">Papers</a>
+    <a href="#exam">Exam</a>
+    <a href="#review">Review</a>
     <a href="#progress">Progress</a>
     <a href="#admin" id="nav-admin" hidden>Admin</a>
     <button class="link" id="signout">Sign out</button>
@@ -75,6 +78,7 @@
     <div class="between">
       <span class="muted" id="set-pos"></span>
       <span class="muted" id="set-meta"></span>
+      <button class="link" id="star">☆ Star</button>
     </div>
     <div class="progress"><div id="set-bar"></div></div>
 
@@ -106,8 +110,9 @@
 
   <!-- ===== summary ===== -->
   <section id="view-summary" class="view" hidden>
-    <h1>Set done</h1>
+    <h1 id="summary-title">Set done</h1>
     <p class="big-number" id="summary-score"></p>
+    <p class="muted" id="summary-extra"></p>
     <div id="summary-topics" class="bars"></div>
     <div class="row">
       <a class="primary button" href="#home">Another set</a>
@@ -130,6 +135,67 @@
       <div class="bars" id="cohort-bars"></div>
     </div>
   </section>
+  <!-- ===== papers library ===== -->
+  <section id="view-papers" class="view" hidden>
+    <h1>Papers <span class="muted small" id="papers-count"></span></h1>
+    <div class="row" id="papers-tabs"></div>
+    <input id="papers-filter" type="search" placeholder="Filter by school or year" autocomplete="off">
+    <div id="papers-list"></div>
+  </section>
+
+  <!-- ===== one paper ===== -->
+  <section id="view-paper" class="view" hidden>
+    <p class="small"><a href="#papers">&larr; All papers</a></p>
+    <h1 id="paper-title"></h1>
+    <p class="muted" id="paper-meta"></p>
+    <div class="row">
+      <button class="primary" id="paper-practise">Practise this paper</button>
+      <button class="secondary" id="paper-exam">Sit it as an exam</button>
+    </div>
+    <p class="error" id="paper-error" hidden></p>
+    <div id="paper-body"></div>
+  </section>
+
+  <!-- ===== exam setup ===== -->
+  <section id="view-exam" class="view" hidden>
+    <h1>Exam mode</h1>
+    <p class="muted">A random past paper under test conditions: reading time, then a countdown. Answer multiple choice on screen, write the rest on paper, then mark yourself against the solutions.</p>
+    <div class="row" id="exam-tabs"></div>
+    <div class="card options">
+      <div class="opt"><span>Reading time (minutes)</span><input type="number" id="exam-reading" min="0" max="30"></div>
+      <div class="opt"><span>Working time (minutes)</span><input type="number" id="exam-working" min="5" max="240"></div>
+    </div>
+    <p class="muted small">Picks a paper you have not sat yet when it can. Scanned papers are left out. The clock keeps running if you close the tab.</p>
+    <p class="error" id="exam-error" hidden></p>
+    <button class="primary big" id="exam-random">Start a random paper</button>
+  </section>
+
+  <!-- ===== exam running / marking ===== -->
+  <section id="view-examrun" class="view" hidden>
+    <div class="exambar">
+      <div><span class="muted small" id="exam-phase"></span><div class="clock" id="exam-clock">--:--</div></div>
+      <span class="muted small" id="exam-title"></span>
+      <div class="row"><button class="link" id="exam-skip" hidden>Skip reading</button><button class="secondary" id="exam-finish">Finish exam</button></div>
+    </div>
+    <p class="muted small" id="exam-note"></p>
+    <div class="jump" id="exam-jump"></div>
+    <div id="exam-body"></div>
+  </section>
+
+  <!-- ===== review tools ===== -->
+  <section id="view-review" class="view" hidden>
+    <h1>Review</h1>
+    <div class="row" id="review-tabs"></div>
+    <div class="card"><h2>Drill my weak spots</h2><p class="muted small" id="weak-list"></p><button class="primary" id="drill-weak">Drill 10 questions</button></div>
+    <div class="card"><h2>Redo what I got wrong</h2><p class="muted small">Questions where your latest attempt lost marks.</p><button class="primary" id="drill-wrong">Redo up to 15</button></div>
+    <div class="card"><h2>Starred</h2><p class="muted small" id="star-count"></p><button class="primary" id="drill-stars">Practise starred</button></div>
+    <p class="error" id="review-error" hidden></p>
+    <div class="card"><h2>Exam history</h2>
+      <p class="muted small" id="exam-history-empty">No exams sat yet in this subject.</p>
+      <table class="tbl" id="exam-history"><thead><tr><th>Date</th><th>Paper</th><th>Score</th><th>Time</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
   <!-- ===== admin ===== -->
   <section id="view-admin" class="view" hidden>
     <h1>Admin</h1>

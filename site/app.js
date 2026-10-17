@@ -3,7 +3,8 @@
   const C = window.APP_CONFIG;
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey);
   const $ = (id) => document.getElementById(id);
-  const views = ['auth', 'home', 'set', 'summary', 'progress', 'admin'];
+  const views = ['auth', 'home', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'exam', 'examrun', 'review'];
+  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, papers!inner(subject, school, year, difficulty)';
 
   document.title = C.name;
   $('brand').textContent = C.name;
@@ -23,12 +24,23 @@
     window.scrollTo(0, 0);
   }
   async function route() {
-    const h = (location.hash || '#home').slice(1);
+    const [h, arg] = (location.hash || '#home').slice(1).split('/');
     if (!state.user) return show('auth');
     if (h === 'progress') { await renderProgress(); return show('progress'); }
     if (h === 'admin' && state.admin) { await renderAdmin(); return show('admin'); }
     if (h === 'set' && state.set) return show('set');
     if (h === 'summary' && state.set) return show('summary');
+    if (h === 'papers') { show('papers'); await renderPapers(); return; }
+    if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
+    if (h === 'review') { show('review'); await renderReview(); return; }
+    if (h === 'examrun') { if (state.exam) return show('examrun'); location.hash = '#exam'; return; }
+    if (h === 'exam') {
+      if (state.exam) { location.hash = '#examrun'; return; }
+      show('exam');
+      const saved = lsGet(saveKey());
+      if (saved) { try { await resumeExam(saved); } catch (err) { renderExamSetup(); } } else renderExamSetup();
+      return;
+    }
     await renderHome(); show('home');
   }
   window.addEventListener('hashchange', route);
@@ -85,7 +97,7 @@
     // so the admin check and routing are deferred to the next tick.
     setTimeout(async () => {
       state.user = session?.user || null;
-      if (!state.user) state.set = null;
+      if (!state.user) { state.set = null; state.stars = null; state.exam = null; clearInterval(examTimer); }
       await checkAdmin();
       route();
     }, 0);
@@ -154,36 +166,49 @@
     } finally { $('start').disabled = false; }
   };
 
-  async function buildSet() {
-    let q = sb.from('questions')
-      .select('id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, papers!inner(subject, school, year, difficulty)')
+  async function signed(paths, secs = 3600) {
+    paths = [...new Set(paths.filter(Boolean))];
+    const out = {};
+    for (let i = 0; i < paths.length; i += 100) {
+      const { data, error } = await sb.storage.from('questions').createSignedUrls(paths.slice(i, i + 100), secs);
+      if (error) throw error;
+      data.forEach(u => { out[u.path] = u.signedUrl; });
+    }
+    return out;
+  }
+  async function attachUrls(qs, urls) {
+    const u = urls || await signed(qs.flatMap(x => [x.image_path, x.solution_path]));
+    qs.forEach(x => { x.imageUrl = u[x.image_path]; x.solutionUrl = x.solution_path ? u[x.solution_path] : null; });
+  }
+  async function startSet(qs, urls) {
+    await attachUrls(qs, urls);
+    state.set = { qs, i: 0, results: [] };
+    renderQuestion();
+    location.hash = '#set';
+  }
+  async function buildSet(over = {}) {
+    const o = { ...state.opts, ...over };
+    let q = sb.from('questions').select(QCOLS)
       .eq('papers.subject', state.subject)
       .in('topic', [...state.topics])
       .not('image_path', 'is', null)
       .limit(400);
-    if (state.opts.type !== 'all') q = q.eq('type', state.opts.type);
-    if (state.opts.diff !== 'all') q = q.eq('papers.difficulty', state.opts.diff);
+    if (o.type !== 'all') q = q.eq('type', o.type);
+    if (o.diff !== 'all') q = q.eq('papers.difficulty', o.diff);
     const { data, error } = await q;
     if (error) throw error;
     if (!data.length) throw new Error('No questions match that. Widen the filters.');
 
     let pool = data;
-    if (state.opts.fresh) {
+    if (o.fresh) {
       const { data: seen } = await sb.from('attempts').select('question_id').eq('user_id', state.user.id);
       const seenIds = new Set((seen || []).map(a => a.question_id));
       const unseen = pool.filter(x => !seenIds.has(x.id));
-      if (unseen.length >= state.opts.count) pool = unseen;
+      if (unseen.length >= o.count) pool = unseen;
     }
     shuffle(pool);
-    const qs = pool.slice(0, state.opts.count);
-
-    // signed URLs for images (private bucket)
-    const paths = [...new Set(qs.flatMap(x => [x.image_path, x.solution_path]).filter(Boolean))];
-    const { data: urls, error: uerr } = await sb.storage.from('questions').createSignedUrls(paths, 3600);
-    if (uerr) throw uerr;
-    const urlOf = {}; urls.forEach(u => urlOf[u.path] = u.signedUrl);
-    qs.forEach(x => { x.imageUrl = urlOf[x.image_path]; x.solutionUrl = x.solution_path ? urlOf[x.solution_path] : null; });
-
+    const qs = pool.slice(0, o.count);
+    await attachUrls(qs);
     state.set = { qs, i: 0, results: [] };
     renderQuestion();
   }
@@ -200,6 +225,9 @@
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
     $('q-img').src = x.imageUrl;
     $('q-coarse').hidden = !x.coarse;
+    $('star').textContent = '☆ Star';
+    loadStars().then(s => { $('star').textContent = s.has(x.id) ? '★ Starred' : '☆ Star'; });
+    $('star').onclick = () => toggleStar(x.id, $('star'));
     $('verdict').hidden = true; $('verdict').className = 'verdict';
     $('next').hidden = true; $('skip').hidden = false;
     $('mcq-controls').hidden = x.type !== 'mcq';
@@ -251,7 +279,8 @@
   }
 
   // ---------- summary ----------
-  function renderSummary() {
+  function renderSummary(title = 'Set done') {
+    $('summary-title').textContent = title; $('summary-extra').textContent = '';
     const rs = state.set.results.filter(Boolean);
     const score = rs.reduce((a, r) => a + r.score, 0), outOf = rs.reduce((a, r) => a + r.outOf, 0);
     $('summary-score').textContent = outOf ? `${score} / ${outOf}  (${Math.round(100 * score / outOf)}%)` : 'Nothing marked';
@@ -377,6 +406,394 @@
   $('alert-test').onclick = async () => {
     const { error } = await sb.rpc('admin_test_alert');
     $('alert-msg').textContent = error ? error.message : 'Sent. Check your phone.';
+  };
+
+  // ======================================================================
+  // v2: papers library, exam mode, review tools
+  // ======================================================================
+  const lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  const lsDel = (k) => { try { localStorage.removeItem(k); } catch {} };
+  const mk = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const examDefaults = (subj) => Object.assign({ reading: 5, working: 120 }, (C.exam || {})[subj] || {});
+  const byOrder = (a, b) => a.number - b.number || String(a.part || '').localeCompare(String(b.part || ''));
+  const marksText = (n) => `${n || '?'} mark${n === 1 ? '' : 's'}`;
+  function fmtClock(s) {
+    s = Math.max(0, Math.ceil(s));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+    return (h ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(x).padStart(2, '0');
+  }
+
+  // ---------- stars ----------
+  async function loadStars() {
+    if (state.stars) return state.stars;
+    const { data } = await sb.from('bookmarks').select('question_id');
+    state.stars = new Set((data || []).map(r => r.question_id));
+    return state.stars;
+  }
+  async function toggleStar(id, btn) {
+    const stars = await loadStars();
+    if (stars.has(id)) {
+      stars.delete(id);
+      await sb.from('bookmarks').delete().eq('question_id', id).eq('user_id', state.user.id);
+    } else {
+      stars.add(id);
+      await sb.from('bookmarks').insert({ user_id: state.user.id, question_id: id });
+    }
+    btn.textContent = stars.has(id) ? '★ Starred' : '☆ Star';
+  }
+  function starButton(q) {
+    const b = mk('button', 'link', '☆ Star');
+    loadStars().then(s => { b.textContent = s.has(q.id) ? '★ Starred' : '☆ Star'; });
+    b.onclick = () => toggleStar(q.id, b);
+    return b;
+  }
+
+  // ---------- papers library ----------
+  let papersData = { papers: [], sum: {}, best: {} };
+  async function renderPapers() {
+    tabs('papers-tabs', renderPapers);
+    $('papers-list').innerHTML = '<p class="muted">Loading…</p>';
+    const [{ data: papers }, { data: sums }, { data: exams }] = await Promise.all([
+      sb.from('papers').select('id, slug, subject, school, year, difficulty, scanned').eq('subject', state.subject),
+      sb.from('paper_summary').select('*'),
+      sb.from('exams').select('paper_id, score, out_of'),
+    ]);
+    const best = {};
+    (exams || []).forEach(e => { if (e.out_of) best[e.paper_id] = Math.max(best[e.paper_id] || 0, Math.round(100 * e.score / e.out_of)); });
+    papersData = { papers: papers || [], sum: Object.fromEntries((sums || []).map(s => [s.paper_id, s])), best };
+    drawPapers();
+  }
+  function drawPapers() {
+    const { papers, sum, best } = papersData;
+    const q = $('papers-filter').value.trim().toLowerCase();
+    const bySchool = {};
+    papers.filter(p => !q || p.school.toLowerCase().includes(q) || String(p.year).includes(q))
+      .forEach(p => (bySchool[p.school] = bySchool[p.school] || []).push(p));
+    const schools = Object.keys(bySchool).sort((a, b) => (/smiths/i.test(b) - /smiths/i.test(a)) || a.localeCompare(b));
+    $('papers-count').textContent = `· ${papers.length} papers, ${new Set(papers.map(p => p.school)).size} schools`;
+    const wrap = $('papers-list'); wrap.innerHTML = '';
+    if (!schools.length) { wrap.innerHTML = '<p class="muted">Nothing matches.</p>'; return; }
+    schools.forEach(sch => {
+      const list = bySchool[sch].sort((a, b) => b.year - a.year);
+      const d = mk('details', 'folder');
+      if (/smiths/i.test(sch) || q) d.open = true;
+      d.innerHTML = `<summary><span>${sch}</span><span class="muted small">${list.length} paper${list.length === 1 ? '' : 's'}</span></summary>`;
+      list.forEach(p => {
+        const s = sum[p.id] || {};
+        const a = mk('a', 'prow');
+        a.href = '#paper/' + encodeURIComponent(p.slug);
+        const bits = [p.difficulty, s.n_questions ? s.n_questions + ' questions' : null, s.total_marks ? s.total_marks + ' marks' : null, p.scanned ? 'scanned' : null].filter(Boolean).join(' · ');
+        a.innerHTML = `<span class="yr">${p.year}</span><span class="muted small">${bits}</span>${best[p.id] != null ? `<span class="tag">Sat · ${best[p.id]}%</span>` : ''}`;
+        d.appendChild(a);
+      });
+      wrap.appendChild(d);
+    });
+  }
+  $('papers-filter').oninput = drawPapers;
+
+  async function renderPaper(slug) {
+    const box = $('paper-body'); box.innerHTML = '<p class="muted">Loading…</p>';
+    $('paper-title').textContent = '';
+    const { data: ps } = await sb.from('papers').select('*').eq('slug', slug);
+    const p = ps && ps[0];
+    if (!p) { box.innerHTML = '<p class="error">Paper not found.</p>'; return; }
+    const { data: qs, error } = await sb.from('questions').select(QCOLS).eq('paper_id', p.id).limit(300);
+    if (error) { box.innerHTML = `<p class="error">${error.message}</p>`; return; }
+    qs.sort(byOrder);
+    const urls = await signed(qs.flatMap(q => [q.image_path, q.solution_path]));
+    const total = qs.reduce((a, q) => a + (q.marks || 0), 0);
+    $('paper-title').textContent = `${p.school} ${p.year}`;
+    $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, p.difficulty, `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · ');
+    $('paper-practise').onclick = async () => {
+      const usable = qs.filter(q => q.image_path);
+      if (!usable.length) return;
+      await startSet(usable, urls);
+    };
+    $('paper-exam').onclick = async (ev) => {
+      const b = ev.currentTarget; b.disabled = true;
+      try { const d = examDefaults(p.subject); state.subject = p.subject; await startExam(p, d.reading, d.working); }
+      catch (err) { $('paper-error').textContent = err.message; $('paper-error').hidden = false; }
+      finally { b.disabled = false; }
+    };
+    box.innerHTML = '';
+    qs.forEach(q => {
+      const c = mk('div', 'card qcard');
+      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)} · ${q.topic || 'Untagged'}</span></div>`;
+      if (q.image_path) { const im = mk('img'); im.loading = 'lazy'; im.src = urls[q.image_path]; im.alt = qLabel(q); c.appendChild(im); }
+      else c.appendChild(mk('p', 'muted small', 'No image for this question.'));
+      const row = mk('div', 'row');
+      row.appendChild(starButton(q));
+      if (q.solution_path || q.answer) {
+        const sb_ = mk('button', 'link', 'Show solution'), solBox = mk('div'); solBox.hidden = true;
+        solBox.innerHTML = (q.answer ? `<p><strong>Answer: ${q.answer}</strong></p>` : '') + (q.solution_path ? `<div class="card scroll"><img loading="lazy" src="${urls[q.solution_path]}" alt="Solution"></div>` : '');
+        sb_.onclick = () => { solBox.hidden = !solBox.hidden; sb_.textContent = solBox.hidden ? 'Show solution' : 'Hide solution'; };
+        row.appendChild(sb_); c.appendChild(row); c.appendChild(solBox);
+      } else c.appendChild(row);
+      box.appendChild(c);
+    });
+  }
+
+  // ---------- exam mode ----------
+  const saveKey = () => 'tb_exam_' + (state.user ? state.user.id : '');
+  function saveExam() {
+    const e = state.exam; if (!e) return;
+    lsSet(saveKey(), { paperId: e.paper.id, startedAt: e.startedAt, readingSec: e.readingSec, workSec: e.workSec, answers: e.answers, marks: e.marks, finishedAt: e.finishedAt || null });
+  }
+  function renderExamSetup() {
+    tabs('exam-tabs', renderExamSetup);
+    const d = examDefaults(state.subject);
+    $('exam-reading').value = d.reading; $('exam-working').value = d.working;
+    $('exam-error').hidden = true;
+  }
+  async function pickExamPaper(subject) {
+    const [{ data: papers }, { data: sums }, { data: exams }] = await Promise.all([
+      sb.from('papers').select('*').eq('subject', subject),
+      sb.from('paper_summary').select('*'),
+      sb.from('exams').select('paper_id'),
+    ]);
+    const sum = Object.fromEntries((sums || []).map(s => [s.paper_id, s]));
+    const ok = (papers || []).filter(p => {
+      const s = sum[p.id];
+      return !p.scanned && s && s.n_questions >= 10 && s.n_images >= 0.9 * s.n_questions && s.n_coarse <= 0.1 * s.n_questions;
+    });
+    if (!ok.length) throw new Error('No papers are ready for exam mode in this subject yet.');
+    const sat = new Set((exams || []).map(e => e.paper_id));
+    const fresh = ok.filter(p => !sat.has(p.id));
+    const pool = fresh.length ? fresh : ok;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  $('exam-random').onclick = async () => {
+    $('exam-error').hidden = true; $('exam-random').disabled = true;
+    try {
+      const reading = Math.max(0, Number($('exam-reading').value) || 0), working = Math.max(5, Number($('exam-working').value) || 120);
+      await startExam(await pickExamPaper(state.subject), reading, working);
+    } catch (err) { $('exam-error').textContent = err.message; $('exam-error').hidden = false; }
+    finally { $('exam-random').disabled = false; }
+  };
+  async function prepareExam(paper, init) {
+    const { data: qs, error } = await sb.from('questions').select(QCOLS).eq('paper_id', paper.id).not('image_path', 'is', null).limit(300);
+    if (error) throw error;
+    if (!qs || !qs.length) throw new Error('That paper has no question images yet.');
+    qs.sort(byOrder);
+    const u = await signed(qs.map(q => q.image_path), 4 * 3600);
+    qs.forEach(q => { q.imageUrl = u[q.image_path]; });
+    state.exam = { paper, qs, phase: null, answers: {}, marks: {}, ...init };
+  }
+  async function startExam(paper, readingMin, workMin) {
+    await prepareExam(paper, { startedAt: Date.now(), readingSec: readingMin * 60, workSec: workMin * 60 });
+    saveExam();
+    $('exam-note').textContent = '';
+    location.hash = '#examrun';
+    startTimer();
+  }
+  async function resumeExam(saved) {
+    const { data: ps } = await sb.from('papers').select('*').eq('id', saved.paperId);
+    if (!ps || !ps[0]) { lsDel(saveKey()); return renderExamSetup(); }
+    await prepareExam(ps[0], saved);
+    $('exam-note').textContent = '';
+    location.hash = '#examrun';
+    if (saved.finishedAt) finishExam(false); else startTimer();
+  }
+
+  let examTimer = null;
+  function startTimer() { clearInterval(examTimer); examTimer = setInterval(tick, 1000); tick(); }
+  function tick() {
+    const e = state.exam;
+    if (!e || e.phase === 'marking') { clearInterval(examTimer); return; }
+    const t = (Date.now() - e.startedAt) / 1000;
+    let phase, left;
+    if (t < e.readingSec) { phase = 'reading'; left = e.readingSec - t; }
+    else if (t < e.readingSec + e.workSec) { phase = 'working'; left = e.readingSec + e.workSec - t; }
+    else { finishExam(true); return; }
+    if (phase !== e.phase) { e.phase = phase; renderExamBody(); syncBar(); }
+    $('exam-clock').textContent = fmtClock(left);
+    $('exam-clock').className = 'clock' + (phase === 'working' && left < 60 ? ' bad' : phase === 'working' && left < 600 ? ' warn' : '');
+  }
+  function syncBar() {
+    const e = state.exam; if (!e) return;
+    $('exam-phase').textContent = { reading: 'Reading time', working: 'Working time', marking: 'Marking' }[e.phase] || '';
+    $('exam-skip').hidden = e.phase !== 'reading';
+    $('exam-finish').textContent = e.phase === 'marking' ? 'Save result' : 'Finish exam';
+    $('exam-title').textContent = `${e.paper.school} ${e.paper.year} · ${C.subjects[e.paper.subject] || e.paper.subject}`;
+  }
+  $('exam-skip').onclick = () => {
+    const e = state.exam; if (!e) return;
+    e.startedAt = Date.now() - e.readingSec * 1000; saveExam(); tick();
+  };
+  let armed = null;
+  $('exam-finish').onclick = async () => {
+    const e = state.exam; if (!e) return;
+    if (e.phase === 'marking') return saveExamResult();
+    if (!armed) {
+      $('exam-finish').textContent = 'Sure? Tap again';
+      armed = setTimeout(() => { armed = null; syncBar(); }, 4000);
+      return;
+    }
+    clearTimeout(armed); armed = null; finishExam(false);
+  };
+  async function finishExam(auto) {
+    const e = state.exam; if (!e || e.phase === 'marking') return;
+    clearInterval(examTimer);
+    e.finishedAt = e.finishedAt || Date.now();
+    const t = (e.finishedAt - e.startedAt) / 1000;
+    e.secondsUsed = Math.round(Math.max(0, Math.min(t - e.readingSec, e.workSec)));
+    e.phase = 'marking';
+    saveExam();
+    const u = await signed(e.qs.map(q => q.solution_path), 4 * 3600).catch(() => ({}));
+    e.qs.forEach(q => { q.solutionUrl = q.solution_path ? u[q.solution_path] : null; });
+    if (auto) $('exam-note').textContent = 'Time is up. Mark yourself honestly against the solutions.';
+    renderExamBody(); syncBar(); updateRunning();
+    window.scrollTo(0, 0);
+  }
+  function examResults(e) {
+    const out = [];
+    e.qs.forEach(q => {
+      if (q.type === 'mcq') { if (q.answer) out.push({ q, score: e.answers[q.id] === q.answer ? 1 : 0, outOf: 1, chosen: e.answers[q.id] || null }); }
+      else if (q.marks) out.push({ q, score: Math.min(e.marks[q.id] || 0, q.marks), outOf: q.marks, chosen: null });
+    });
+    return out;
+  }
+  function updateRunning() {
+    const e = state.exam; if (!e || e.phase !== 'marking') return;
+    const rs = examResults(e);
+    $('exam-clock').className = 'clock';
+    $('exam-clock').textContent = `${rs.reduce((a, r) => a + r.score, 0)} / ${rs.reduce((a, r) => a + r.outOf, 0)}`;
+    const shorts = e.qs.filter(q => q.type !== 'mcq' && q.marks);
+    const done = shorts.filter(q => e.marks[q.id] != null).length;
+    if (!$('exam-note').textContent || /marked/.test($('exam-note').textContent)) $('exam-note').textContent = `${done} of ${shorts.length} written questions marked. Unmarked ones count as 0.`;
+  }
+  function renderExamBody() {
+    const e = state.exam, body = $('exam-body'), marking = e.phase === 'marking';
+    body.innerHTML = '';
+    const jump = $('exam-jump'); jump.innerHTML = '';
+    e.qs.forEach((q, idx) => {
+      const chip = mk('button', e.answers[q.id] || e.marks[q.id] != null ? 'done' : '', qLabel(q).replace(/^Q/, ''));
+      chip.onclick = () => document.getElementById('xq' + idx).scrollIntoView({ block: 'start' });
+      jump.appendChild(chip);
+      const c = mk('div', 'card qcard'); c.id = 'xq' + idx;
+      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)}</span></div><img src="${q.imageUrl}" alt="Question ${qLabel(q)}">`;
+      if (q.type === 'mcq') {
+        const ch = mk('div', 'choices');
+        ['A', 'B', 'C', 'D'].forEach(l => {
+          const b = mk('button', '', l); b.dataset.l = l;
+          if (e.answers[q.id] === l) b.classList.add('picked');
+          if (marking && q.answer) { if (l === q.answer) b.classList.add('correct'); else if (e.answers[q.id] === l) b.classList.add('wrong'); }
+          b.disabled = e.phase !== 'working';
+          b.onclick = () => {
+            e.answers[q.id] = e.answers[q.id] === l ? null : l; saveExam();
+            ch.querySelectorAll('button').forEach(x => x.classList.toggle('picked', e.answers[q.id] === x.dataset.l));
+            chip.classList.toggle('done', !!e.answers[q.id]);
+          };
+          ch.appendChild(b);
+        });
+        c.appendChild(ch);
+        if (marking) c.appendChild(mk('p', 'muted small', q.answer ? `You: ${e.answers[q.id] || 'blank'} · Answer: ${q.answer}` : 'No answer key for this one (not counted).'));
+      } else if (!marking) {
+        c.appendChild(mk('p', 'muted small', 'Write your working on paper.'));
+      } else {
+        const sol = mk('button', 'secondary', q.solutionUrl ? 'Show solution' : 'No solution available'); sol.disabled = !q.solutionUrl;
+        const solBox = mk('div'); solBox.hidden = true;
+        sol.onclick = () => {
+          if (!solBox.innerHTML) solBox.innerHTML = `<div class="card scroll"><img src="${q.solutionUrl}" alt="Solution"></div>`;
+          solBox.hidden = !solBox.hidden; sol.textContent = solBox.hidden ? 'Show solution' : 'Hide solution';
+        };
+        c.appendChild(sol); c.appendChild(solBox);
+        if (q.marks) {
+          c.appendChild(mk('p', 'muted small', 'Marks you would have got:'));
+          const mkr = mk('div', 'choices');
+          for (let m = 0; m <= q.marks; m++) {
+            const b = mk('button', e.marks[q.id] === m ? 'picked' : '', String(m));
+            b.onclick = () => {
+              e.marks[q.id] = m; saveExam();
+              mkr.querySelectorAll('button').forEach(x => x.classList.toggle('picked', x === b));
+              chip.classList.add('done'); updateRunning();
+            };
+            mkr.appendChild(b);
+          }
+          c.appendChild(mkr);
+        }
+      }
+      body.appendChild(c);
+    });
+  }
+  async function saveExamResult() {
+    const e = state.exam; if (!e || e.phase !== 'marking') return;
+    $('exam-finish').disabled = true;
+    const rs = examResults(e);
+    const score = rs.reduce((a, r) => a + r.score, 0), outOf = rs.reduce((a, r) => a + r.outOf, 0);
+    try {
+      const { error: e1 } = await sb.from('attempts').insert(rs.map(r => ({ user_id: state.user.id, question_id: r.q.id, score: r.score, out_of: r.outOf, chosen: r.chosen })));
+      if (e1) throw e1;
+      const { error: e2 } = await sb.from('exams').insert({ user_id: state.user.id, paper_id: e.paper.id, started_at: new Date(e.startedAt).toISOString(), seconds_used: e.secondsUsed, score, out_of: outOf, work_minutes: Math.round(e.workSec / 60) });
+      if (e2) throw e2;
+    } catch (err) {
+      $('exam-note').textContent = 'Could not save: ' + err.message + '. Tap Save result to retry.';
+      $('exam-finish').disabled = false; return;
+    }
+    lsDel(saveKey());
+    state.set = { qs: e.qs, i: 0, results: rs.map(r => ({ q: r.q, score: r.score, outOf: r.outOf })) };
+    renderSummary('Exam done');
+    $('summary-extra').textContent = `${e.paper.school} ${e.paper.year} · ${Math.round(e.secondsUsed / 60)} of ${Math.round(e.workSec / 60)} minutes used`;
+    state.exam = null; $('exam-finish').disabled = false;
+    location.hash = '#summary';
+  }
+
+  // ---------- review ----------
+  async function renderReview() {
+    tabs('review-tabs', renderReview);
+    $('review-error').hidden = true;
+    const [{ data: mine }, { data: stars }, { data: ex }] = await Promise.all([
+      sb.from('my_topic_stats').select('*').eq('subject', state.subject),
+      sb.from('bookmarks').select('question_id'),
+      sb.from('exams').select('started_at, seconds_used, score, out_of, work_minutes, papers!inner(school, year, subject)').eq('papers.subject', state.subject).order('started_at', { ascending: false }).limit(20),
+    ]);
+    state.weak = (mine || []).filter(r => r.out_of >= 3).map(r => ({ ...r, pct: r.score / r.out_of })).sort((a, b) => a.pct - b.pct).slice(0, 3);
+    $('weak-list').textContent = state.weak.length ? 'Weakest right now: ' + state.weak.map(w => `${w.topic} (${Math.round(100 * w.pct)}%)`).join(', ') : 'Attempt a few questions first and this will find your weak topics.';
+    $('drill-weak').disabled = !state.weak.length;
+    $('star-count').textContent = `${(stars || []).length} starred question${(stars || []).length === 1 ? '' : 's'}`;
+    const tb = $('exam-history').querySelector('tbody'); tb.innerHTML = '';
+    (ex || []).forEach(r => {
+      const tr = mk('tr');
+      tr.innerHTML = `<td>${day(r.started_at)}</td><td>${r.papers.school} ${r.papers.year}</td><td>${r.score}/${r.out_of} (${r.out_of ? Math.round(100 * r.score / r.out_of) : 0}%)</td><td>${Math.round((r.seconds_used || 0) / 60)} of ${r.work_minutes} min</td>`;
+      tb.appendChild(tr);
+    });
+    $('exam-history-empty').hidden = !!(ex && ex.length);
+  }
+  function reviewError(msg) { $('review-error').textContent = msg; $('review-error').hidden = false; }
+  async function setFromIds(ids, n) {
+    if (!ids.length) return false;
+    const { data, error } = await sb.from('questions').select(QCOLS).in('id', ids.slice(0, 100)).eq('papers.subject', state.subject).not('image_path', 'is', null);
+    if (error) throw error;
+    if (!data.length) return false;
+    shuffle(data);
+    await startSet(data.slice(0, n));
+    return true;
+  }
+  $('drill-weak').onclick = async () => {
+    $('review-error').hidden = true;
+    try {
+      state.topics = new Set(state.weak.map(w => w.topic));
+      await buildSet({ count: 10, type: 'all', diff: 'all', fresh: 0 });
+      location.hash = '#set';
+    } catch (err) { reviewError(err.message); }
+  };
+  $('drill-wrong').onclick = async () => {
+    $('review-error').hidden = true;
+    try {
+      const { data: att, error } = await sb.from('attempts').select('question_id, score, out_of, created_at').eq('user_id', state.user.id).order('created_at', { ascending: false }).limit(1000);
+      if (error) throw error;
+      const seen = new Set(), wrong = [];
+      (att || []).forEach(a => { if (seen.has(a.question_id)) return; seen.add(a.question_id); if (a.score < a.out_of) wrong.push(a.question_id); });
+      if (!(await setFromIds(wrong, 15))) reviewError('Nothing to redo in this subject. Clean sheet.');
+    } catch (err) { reviewError(err.message); }
+  };
+  $('drill-stars').onclick = async () => {
+    $('review-error').hidden = true;
+    try {
+      const { data } = await sb.from('bookmarks').select('question_id');
+      if (!(await setFromIds((data || []).map(r => r.question_id), 20))) reviewError('No starred questions in this subject yet. Tap the star on any question.');
+    } catch (err) { reviewError(err.message); }
   };
 
   // ---------- boot ----------

@@ -18,7 +18,7 @@ p { margin: .5rem 0; }
 .top { display: flex; align-items: center; justify-content: space-between; max-width: var(--max);
   margin: 0 auto; padding: 14px 16px; }
 .brand { font-weight: 700; color: var(--ink); font-size: 1.1rem; }
-nav { display: flex; gap: 18px; align-items: center; }
+nav { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 nav a { color: var(--ink); }
 
 main { max-width: var(--max); margin: 0 auto; padding: 8px 16px 48px; }
@@ -102,3 +102,24 @@ ul.plain li .link { color: var(--bad); font-size: .85rem; }
 .tbl th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 .tbl td { padding: 7px 4px; border-bottom: 1px solid var(--line); }
 .tbl td .link { color: var(--bad); font-size: .85rem; }
+
+/* v2: papers, exam, review */
+.opt input { width: 90px; margin: 0; text-align: right; }
+.folder { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); margin: 10px 0; overflow: hidden; }
+.folder summary { cursor: pointer; padding: 14px 18px; display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; }
+.prow { display: flex; gap: 14px; align-items: center; padding: 10px 18px; border-top: 1px solid var(--line); color: var(--ink); }
+.prow:hover { background: #f5f5f4; }
+.prow .yr { font-weight: 600; width: 48px; }
+.prow .tag { margin-left: auto; }
+.tag { background: #dcfce7; color: var(--good); border-radius: 999px; padding: 2px 10px; font-size: .8rem; white-space: nowrap; }
+#papers-filter { margin: 8px 0 4px; }
+.qcard { scroll-margin-top: 96px; }
+.exambar { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line);
+  padding: 10px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.exambar .row { margin: 0; }
+.clock { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.clock.warn { color: var(--warn); } .clock.bad { color: var(--bad); }
+.jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.jump button { padding: 3px 9px; font-size: .8rem; border-radius: 999px; }
+.jump button.done { background: #dbeafe; border-color: #93c5fd; }
+#view-set .between { align-items: center; }

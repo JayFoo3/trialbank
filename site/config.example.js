@@ -5,5 +5,6 @@ window.APP_CONFIG = {
   supabaseUrl: 'https://YOUR-PROJECT.supabase.co',
   supabaseAnonKey: 'YOUR-ANON-KEY',
   subjects: { Ext1: 'Maths Extension 1', Physics: 'Physics' },
+  exam: { Ext1: { reading: 10, working: 120 }, Physics: { reading: 5, working: 180 } },
   schoolDomain: 'education.nsw.gov.au',
 };
