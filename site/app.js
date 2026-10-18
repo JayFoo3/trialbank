@@ -880,6 +880,7 @@
       ? `10 new questions, mostly ${state.weak.map(w => w.topic).slice(0, 2).join(' and ')}.`
       : "10 questions you haven't done.";
     renderOnboard();
+    if (!flag('tour_done') && !state.tourOn) setTimeout(startTour, 350);
     // the single next step: an unfinished exam, then a first set for new students, then a quick set
     const go = $('next-go');
     if (saved && homePapers.some(x => x.id === saved.paperId)) {
@@ -1242,6 +1243,7 @@
   };
   const flag = (k, v) => { if (state.preview) { if (v === undefined) return !!previewFlags[k]; previewFlags[k] = 1; return; } try { if (v === undefined) return localStorage.getItem('tb_' + k) === '1'; localStorage.setItem('tb_' + k, '1'); } catch { return false; } };
   function renderOnboard() {
+    $('onboard').hidden = true; return;   // replaced by the spotlight tour below
     const box = $('onboard');
     const done = { subject: flag('picked_subject'), first: !!state.attempted, papers: flag('seen_papers') };
     if (flag('onboard_hidden') || (done.subject && done.first && done.papers)) { box.hidden = true; return; }
@@ -1272,6 +1274,66 @@
     if (flag(k)) { el.hidden = true; return; }
     el.textContent = x.type === 'mcq' ? 'Tap an answer. You find out straight away.' : 'Do it on paper, check the solution, then give yourself a mark.';
     el.hidden = false; flag(k, 1);
+  }
+
+  // ---------- spotlight tour for new students ----------
+  const TOUR = [
+    { el: '#subject-switch', text: 'Switch between Maths Ext 1 and Physics here.' },
+    { el: '#next-go', text: 'Start here. This always shows your best next step.' },
+    { el: '.others', text: 'Sit a timed paper, get your working marked, or pick your own topics.' },
+    { el: '#nav a[data-nav="practise"]', text: 'Practise any topic, one question at a time.' },
+    { el: '#nav a[data-nav="papers"]', text: 'Every past paper, with solutions and downloads.' },
+    { el: '#nav a[data-nav="progress"]', text: 'See which topics cost you the most marks.' },
+    { el: '#account-btn', text: 'Your account and sign out.' },
+    { el: null, text: "You're all good to go.", last: true },
+  ];
+  function startTour() {
+    if (state.tourOn || $('view-home').hidden) return;
+    state.tourOn = true;
+    const block = mk('div', 'tour-block'), spot = mk('div', 'tour-spot'), tip = mk('div', 'tour-tip');
+    tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-live', 'polite');
+    document.body.append(block, spot, tip);
+    let i = 0;
+    const end = () => {
+      flag('tour_done', 1); state.tourOn = false;
+      [block, spot, tip].forEach(x => x.remove());
+      window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true);
+      document.removeEventListener('keydown', key);
+    };
+    const step = (n) => { i = n; if (i >= TOUR.length) return end(); draw(); };
+    function target() { const t = TOUR[i]; return t.el ? [...document.querySelectorAll(t.el)].find(e => e.offsetParent !== null) : null; }
+    function draw() {
+      const t = TOUR[i], el = target();
+      if (t.el && !el) return step(i + 1);   // skip anything not on screen (e.g. a hidden element)
+      tip.innerHTML = `<p>${t.text}</p><div class="tour-row">${t.last ? '' : `<span class="tour-n">${i + 1} of ${TOUR.length - 1}</span><button class="link tour-skip">Skip</button>`}<button class="primary tour-next">${t.last ? "Let's go" : 'Next'}</button></div>`;
+      tip.querySelector('.tour-next').onclick = () => step(i + 1);
+      const sk = tip.querySelector('.tour-skip'); if (sk) sk.onclick = end;
+      if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+      place();
+      tip.querySelector('.tour-next').focus();
+    }
+    function place() {
+      const el = target(), pad = 8;
+      if (!el) {
+        Object.assign(spot.style, { left: '50%', top: '50%', width: '0px', height: '0px' });
+        Object.assign(tip.style, { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' });
+        tip.classList.add('center'); return;
+      }
+      tip.classList.remove('center');
+      const r = el.getBoundingClientRect();
+      Object.assign(spot.style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px' });
+      const tw = Math.min(300, innerWidth - 24), th = tip.offsetHeight || 110;
+      const below = r.bottom + pad + 12 + th < innerHeight;
+      const top = below ? r.bottom + pad + 12 : Math.max(12, r.top - pad - 12 - th);
+      const left = Math.min(Math.max(12, r.left + r.width / 2 - tw / 2), innerWidth - tw - 12);
+      Object.assign(tip.style, { left: left + 'px', top: top + 'px', width: tw + 'px', transform: 'none' });
+    }
+    const key = (ev) => { if (ev.key === 'Escape') end(); else if (ev.key === 'ArrowRight') step(i + 1); };
+    block.onclick = () => step(i + 1);
+    spot.onclick = () => step(i + 1);
+    window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
+    document.addEventListener('keydown', key);
+    draw();
   }
 
   // ---------- automarker ----------

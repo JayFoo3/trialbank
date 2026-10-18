@@ -316,3 +316,16 @@ h2.sec { color: var(--muted); font-size: .95rem; font-weight: 600; margin-top: 3
 }
 .preview-bar { background: var(--ink); color: #fff; text-align: center; font-size: .88rem; padding: 7px 12px; }
 .preview-bar .link { color: var(--hl); margin-left: 10px; }
+
+/* ---------- spotlight tour ---------- */
+.tour-block { position: fixed; inset: 0; z-index: 1000; }
+.tour-spot { position: fixed; z-index: 1001; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(17,20,28,.68); transition: left .25s, top .25s, width .25s, height .25s; cursor: pointer; }
+.tour-tip { position: fixed; z-index: 1002; background: var(--paper); color: var(--ink); border-radius: var(--r-lg); padding: 16px 18px 14px; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+.tour-tip p { margin: 0 0 12px; font-size: 1.02rem; font-weight: 600; line-height: 1.35; }
+.tour-tip.center { width: min(320px, calc(100vw - 24px)); text-align: center; padding: 26px 22px 20px; }
+.tour-tip.center p { font-size: 1.35rem; font-weight: 800; }
+.tour-row { display: flex; align-items: center; gap: 12px; }
+.tour-tip.center .tour-row { justify-content: center; }
+.tour-n { font-size: .8rem; color: var(--muted); margin-right: auto; }
+.tour-skip { color: var(--muted); font-size: .9rem; }
+@media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } }
