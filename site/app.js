@@ -1502,7 +1502,7 @@
       : "10 questions you haven't done.";
     renderOnboard();
     if (!mySubjects() || !myName()) { if ($('subj-modal').hidden) openSubjects(true); }
-    else if (!flag('tour_done') && !state.tourOn) setTimeout(startTour, 350);
+    else if (!flag('tour_done') && !state.tourOn) { if (returning()) flag('tour_done', 1); else setTimeout(startTour, 350); }
     // the single next step: an unfinished exam, then a first set for new students, then a quick set
     const go = $('next-go');
     if (saved && homePapers.some(x => x.id === saved.paperId)) {
@@ -1881,7 +1881,25 @@
     state.preview = false; previewFlags = {}; setTimeout(() => drawStreak(), 0); $('preview-new').hidden = !state.admin;
     if (location.hash === '#home') route(); else location.hash = '#home';
   };
-  const flag = (k, v) => { if (state.preview) { if (v === undefined) return !!previewFlags[k]; previewFlags[k] = 1; return; } try { if (v === undefined) return localStorage.getItem('tb_' + k) === '1'; localStorage.setItem('tb_' + k, '1'); } catch { return false; } };
+  // one-off flags (tour seen, subject picked...): kept on the account so a new device or the Home Screen app
+  // doesn't treat a returning student as new; localStorage is only a fast local copy
+  const flag = (k, v) => {
+    if (state.preview) { if (v === undefined) return !!previewFlags[k]; previewFlags[k] = 1; return; }
+    const meta = state.user?.user_metadata?.flags || {};
+    let local = false; try { local = localStorage.getItem('tb_' + k) === '1'; } catch { /* private mode */ }
+    if (v === undefined) {
+      if (meta[k]) return true;
+      if (local && state.user) flag(k, 1);          // carry flags set before this change up to the account
+      return local;
+    }
+    try { localStorage.setItem('tb_' + k, '1'); } catch { /* private mode */ }
+    if (state.user && !meta[k]) {
+      state.user.user_metadata = { ...(state.user.user_metadata || {}), flags: { ...meta, [k]: 1 } };
+      sb.auth.updateUser({ data: { flags: state.user.user_metadata.flags } }).then(({ data }) => { if (data?.user) state.user = data.user; }, () => {});
+    }
+  };
+  // accounts that are more than a day old have already been shown around
+  const returning = () => !!state.user?.created_at && Date.now() - Date.parse(state.user.created_at) > 864e5;
   function renderOnboard() {
     $('onboard').hidden = true; return;   // replaced by the spotlight tour below
     const box = $('onboard');
