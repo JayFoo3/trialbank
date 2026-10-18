@@ -365,7 +365,9 @@
     if (error) throw error;
     if (!data.length) throw new Error('No questions match that. Widen the filters.');
 
-    let pool = data;
+    const tooHard = hardQs();
+    let pool = data.filter(x => !tooHard.has(x.id));
+    if (!pool.length) throw new Error('No questions match that. Widen the filters.');
     if (o.fresh) {
       const { data: seen } = await sb.from('attempts').select('question_id').eq('user_id', state.user.id);
       const seenIds = new Set((seen || []).map(a => a.question_id));
@@ -1404,7 +1406,7 @@
           .eq('type', 'mcq').not('answer', 'is', null).not('image_path', 'is', null).not('topic', 'is', null).limit(800);
         if (error) throw error;
         const byTopic = {};
-        shuffle(data || []).forEach(q => { (byTopic[q.topic] = byTopic[q.topic] || []).push(q); });
+        shuffle((data || []).filter(q => !hardQs().has(q.id))).forEach(q => { (byTopic[q.topic] = byTopic[q.topic] || []).push(q); });
         const skipC = skipped();
         const topics = shuffle(Object.keys(byTopic).filter(t => !skipC.has(t))).slice(0, 12);
         if (!topics.length) throw new Error('No questions ready for a check-up in this subject yet.');
@@ -1452,6 +1454,24 @@
     // drop the rest of this topic from the current set too
     const s = state.set;
     s.qs = s.qs.filter((q, k) => k <= s.i || q.topic !== x.topic);
+    advance();
+  };
+  // single questions that go further than the class has learnt so far
+  function hardQs() {
+    return new Set(state.preview ? (previewFlags.hardQs || []) : (state.user?.user_metadata?.skip_qs || []));
+  }
+  async function saveHardQs(set) {
+    const ids = [...set].slice(-2000);
+    if (state.preview) { previewFlags.hardQs = ids; return; }
+    const { data, error } = await sb.auth.updateUser({ data: { skip_qs: ids } });
+    if (!error && data?.user) state.user = data.user;
+  }
+  $('too-hard').onclick = async () => {
+    const x = state.set && state.set.qs[state.set.i]; if (!x) return;
+    if (!(await confirmBox(`Haven't learnt ${x.topic ? esc(topicName(x.topic)) : 'this'} to this level yet?`))) return;
+    const set = hardQs(); set.add(x.id); await saveHardQs(set);
+    const t = toast(`That question is hidden for now. <button class="link" id="undo-hard">Undo</button>`);
+    t.querySelector('#undo-hard').onclick = async () => { const s2 = hardQs(); s2.delete(x.id); await saveHardQs(s2); t.hidden = true; };
     advance();
   };
   function openLearnt(topics) {
