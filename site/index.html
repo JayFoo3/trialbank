@@ -43,6 +43,12 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </div>
 </header>
 
+<div class="modal" id="syl-modal" hidden>
+  <div class="modal-card syl-card" role="dialog" aria-modal="true" aria-labelledby="syl-title">
+    <div class="between"><h2 id="syl-title">Syllabus</h2><button class="link" id="syl-close" aria-label="Close">✕</button></div>
+    <div id="syl-body"></div>
+  </div>
+</div>
 <div class="modal" id="subj-modal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="subj-title">
     <h2 id="subj-title">Welcome to Trialbank</h2>
@@ -172,7 +178,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 
   <!-- ===== practise: build a set ===== -->
   <section id="view-practise" class="view" hidden>
-    <h1>Practise by topic</h1>
+    <div class="between pr-head"><h1>Practise by topic</h1><button class="secondary" id="open-syllabus">Syllabus</button></div>
     <div class="pr-grid">
       <div class="card pr-topics">
         <div class="pr-tools">
@@ -226,6 +232,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <div class="card question">
       <img id="q-img" alt="Question">
       <p class="muted small" id="q-coarse" hidden>Whole page shown: find the part named above.</p>
+      <p class="q-syllabus" id="q-syllabus" hidden></p>
     </div>
 
     <div id="mcq-controls" class="choices" hidden>

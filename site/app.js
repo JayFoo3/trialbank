@@ -4,7 +4,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey);
   const $ = (id) => document.getElementById(id);
   const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun'];
-  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, papers!inner(subject, school, year, difficulty)';
+  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, syllabus_note, papers!inner(subject, school, year, difficulty)';
 
   document.title = C.name;
   $('brand').textContent = C.name;
@@ -260,6 +260,52 @@
     'Trig. Eqns': 'Trigonometric Equations', 'Volumes': 'Volumes of Revolution',
   };
   const topicName = t => TOPIC_NAMES[t] || t;
+  // ---------- the syllabus each subject is examined on (HSC 2027) ----------
+  const NSW = 'https://curriculum.nsw.edu.au/learning-areas/mathematics/';
+  const SYLLABUS = {
+    Ext1: {
+      name: 'Mathematics Extension 1 11–12 Syllabus (2024)', url: NSW + 'mathematics-extension-1-11-12-2024/content',
+      areas: [['11', 'Further work with functions', 'year-11/fafd6dbe16'], ['11', 'Polynomials', 'year-11/fa858a6f68'], ['11', 'Further trigonometry', 'year-11/fa788a073e'],
+        ['11', 'Permutations and combinations', 'year-11/fa40471150'], ['11', 'The binomial theorem', 'year-11/fa00679960'],
+        ['12', 'Proof by mathematical induction', 'year-12/fa0cde2f55'], ['12', 'Introduction to vectors', 'year-12/fa682e9b47'], ['12', 'Inverse trigonometric functions', 'year-12/fab9c2c5a7'],
+        ['12', 'Further calculus skills', 'year-12/fa8f1cef28'], ['12', 'Further applications of calculus', 'year-12/faed7f98f9'], ['12', 'The binomial distribution and sampling distribution of the mean', 'year-12/fab1724c5e']],
+      gone: ['The t-formulae', 'Products-to-sums identities', 'The pigeonhole principle', 'The normal approximation to the binomial (sample proportions)'],
+      added: ['Trigonometry in three dimensions', '3D vectors', 'The sampling distribution of the mean and the central limit theorem'],
+    },
+    Adv: {
+      name: 'Mathematics Advanced 11–12 Syllabus (2024)', url: NSW + 'mathematics-advanced-11-12-2024/content',
+      areas: [['11', 'Working with functions', 'year-11/fa3d488ed2'], ['11', 'Trigonometry and measure of angles', 'year-11/fa0b724fc5'], ['11', 'Trigonometric identities and equations', 'year-11/faa07be39c'],
+        ['11', 'Introduction to differentiation', 'year-11/fa6bc41678'], ['11', 'Exponential and logarithmic functions', 'year-11/fa576d8dce'], ['11', 'Graph transformations', 'year-11/fae9d6fbd3'], ['11', 'Probability and data', 'year-11/fa829162c5'],
+        ['12', 'Further graph transformations and modelling', 'year-12/fa3b2bda67'], ['12', 'Sequences and series', 'year-12/fa8db67617'], ['12', 'Differential calculus', 'year-12/fa4d003480'],
+        ['12', 'Integral calculus', 'year-12/fa41f9f88f'], ['12', 'Applications of calculus', 'year-12/fa383c9104'], ['12', 'Random variables', 'year-12/fa4579cc54'], ['12', 'Financial mathematics', 'year-12/fa4572a048']],
+      gone: ['Correlation, regression and bivariate data', 'Box plots, quartiles and outliers', 'Annuity tables and recurrence relations'],
+      added: ['Piecewise functions and semicircles', 'Sets and Venn diagrams', 'Expected value and variance of continuous random variables', 'Logarithmic scales'],
+    },
+    Physics: {
+      name: 'Physics Stage 6 Syllabus (2017)', url: 'https://www.nsw.gov.au/education-and-training/nesa/curriculum/science/physics-stage-6-2017',
+      areas: [['12', 'Module 5: Advanced Mechanics'], ['12', 'Module 6: Electromagnetism'], ['12', 'Module 7: The Nature of Light'], ['12', 'Module 8: From the Universe to the Atom']],
+      note: 'Your cohort stays on this syllabus: the new Physics syllabus is first examined in 2028, so every Physics paper here is in scope.',
+    },
+  };
+  function openSyllabus() {
+    const S = SYLLABUS[state.subject], box = $('syl-body');
+    if (!S) return;
+    $('syl-title').textContent = C.subjects[state.subject] + ' syllabus';
+    let h = `<p class="small muted">Examined on the <a href="${S.url}" target="_blank" rel="noopener">${esc(S.name)}</a>.</p>`;
+    if (S.note) h += `<p class="small">${esc(S.note)}</p>`;
+    else h += `<p class="small">The HSC in 2027 is the first on this syllabus, but these trials were written for the old one. Questions on content that's gone are tagged <span class="syl-flag">Most likely not in syllabus</span> and auto-marked as correct.</p>`;
+    ['11', '12'].forEach(y => {
+      const list = S.areas.filter(a => a[0] === y); if (!list.length) return;
+      h += `<h3>Year ${y}</h3><ul class="syl-list">` + list.map(([, n, path]) => `<li>${path ? `<a href="${S.url.replace(/content$/, 'content/')}${path}" target="_blank" rel="noopener">${esc(n)}</a>` : esc(n)}</li>`).join('') + '</ul>';
+    });
+    if (S.gone) h += `<h3>Gone since the old syllabus</h3><ul class="syl-list">${S.gone.map(g => `<li>${esc(g)}</li>`).join('')}</ul>`;
+    if (S.added) h += `<h3>New, so older trials won't cover it</h3><ul class="syl-list">${S.added.map(g => `<li>${esc(g)}</li>`).join('')}</ul>`;
+    box.innerHTML = h;
+    $('syl-modal').hidden = false;
+  }
+  $('open-syllabus').onclick = openSyllabus;
+  $('syl-close').onclick = () => { $('syl-modal').hidden = true; };
+  $('syl-modal').onclick = (ev) => { if (ev.target === $('syl-modal')) $('syl-modal').hidden = true; };
   // topics shown together on the Practise page, in syllabus order; anything unlisted lands in "Other"
   const TOPIC_GROUPS = {
     Ext1: [
@@ -417,7 +463,7 @@
     if (!data.length) throw new Error('No questions match that. Widen the filters.');
 
     const tooHard = hardQs();
-    let pool = data.filter(x => !tooHard.has(x.id));
+    let pool = data.filter(x => !tooHard.has(x.id) && !x.syllabus_note);
     if (!pool.length) throw new Error('No questions match that. Widen the filters.');
     if (o.fresh) {
       const { data: seen } = await sb.from('attempts').select('question_id').eq('user_id', state.user.id);
@@ -434,6 +480,8 @@
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
   // ---------- set ----------
+  // trials were written for the 2017 syllabus; questions most likely outside the 2024 one are auto-marked as correct
+  const sylFlag = (q) => q && q.syllabus_note ? `<span class="syl-flag" title="${esc(q.syllabus_note)}">Most likely not in syllabus</span>` : '';
   function label(x) {
     return x.type === 'mcq' ? `Q${x.number}` : `Q${x.number}${x.part ? '(' + x.part + ')' : ''}`;
   }
@@ -450,8 +498,9 @@
     $('star').onclick = () => toggleStar(x.id, $('star'));
     $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true;
     $('next').hidden = true; $('skip').hidden = false;
-    $('mcq-controls').hidden = x.type !== 'mcq';
-    $('short-controls').hidden = x.type !== 'short';
+    $('mcq-controls').hidden = x.type !== 'mcq' || !!x.syllabus_note;
+    $('short-controls').hidden = x.type !== 'short' || !!x.syllabus_note;
+    $('q-syllabus').hidden = !x.syllabus_note;
     $('sol-wrap').hidden = true; $('show-sol').hidden = false; $('show-sol').disabled = !x.solutionUrl;
     $('show-sol').textContent = x.solutionUrl ? 'Show solution' : 'No solution available';
     document.querySelectorAll('#mcq-controls button').forEach(b => { b.className = ''; b.disabled = false; });
@@ -462,6 +511,13 @@
         b.onclick = () => record(m, x.marks || 0, null, sm, b);
         sm.appendChild(b);
       }
+    }
+    if (x.syllabus_note) {          // most likely not in the 2024 syllabus: full marks, and nothing saved to their stats
+      const outOf = x.type === 'mcq' ? 1 : (x.marks || 0);
+      s.results[s.i] = { q: x, score: outOf, outOf, auto: true };
+      $('q-syllabus').innerHTML = `${sylFlag(x)}<span class="small muted">${esc(x.syllabus_note)}</span>`;
+      verdict('Most likely not in your syllabus, so this one is auto-marked as correct. Have a go anyway if you like.', 'good');
+      $('next').hidden = false; $('skip').hidden = true;
     }
   }
   document.querySelectorAll('#mcq-controls button').forEach(b => b.onclick = () => {
@@ -1236,7 +1292,7 @@
     box.innerHTML = '';
     qs.forEach(q => {
       const c = mk('div', 'card qcard');
-      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)} · ${q.topic ? topicName(q.topic) : 'Untagged'}</span></div>`;
+      c.innerHTML = `<div class="between"><strong>${qLabel(q)} ${sylFlag(q)}</strong><span class="muted small">${marksText(q.marks)} · ${q.topic ? topicName(q.topic) : 'Untagged'}</span></div>`;
       if (q.image_path) { const im = qImg(urls[q.image_path], qLabel(q)); im.loading = 'lazy'; c.appendChild(im); }
       else c.appendChild(mk('p', 'muted small', 'No image for this question.'));
       const row = mk('div', 'row');
@@ -1478,6 +1534,7 @@
   function examResults(e) {
     const out = [];
     e.qs.forEach(q => {
+      if (q.syllabus_note) { const m = q.type === 'mcq' ? 1 : (q.marks || 0); if (m) out.push({ q, score: m, outOf: m, chosen: e.answers[q.id] || null, auto: true }); return; }
       if (q.type === 'mcq') { if (q.answer) out.push({ q, score: e.answers[q.id] === q.answer ? 1 : 0, outOf: 1, chosen: e.answers[q.id] || null }); }
       else if (q.marks) out.push({ q, score: Math.min(e.marks[q.id] || 0, q.marks), outOf: q.marks, chosen: null });
     });
@@ -1488,7 +1545,7 @@
     const rs = examResults(e);
     $('exam-clock').className = 'clock';
     $('exam-clock').textContent = `${rs.reduce((a, r) => a + r.score, 0)} / ${rs.reduce((a, r) => a + r.outOf, 0)}`;
-    const shorts = e.qs.filter(q => q.type !== 'mcq' && q.marks);
+    const shorts = e.qs.filter(q => q.type !== 'mcq' && q.marks && !q.syllabus_note);
     const done = shorts.filter(q => e.marks[q.id] != null).length;
     if (!$('exam-note').textContent || /marked/.test($('exam-note').textContent)) $('exam-note').textContent = `${done} of ${shorts.length} written questions marked. Unmarked ones count as 0.`;
   }
@@ -1502,8 +1559,12 @@
       chip.onclick = () => document.getElementById('xq' + idx).scrollIntoView({ block: 'start' });
       jump.appendChild(chip);
       const c = mk('div', 'card qcard'); c.id = 'xq' + idx;
-      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)}</span></div>`;
+      c.innerHTML = `<div class="between"><strong>${qLabel(q)} ${sylFlag(q)}</strong><span class="muted small">${marksText(q.marks)}</span></div>`;
       c.appendChild(qImg(q.imageUrl, 'Question ' + qLabel(q)));
+      if (marking && q.syllabus_note) {
+        c.appendChild(mk('p', 'muted small', `${esc(q.syllabus_note)} Auto-marked as correct.`));
+        chip.classList.add('done'); body.appendChild(c); return;
+      }
       const ai = marking && e.ai && e.ai[q.id];
       if (ai) c.appendChild(mk('p', 'ai-note', `<b>Auto-marker: ${ai.found ? `${ai.awarded}/${ai.out_of}` : 'not found in your upload'}</b> ${esc(ai.feedback || '')}`));
       if (q.type === 'mcq') {
@@ -1566,7 +1627,7 @@
     const rs = examResults(e);
     const score = rs.reduce((a, r) => a + r.score, 0), outOf = rs.reduce((a, r) => a + r.outOf, 0);
     try {
-      const { error: e1 } = await sb.from('attempts').insert(rs.map(r => ({ user_id: state.user.id, question_id: r.q.id, score: r.score, out_of: r.outOf, chosen: r.chosen, lost: (e.lost && e.lost[r.q.id] && e.lost[r.q.id].length) ? e.lost[r.q.id] : null })));
+      const { error: e1 } = await sb.from('attempts').insert(rs.filter(r => !r.auto).map(r => ({ user_id: state.user.id, question_id: r.q.id, score: r.score, out_of: r.outOf, chosen: r.chosen, lost: (e.lost && e.lost[r.q.id] && e.lost[r.q.id].length) ? e.lost[r.q.id] : null })));
       if (e1) throw e1;
       const { error: e2 } = await sb.from('exams').insert({ user_id: state.user.id, paper_id: e.paper.id, started_at: new Date(e.startedAt).toISOString(), seconds_used: e.secondsUsed, score, out_of: outOf, work_minutes: Math.round(e.workSec / 60) });
       if (e2) throw e2;
@@ -1703,7 +1764,7 @@
           .eq('type', 'mcq').not('answer', 'is', null).not('image_path', 'is', null).not('topic', 'is', null).limit(800);
         if (error) throw error;
         const byTopic = {};
-        shuffle((data || []).filter(q => !hardQs().has(q.id))).forEach(q => { (byTopic[q.topic] = byTopic[q.topic] || []).push(q); });
+        shuffle((data || []).filter(q => !hardQs().has(q.id) && !q.syllabus_note)).forEach(q => { (byTopic[q.topic] = byTopic[q.topic] || []).push(q); });
         const skipC = skipped();
         const topics = shuffle(Object.keys(byTopic).filter(t => !skipC.has(t))).slice(0, 12);
         if (!topics.length) throw new Error('No questions ready for a check-up in this subject yet.');
