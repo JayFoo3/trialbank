@@ -1276,64 +1276,75 @@
     el.hidden = false; flag(k, 1);
   }
 
-  // ---------- spotlight tour for new students ----------
+  // ---------- spotlight tour for new students: they tap each lit-up control for real ----------
   const TOUR = [
-    { el: '#subject-switch', text: 'Switch between Maths Ext 1 and Physics here.' },
-    { el: '#next-go', text: 'Start here. This always shows your best next step.' },
-    { el: '.others', text: 'Sit a timed paper, get your working marked, or pick your own topics.' },
-    { el: '#nav a[data-nav="practise"]', text: 'Practise any topic, one question at a time.' },
-    { el: '#nav a[data-nav="papers"]', text: 'Every past paper, with solutions and downloads.' },
-    { el: '#nav a[data-nav="progress"]', text: 'See which topics cost you the most marks.' },
-    { el: '#account-btn', text: 'Your account and sign out.' },
-    { el: null, text: "You're all good to go.", last: true },
+    { el: '#subject-switch', text: 'Tap your subject.' },
+    { el: '#nav a[data-nav="papers"]', text: 'Tap Papers. Every past paper lives here.' },
+    { el: '#nav a[data-nav="progress"]', text: 'Tap Progress. This shows where you lose marks.' },
+    { el: '#nav a[data-nav="practise"]', text: 'Tap Practise. Pick any topics to drill.' },
+    { el: '#nav a[data-nav="home"]', text: 'Tap Home to come back.' },
+    { el: '#next-go', text: "You're all good to go. Tap Start for your first questions.", last: true },
   ];
   function startTour() {
     if (state.tourOn || $('view-home').hidden) return;
     state.tourOn = true;
-    const block = mk('div', 'tour-block'), spot = mk('div', 'tour-spot'), tip = mk('div', 'tour-tip');
+    const spot = mk('div', 'tour-spot'), tip = mk('div', 'tour-tip');
+    const walls = [0, 1, 2, 3].map(() => mk('div', 'tour-wall'));   // catch clicks everywhere except the lit control
     tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-live', 'polite');
-    document.body.append(block, spot, tip);
-    let i = 0;
+    document.body.append(...walls, spot, tip);
+    let i = 0, cur = null, timer = null;
     const end = () => {
-      flag('tour_done', 1); state.tourOn = false;
-      [block, spot, tip].forEach(x => x.remove());
+      flag('tour_done', 1); state.tourOn = false; clearInterval(timer);
+      [...walls, spot, tip].forEach(x => x.remove());
       window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true);
-      document.removeEventListener('keydown', key);
+      document.removeEventListener('click', onClick, true); document.removeEventListener('keydown', key);
     };
-    const step = (n) => { i = n; if (i >= TOUR.length) return end(); draw(); };
-    function target() { const t = TOUR[i]; return t.el ? [...document.querySelectorAll(t.el)].find(e => e.offsetParent !== null) : null; }
+    const visible = (sel) => [...document.querySelectorAll(sel)].find(e => e.offsetParent !== null && e.getBoundingClientRect().width > 0);
+    function go(n) {
+      i = n; cur = null;
+      if (i >= TOUR.length) return end();
+      [spot, tip, ...walls].forEach(x => x.style.visibility = 'hidden');
+      clearInterval(timer);
+      let tries = 0;
+      timer = setInterval(() => {   // wait for the page the last tap opened to finish loading
+        const el = visible(TOUR[i].el);
+        if (el && $('loading').hidden) { clearInterval(timer); cur = el; draw(); }
+        else if (++tries > 80) { clearInterval(timer); go(i + 1); }
+      }, 100);
+    }
     function draw() {
-      const t = TOUR[i], el = target();
-      if (t.el && !el) return step(i + 1);   // skip anything not on screen (e.g. a hidden element)
-      tip.innerHTML = `<p>${t.text}</p><div class="tour-row">${t.last ? '' : `<span class="tour-n">${i + 1} of ${TOUR.length - 1}</span><button class="link tour-skip">Skip</button>`}<button class="primary tour-next">${t.last ? "Let's go" : 'Next'}</button></div>`;
-      tip.querySelector('.tour-next').onclick = () => step(i + 1);
-      const sk = tip.querySelector('.tour-skip'); if (sk) sk.onclick = end;
-      if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+      const t = TOUR[i];
+      tip.innerHTML = `<p>${t.text}</p><div class="tour-row"><span class="tour-n">${i + 1} of ${TOUR.length}</span><button class="link tour-skip">Skip tour</button></div>`;
+      tip.querySelector('.tour-skip').onclick = end;
+      cur.scrollIntoView({ block: 'center', behavior: 'instant' });
+      [spot, tip, ...walls].forEach(x => x.style.visibility = 'visible');
       place();
-      tip.querySelector('.tour-next').focus();
     }
     function place() {
-      const el = target(), pad = 8;
-      if (!el) {
-        Object.assign(spot.style, { left: '50%', top: '50%', width: '0px', height: '0px' });
-        Object.assign(tip.style, { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' });
-        tip.classList.add('center'); return;
-      }
-      tip.classList.remove('center');
-      const r = el.getBoundingClientRect();
-      Object.assign(spot.style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px' });
-      const tw = Math.min(300, innerWidth - 24), th = tip.offsetHeight || 110;
-      const below = r.bottom + pad + 12 + th < innerHeight;
-      const top = below ? r.bottom + pad + 12 : Math.max(12, r.top - pad - 12 - th);
-      const left = Math.min(Math.max(12, r.left + r.width / 2 - tw / 2), innerWidth - tw - 12);
-      Object.assign(tip.style, { left: left + 'px', top: top + 'px', width: tw + 'px', transform: 'none' });
+      if (!cur) return;
+      const r = cur.getBoundingClientRect(), pad = 6;
+      const L = r.left - pad, T = r.top - pad, W = r.width + pad * 2, H = r.height + pad * 2;
+      Object.assign(spot.style, { left: L + 'px', top: T + 'px', width: W + 'px', height: H + 'px' });
+      const [top, bottom, left, right] = walls;
+      Object.assign(top.style, { left: 0, top: 0, width: '100vw', height: Math.max(0, T) + 'px' });
+      Object.assign(bottom.style, { left: 0, top: T + H + 'px', width: '100vw', height: Math.max(0, innerHeight - T - H) + 'px' });
+      Object.assign(left.style, { left: 0, top: T + 'px', width: Math.max(0, L) + 'px', height: H + 'px' });
+      Object.assign(right.style, { left: L + W + 'px', top: T + 'px', width: Math.max(0, innerWidth - L - W) + 'px', height: H + 'px' });
+      const tw = Math.min(290, innerWidth - 24), th = tip.offsetHeight || 96;
+      const below = T + H + 12 + th < innerHeight;
+      Object.assign(tip.style, { width: tw + 'px', top: (below ? T + H + 12 : Math.max(12, T - 12 - th)) + 'px',
+        left: Math.min(Math.max(12, L + W / 2 - tw / 2), innerWidth - tw - 12) + 'px' });
     }
-    const key = (ev) => { if (ev.key === 'Escape') end(); else if (ev.key === 'ArrowRight') step(i + 1); };
-    block.onclick = () => step(i + 1);
-    spot.onclick = () => step(i + 1);
+    function onClick(ev) {   // the real control still does its job; the tour just moves on afterwards
+      if (!cur || !cur.contains(ev.target)) return;
+      if (TOUR[i].el === '#subject-switch' && !ev.target.closest('button')) return;
+      if (TOUR[i].last) { end(); return; }
+      setTimeout(() => go(i + 1), 50);
+    }
+    const key = (ev) => { if (ev.key === 'Escape') end(); };
     window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
-    document.addEventListener('keydown', key);
-    draw();
+    document.addEventListener('click', onClick, true); document.addEventListener('keydown', key);
+    go(0);
   }
 
   // ---------- automarker ----------
