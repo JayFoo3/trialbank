@@ -80,11 +80,15 @@ def main(argv=None):
     redone_file = HERE / "readings" / "_redone.txt"
     redone = set(redone_file.read_text().split("\n")) if redone_file.exists() else set()
     if args.redo_unsolved:            # readings with no solutionsFrom get one more try
+        retry = set()
         for path in (HERE / "readings").glob("*.json"):
             r = json.loads(path.read_text())
             key = f"{r['source']['number']}|{r['source']['title']}"
             if r.get("solutionsFrom") is None and key not in redone:
-                done.discard((r["source"]["number"], r["source"]["title"]))
+                retry.add((r["source"]["number"], r["source"]["title"]))
+        papers = [e for e in papers if (e["number"], e["title"]) in retry]
+        done -= retry
+        rp.log(f"{len(papers)} papers to read again for their solutions")
     rp.log(f"{len(papers)} Advanced papers with solutions since {FIRST_YEAR} on {url}; {len(done)} read already")
     if args.list:
         for e in papers:
