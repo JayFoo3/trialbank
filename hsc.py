@@ -39,9 +39,10 @@ slug_of = lambda s, y: f'hsc-{s.lower()}-{y}'
 def fetch(url, dest):
     if os.path.exists(dest) and os.path.getsize(dest) > 10000:
         return 'have'
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Trialbank study site)'})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        data = r.read()
+    import requests   # carries its own certificates (python.org Python's urllib often has none)
+    r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Trialbank study site)'}, timeout=60)
+    r.raise_for_status()
+    data = r.content
     if not data.startswith(b'%PDF'):
         raise ValueError('not a PDF')
     open(dest, 'wb').write(data)
