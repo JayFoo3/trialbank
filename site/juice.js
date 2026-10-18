@@ -154,16 +154,24 @@
     setTimeout(() => { c.classList.add('out'); }, hold);
     setTimeout(() => { c.remove(); curtainOn = false; }, hold + (still() ? 150 : 340));
   }
+  // ---------- zoom transition: the card you tapped grows into the new page (like opening an app on iPhone) ----------
   const kind = (h) => (h || '').split('/')[0];
+  const DEEPER = new Set(['#paper', '#set', '#examrun', '#summary']);
   window.addEventListener('hashchange', () => {
     const h = location.hash, from = kind(lastHash), to = kind(h); lastHash = h;
-    if (!booted || from === to) return;
-    if (to === '#set') {
-      const m = /of (\d+)/.exec(document.getElementById('set-pos')?.textContent || '');
-      curtain('Let’s go', m ? `${m[1]} question${m[1] === '1' ? '' : 's'}` : '', 'wave');
-    } else if (to === '#examrun') curtain('Exam mode', 'Phone face down. You’ve got this.', 'think');
-    else if (to === '#paper') curtain('Opening paper', '', 'happy');
-    else if (to === '#summary') curtain('Done!', 'Let’s see how you went', 'cheer');
+    if (!booted || from === to || !DEEPER.has(to) || still()) return;
+    const src = lastTap && lastTap.isConnected ? lastTap : null;
+    const r = src ? src.getBoundingClientRect() : { left: innerWidth / 2 - 40, top: innerHeight / 2 - 40, width: 80, height: 80 };
+    const z = document.createElement('div'); z.className = 'jz-zoom';
+    const radius = src ? getComputedStyle(src).borderRadius : '16px';
+    Object.assign(z.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: radius });
+    document.body.appendChild(z);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      z.classList.add('grow');
+      Object.assign(z.style, { left: '0px', top: '0px', width: innerWidth + 'px', height: innerHeight + 'px', borderRadius: '0px' });
+    }));
+    setTimeout(() => z.classList.add('fade'), 260);
+    setTimeout(() => z.remove(), 520);
   });
 
   // ---------- what the app calls ----------

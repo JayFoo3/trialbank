@@ -1052,3 +1052,7 @@ button:active:not(:disabled), .button:active, a.other:active, .ol-opt:active:not
   .jz-curtain { clip-path: none; opacity: 0; transition: opacity .15s; }
   .jz-curtain.in { opacity: 1; } .jz-curtain.out { transform: none; opacity: 0; }
 }
+/* ---------- zoom transition ---------- */
+.jz-zoom { position: fixed; z-index: 3000; pointer-events: none; background: var(--paper); box-shadow: 0 10px 40px rgba(20,24,34,.18);
+  transition: left .28s cubic-bezier(.2,.85,.25,1), top .28s cubic-bezier(.2,.85,.25,1), width .28s cubic-bezier(.2,.85,.25,1), height .28s cubic-bezier(.2,.85,.25,1), border-radius .28s, opacity .22s ease-out; }
+.jz-zoom.fade { opacity: 0; }
