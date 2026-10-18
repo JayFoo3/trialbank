@@ -1945,7 +1945,7 @@
   // ---------- personalise: photo, colour, theme, background ----------
   const ACCENTS = { blue: '#2f5be8', green: '#1fa45a', purple: '#7c4dde', orange: '#f07818', pink: '#e0457b', teal: '#0f9aa8', graphite: '#3a3f4a' };
   const BGS = [['plain', 'Plain'], ['dots', 'Dots'], ['grid', 'Grid'], ['lined', 'Lined'], ['photo', 'Photo']];
-  const PREF0 = { theme: 'light', accent: 'blue', bg: 'plain', av: 0, bgv: 0 };
+  const PREF0 = { theme: 'light', accent: 'blue', bg: 'dots', av: 0, bgv: 0 };   // dots unless they pick another background
   const prefs = () => ({ ...PREF0, ...(state.user?.user_metadata?.prefs || {}) });
   const darkMQ = matchMedia('(prefers-color-scheme: dark)');
   let media = {};      // signed links to this student's photos
@@ -1954,7 +1954,7 @@
     const r = document.documentElement;
     r.dataset.theme = p.theme === 'dark' || (p.theme === 'auto' && darkMQ.matches) ? 'dark' : 'light';
     if (p.accent && p.accent !== 'blue') r.dataset.accent = p.accent; else delete r.dataset.accent;
-    const bg = p.bg === 'photo' && !media.bg ? 'plain' : p.bg;
+    const bg = p.bg === 'photo' && !media.bg ? 'dots' : p.bg;
     if (bg && bg !== 'plain') r.dataset.bg = bg; else delete r.dataset.bg;
     r.style.setProperty('--bg-photo', media.bg ? `url("${media.bg}")` : 'none');
     const meta = document.querySelector('meta[name=theme-color]');

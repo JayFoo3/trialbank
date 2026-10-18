@@ -12,7 +12,7 @@
 <script>/* apply the student's saved look before anything paints */
 try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = document.documentElement;
   r.dataset.theme = p.theme === 'dark' || (p.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-  if (p.accent) r.dataset.accent = p.accent; if (p.bg && p.bg !== 'photo') r.dataset.bg = p.bg; } catch (e) {}
+  if (p.accent) r.dataset.accent = p.accent; const bg = p.bg || 'dots'; if (bg !== 'plain') r.dataset.bg = bg === 'photo' ? 'dots' : bg; } catch (e) {}
 </script>
 </head>
 <body>
