@@ -321,6 +321,7 @@
   },
   "readAt": "2026-10-18T07:25:09Z",
   "reader": "friend",
+  "repaired": "none",
   "sha256": "692f9f6acfe8df96a130c5e15fff928533451215ca81f5dbda8e1637da9fb69c",
   "solutions": {
     "answerKey": [],

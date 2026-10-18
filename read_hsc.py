@@ -20,6 +20,10 @@ from hsc import PAPERS, OUT, slug_of  # noqa: E402
 from pypdf import PdfWriter, PdfReader  # noqa: E402
 
 
+FOLDERS = {k: v["folder"] for k, v in SUBJECTS.items()}
+FOLDERS.update({"Ext1": "Math Extension 1", "Physics": "Physics"})
+
+
 def joined(exam, mg):
     w = PdfWriter()
     for f in (exam, mg):
@@ -32,16 +36,21 @@ def joined(exam, mg):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--subject", required=True, choices=sorted(SUBJECTS))
+    ap.add_argument("--subject", required=True, choices=sorted(FOLDERS))
     ap.add_argument("--max", type=int, default=0)
     a = ap.parse_args(argv)
-    cfg = SUBJECTS[a.subject]
     claude = shutil.which("claude") or str(pathlib.Path.home() / ".local" / "bin" / "claude")
     rp.git = lambda *x, **k: ""
-    exams = rs.DOCS / cfg["folder"] / "Exams"
+    exams = rs.DOCS / FOLDERS[a.subject] / "Exams"
     exams.mkdir(parents=True, exist_ok=True)
     (HERE / "readings").mkdir(exist_ok=True)
-    done = rp.done_sources(HERE)
+    done = set()                                   # (subject, year) of HSC papers already read
+    for path in (HERE / "readings").glob("*.json"):
+        try:
+            src = json.loads(path.read_text())["source"]
+            if src["school"] == "HSC": done.add((src["subject"], src["year"]))
+        except (ValueError, KeyError):
+            pass
     tmp = HERE / "reader" / "tmp-hsc"          # its own scratch folder, so it can run beside overnight.sh
     read = 0
     for s, year, _, _ in PAPERS:
@@ -52,7 +61,7 @@ def main(argv=None):
         if not exam.exists():
             rp.log(f"HSC {year}: not downloaded (run python3 hsc.py download)"); continue
         entry = {"subject": s, "school": "HSC", "year": year, "number": 0, "title": f"HSC {year} w. sol"}
-        if (0, entry["title"]) in done:
+        if (s, year) in done:
             continue
         if a.max and read >= a.max:
             break

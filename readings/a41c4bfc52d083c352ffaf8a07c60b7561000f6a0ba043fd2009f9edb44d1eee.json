@@ -413,13 +413,217 @@
   },
   "readAt": "2026-10-18T07:24:47Z",
   "reader": "friend",
+  "repaired": true,
   "sha256": "a41c4bfc52d083c352ffaf8a07c60b7561000f6a0ba043fd2009f9edb44d1eee",
   "solutions": {
-    "answerKey": [],
-    "questions": [],
+    "answerKey": [
+      {
+        "answer": "D",
+        "number": 1
+      },
+      {
+        "answer": "D",
+        "number": 2
+      },
+      {
+        "answer": "C",
+        "number": 3
+      },
+      {
+        "answer": "C",
+        "number": 4
+      },
+      {
+        "answer": "D",
+        "number": 5
+      },
+      {
+        "answer": "A",
+        "number": 6
+      },
+      {
+        "answer": "B",
+        "number": 7
+      },
+      {
+        "answer": "A",
+        "number": 8
+      },
+      {
+        "answer": "D",
+        "number": 9
+      },
+      {
+        "answer": "B",
+        "number": 10
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 51,
+        "lastPage": 53,
+        "marks": 0,
+        "number": 11,
+        "parts": []
+      },
+      {
+        "firstPage": 54,
+        "lastPage": 54,
+        "marks": 0,
+        "number": 12,
+        "parts": []
+      },
+      {
+        "firstPage": 55,
+        "lastPage": 56,
+        "marks": 0,
+        "number": 13,
+        "parts": []
+      },
+      {
+        "firstPage": 57,
+        "lastPage": 57,
+        "marks": 0,
+        "number": 14,
+        "parts": []
+      },
+      {
+        "firstPage": 58,
+        "lastPage": 58,
+        "marks": 0,
+        "number": 15,
+        "parts": []
+      },
+      {
+        "firstPage": 59,
+        "lastPage": 59,
+        "marks": 0,
+        "number": 16,
+        "parts": []
+      },
+      {
+        "firstPage": 60,
+        "lastPage": 61,
+        "marks": 0,
+        "number": 17,
+        "parts": []
+      },
+      {
+        "firstPage": 62,
+        "lastPage": 62,
+        "marks": 0,
+        "number": 18,
+        "parts": []
+      },
+      {
+        "firstPage": 63,
+        "lastPage": 63,
+        "marks": 0,
+        "number": 19,
+        "parts": []
+      },
+      {
+        "firstPage": 64,
+        "lastPage": 64,
+        "marks": 0,
+        "number": 20,
+        "parts": []
+      },
+      {
+        "firstPage": 65,
+        "lastPage": 65,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 66,
+        "lastPage": 66,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 67,
+        "lastPage": 67,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 68,
+        "lastPage": 68,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 69,
+        "lastPage": 71,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 72,
+        "lastPage": 73,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 74,
+        "lastPage": 74,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 75,
+        "lastPage": 75,
+        "marks": 0,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 76,
+        "lastPage": 76,
+        "marks": 0,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 77,
+        "lastPage": 78,
+        "marks": 0,
+        "number": 30,
+        "parts": []
+      },
+      {
+        "firstPage": 79,
+        "lastPage": 79,
+        "marks": 0,
+        "number": 31,
+        "parts": []
+      },
+      {
+        "firstPage": 80,
+        "lastPage": 82,
+        "marks": 0,
+        "number": 32,
+        "parts": []
+      },
+      {
+        "firstPage": 83,
+        "lastPage": 83,
+        "marks": 0,
+        "number": 33,
+        "parts": []
+      }
+    ],
     "sections": []
   },
-  "solutionsFrom": null,
+  "solutionsFrom": 46,
   "source": {
     "number": 5328,
     "school": "North Sydney Boys",

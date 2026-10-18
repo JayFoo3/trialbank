@@ -281,13 +281,201 @@
   },
   "readAt": "2026-10-18T07:23:44Z",
   "reader": "friend",
+  "repaired": true,
   "sha256": "4e620917fdbfa0126bb61d5ecaf27317a5f48c867360f9ff792beb0f963739c5",
   "solutions": {
-    "answerKey": [],
-    "questions": [],
+    "answerKey": [
+      {
+        "answer": "A",
+        "number": 5
+      },
+      {
+        "answer": "C",
+        "number": 6
+      },
+      {
+        "answer": "A",
+        "number": 7
+      },
+      {
+        "answer": "A",
+        "number": 8
+      },
+      {
+        "answer": "B",
+        "number": 9
+      },
+      {
+        "answer": "B",
+        "number": 10
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 29,
+        "lastPage": 29,
+        "marks": 0,
+        "number": 11,
+        "parts": []
+      },
+      {
+        "firstPage": 29,
+        "lastPage": 29,
+        "marks": 0,
+        "number": 12,
+        "parts": []
+      },
+      {
+        "firstPage": 30,
+        "lastPage": 30,
+        "marks": 0,
+        "number": 13,
+        "parts": []
+      },
+      {
+        "firstPage": 31,
+        "lastPage": 31,
+        "marks": 0,
+        "number": 14,
+        "parts": []
+      },
+      {
+        "firstPage": 32,
+        "lastPage": 32,
+        "marks": 0,
+        "number": 15,
+        "parts": []
+      },
+      {
+        "firstPage": 32,
+        "lastPage": 32,
+        "marks": 0,
+        "number": 16,
+        "parts": []
+      },
+      {
+        "firstPage": 33,
+        "lastPage": 33,
+        "marks": 0,
+        "number": 17,
+        "parts": []
+      },
+      {
+        "firstPage": 34,
+        "lastPage": 34,
+        "marks": 0,
+        "number": 18,
+        "parts": []
+      },
+      {
+        "firstPage": 35,
+        "lastPage": 36,
+        "marks": 0,
+        "number": 19,
+        "parts": []
+      },
+      {
+        "firstPage": 36,
+        "lastPage": 36,
+        "marks": 0,
+        "number": 20,
+        "parts": []
+      },
+      {
+        "firstPage": 37,
+        "lastPage": 37,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 37,
+        "lastPage": 37,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 38,
+        "lastPage": 38,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 39,
+        "lastPage": 39,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 40,
+        "lastPage": 40,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 41,
+        "lastPage": 41,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 41,
+        "lastPage": 41,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 42,
+        "lastPage": 42,
+        "marks": 0,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 43,
+        "lastPage": 44,
+        "marks": 0,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 45,
+        "lastPage": 45,
+        "marks": 0,
+        "number": 30,
+        "parts": []
+      },
+      {
+        "firstPage": 45,
+        "lastPage": 46,
+        "marks": 0,
+        "number": 31,
+        "parts": []
+      },
+      {
+        "firstPage": 47,
+        "lastPage": 47,
+        "marks": 0,
+        "number": 32,
+        "parts": []
+      },
+      {
+        "firstPage": 47,
+        "lastPage": 47,
+        "marks": 0,
+        "number": 33,
+        "parts": []
+      }
+    ],
     "sections": []
   },
-  "solutionsFrom": null,
+  "solutionsFrom": 24,
   "source": {
     "number": 5328,
     "school": "North Sydney Boys",

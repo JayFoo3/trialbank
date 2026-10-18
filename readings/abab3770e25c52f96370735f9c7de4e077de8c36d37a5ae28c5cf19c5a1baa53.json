@@ -385,13 +385,237 @@
   },
   "readAt": "2026-10-18T07:23:19Z",
   "reader": "friend",
+  "repaired": true,
   "sha256": "abab3770e25c52f96370735f9c7de4e077de8c36d37a5ae28c5cf19c5a1baa53",
   "solutions": {
-    "answerKey": [],
-    "questions": [],
+    "answerKey": [
+      {
+        "answer": "B",
+        "number": 3
+      },
+      {
+        "answer": "D",
+        "number": 4
+      },
+      {
+        "answer": "B",
+        "number": 5
+      },
+      {
+        "answer": "C",
+        "number": 6
+      },
+      {
+        "answer": "B",
+        "number": 7
+      },
+      {
+        "answer": "B",
+        "number": 8
+      },
+      {
+        "answer": "D",
+        "number": 9
+      },
+      {
+        "answer": "D",
+        "number": 10
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 46,
+        "lastPage": 46,
+        "marks": 0,
+        "number": 11,
+        "parts": []
+      },
+      {
+        "firstPage": 46,
+        "lastPage": 46,
+        "marks": 0,
+        "number": 12,
+        "parts": []
+      },
+      {
+        "firstPage": 46,
+        "lastPage": 46,
+        "marks": 0,
+        "number": 13,
+        "parts": []
+      },
+      {
+        "firstPage": 47,
+        "lastPage": 47,
+        "marks": 0,
+        "number": 14,
+        "parts": []
+      },
+      {
+        "firstPage": 47,
+        "lastPage": 47,
+        "marks": 0,
+        "number": 15,
+        "parts": []
+      },
+      {
+        "firstPage": 48,
+        "lastPage": 48,
+        "marks": 0,
+        "number": 16,
+        "parts": []
+      },
+      {
+        "firstPage": 49,
+        "lastPage": 49,
+        "marks": 0,
+        "number": 17,
+        "parts": []
+      },
+      {
+        "firstPage": 49,
+        "lastPage": 49,
+        "marks": 0,
+        "number": 18,
+        "parts": []
+      },
+      {
+        "firstPage": 50,
+        "lastPage": 50,
+        "marks": 0,
+        "number": 19,
+        "parts": []
+      },
+      {
+        "firstPage": 51,
+        "lastPage": 51,
+        "marks": 0,
+        "number": 20,
+        "parts": []
+      },
+      {
+        "firstPage": 53,
+        "lastPage": 53,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 54,
+        "lastPage": 54,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 55,
+        "lastPage": 55,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 55,
+        "lastPage": 55,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 56,
+        "lastPage": 56,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 57,
+        "lastPage": 57,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 58,
+        "lastPage": 58,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 59,
+        "lastPage": 59,
+        "marks": 0,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 61,
+        "lastPage": 61,
+        "marks": 0,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 62,
+        "lastPage": 62,
+        "marks": 0,
+        "number": 30,
+        "parts": []
+      },
+      {
+        "firstPage": 63,
+        "lastPage": 63,
+        "marks": 0,
+        "number": 31,
+        "parts": []
+      },
+      {
+        "firstPage": 64,
+        "lastPage": 64,
+        "marks": 0,
+        "number": 32,
+        "parts": []
+      },
+      {
+        "firstPage": 65,
+        "lastPage": 66,
+        "marks": 0,
+        "number": 33,
+        "parts": []
+      },
+      {
+        "firstPage": 68,
+        "lastPage": 68,
+        "marks": 0,
+        "number": 34,
+        "parts": []
+      },
+      {
+        "firstPage": 68,
+        "lastPage": 68,
+        "marks": 0,
+        "number": 35,
+        "parts": []
+      },
+      {
+        "firstPage": 68,
+        "lastPage": 68,
+        "marks": 0,
+        "number": 36,
+        "parts": []
+      },
+      {
+        "firstPage": 68,
+        "lastPage": 68,
+        "marks": 0,
+        "number": 37,
+        "parts": []
+      }
+    ],
     "sections": []
   },
-  "solutionsFrom": null,
+  "solutionsFrom": 37,
   "source": {
     "number": 5328,
     "school": "Sydney Grammar",
