@@ -1076,3 +1076,6 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .pthumb.loading { background: linear-gradient(100deg, var(--paper) 30%, var(--soft) 50%, var(--paper) 70%) 0 0 / 300% 100%; animation: tb-shimmer 1.3s linear infinite; }
 @keyframes tb-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 @media (prefers-reduced-motion: reduce) { .pthumb.loading { animation: none; } }
+
+/* the one remaining dashboard shortcut: auto-marking */
+.others.marking { grid-template-columns: 1fr; }

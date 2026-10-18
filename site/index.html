@@ -150,6 +150,15 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div id="resume-banner" hidden><span id="resume-title"></span><span id="resume-sub"></span><button id="resume-btn"></button></div>
     </section>
 
+    <div class="others marking" data-feature="automark">
+      <details class="other">
+        <summary><strong>Auto-mark a paper</strong><span class="muted small" id="mark-left">Upload your working</span></summary>
+        <div class="other-body">
+          <select id="mark-paper" aria-label="Which paper"><option value="">Pick the paper</option></select>
+          <button class="secondary" id="mark-go">Upload</button>
+        </div>
+      </details>
+    </div>
     <!-- removed from the dashboard (timed papers live on each paper's page); kept in the page because the code still wires these controls -->
     <div class="others" style="display:none" aria-hidden="true">
       <details class="other" data-feature="exam">
@@ -162,13 +171,6 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
           </div>
           <button class="secondary" id="exam-random">Start paper</button>
           <p class="error small" id="exam-error" hidden></p>
-        </div>
-      </details>
-      <details class="other" data-feature="automark">
-        <summary><strong>Mark a paper</strong><span class="muted small" id="mark-left">Upload your working</span></summary>
-        <div class="other-body">
-          <select id="mark-paper" aria-label="Which paper"><option value="">Pick the paper</option></select>
-          <button class="secondary" id="mark-go">Upload</button>
         </div>
       </details>
       <a class="other" href="#practise"><strong>Pick topics</strong><span class="muted small">Build your own set</span></a>
