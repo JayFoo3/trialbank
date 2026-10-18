@@ -271,16 +271,20 @@
       byTopic[r.topic][r.type] += Number(r.n);
     });
     const wrap = $('topic-chips'); wrap.innerHTML = '';
-    Object.keys(byTopic).sort().forEach(t => {
+    const skip = skipped();
+    [...state.topics].forEach(t => { if (skip.has(t)) state.topics.delete(t); });
+    Object.keys(byTopic).sort((a, b) => skip.has(a) - skip.has(b) || a.localeCompare(b)).forEach(t => {
       const b = document.createElement('button');
-      b.className = 'chip' + (state.topics.has(t) ? ' on' : '');
+      b.className = 'chip' + (state.topics.has(t) ? ' on' : '') + (skip.has(t) ? ' notlearnt' : '');
+      if (skip.has(t)) b.title = 'Marked as not learnt yet';
       b.innerHTML = `${t}<span class="n">${byTopic[t].mcq + byTopic[t].short}</span>`;
       b.dataset.t = t.toLowerCase();
       b.onclick = () => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); b.classList.toggle('on'); startSummary(); };
       wrap.appendChild(b);
     });
     filterTopics(); startSummary();
-    $('topics-all').onclick = () => { Object.keys(byTopic).forEach(t => state.topics.add(t)); renderBuild(); };
+    $('topics-all').onclick = () => { Object.keys(byTopic).filter(t => !skip.has(t)).forEach(t => state.topics.add(t)); renderBuild(); };
+    $('topics-learnt').onclick = () => openLearnt(Object.keys(byTopic).sort());
     $('topics-none').onclick = () => { state.topics.clear(); renderBuild(); };
   }
   function filterTopics() {
@@ -308,7 +312,7 @@
     if (!state.topics.size) { $('home-error').textContent = 'Pick at least one topic.'; $('home-error').hidden = false; return; }
     $('start').disabled = true;
     try {
-      await buildSet();
+      await buildSet({ allowSkipped: true });
       location.hash = '#set';
     } catch (err) {
       $('home-error').textContent = err.message; $('home-error').hidden = false;
@@ -337,9 +341,10 @@
   }
   async function buildSet(over = {}) {
     const o = { ...state.opts, ...over };
+    if (![...state.topics].some(t => o.allowSkipped || !skipped().has(t))) throw new Error('Those topics are all marked as not learnt yet.');
     let q = sb.from('questions').select(QCOLS)
       .eq('papers.subject', state.subject)
-      .in('topic', [...state.topics])
+      .in('topic', [...state.topics].filter(t => o.allowSkipped || !skipped().has(t)))
       .not('image_path', 'is', null)
       .limit(400);
     if (o.type !== 'all') q = q.eq('type', o.type);
@@ -1274,7 +1279,8 @@
       sb.from('bookmarks').select('question_id'),
       sb.from('exams').select('started_at, seconds_used, score, out_of, work_minutes, papers!inner(school, year, subject)').eq('papers.subject', state.subject).order('started_at', { ascending: false }).limit(20),
     ]);
-    state.weak = (mine || []).filter(r => r.out_of >= 1).map(r => ({ ...r, pct: r.score / r.out_of })).filter(r => r.pct < 0.75)
+    const skipW = skipped();
+    state.weak = (mine || []).filter(r => r.out_of >= 1 && !skipW.has(r.topic)).map(r => ({ ...r, pct: r.score / r.out_of })).filter(r => r.pct < 0.75)
       .sort((a, b) => a.pct - b.pct || b.out_of - a.out_of).slice(0, 3);
     $('checkup').hidden = !!state.weak.length;
     $('checkup-go').textContent = state.attempted ? 'Retake check-up' : 'Start check-up';
@@ -1387,13 +1393,54 @@
         if (error) throw error;
         const byTopic = {};
         shuffle(data || []).forEach(q => { (byTopic[q.topic] = byTopic[q.topic] || []).push(q); });
-        const topics = shuffle(Object.keys(byTopic)).slice(0, 12);
+        const skipC = skipped();
+        const topics = shuffle(Object.keys(byTopic).filter(t => !skipC.has(t))).slice(0, 12);
         if (!topics.length) throw new Error('No questions ready for a check-up in this subject yet.');
         await startSet(topics.map(t => byTopic[t][0]));
         state.set.title = 'Check-up done';
       });
     } catch (err) { reviewError(err.message); } finally { $('checkup-go').disabled = false; }
   };
+
+  // ---------- topics not learnt yet (per subject, saved to the account) ----------
+  function skipped(subj = state.subject) {
+    const all = state.preview ? (previewFlags.skip || {}) : (state.user?.user_metadata?.skip_topics || {});
+    return new Set(all[subj] || []);
+  }
+  async function saveSkipped(set, subj = state.subject) {
+    const all = { ...(state.preview ? (previewFlags.skip || {}) : (state.user?.user_metadata?.skip_topics || {})), [subj]: [...set].sort() };
+    if (state.preview) { previewFlags.skip = all; return; }
+    const { data, error } = await sb.auth.updateUser({ data: { skip_topics: all } });
+    if (!error && data?.user) state.user = data.user;
+  }
+  let toastT = null;
+  function toast(html, ms = 5000) {
+    const t = $('toast'); t.innerHTML = html; t.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms);
+    return t;
+  }
+  $('not-learnt').onclick = async () => {
+    const x = state.set && state.set.qs[state.set.i]; if (!x || !x.topic) return;
+    const set = skipped(); set.add(x.topic); await saveSkipped(set);
+    const t = toast(`${esc(x.topic)} hidden until you've learnt it. <button class="link" id="undo-skip">Undo</button>`);
+    t.querySelector('#undo-skip').onclick = async () => { const s2 = skipped(); s2.delete(x.topic); await saveSkipped(s2); t.hidden = true; };
+    // drop the rest of this topic from the current set too
+    const s = state.set;
+    s.qs = s.qs.filter((q, k) => k <= s.i || q.topic !== x.topic);
+    advance();
+  };
+  function openLearnt(topics) {
+    const skip = skipped(), grid = $('learnt-grid'); grid.innerHTML = '';
+    topics.forEach(t => {
+      const b = document.createElement('button');
+      b.className = 'subj' + (skip.has(t) ? '' : ' on'); b.innerHTML = `<span>${esc(t)}</span>`;
+      b.onclick = () => { skip.has(t) ? skip.delete(t) : skip.add(t); b.classList.toggle('on'); };
+      grid.appendChild(b);
+    });
+    $('learnt-modal').hidden = false;
+    $('learnt-cancel').onclick = () => { $('learnt-modal').hidden = true; };
+    $('learnt-save').onclick = async () => { $('learnt-save').disabled = true; await saveSkipped(skip); $('learnt-save').disabled = false; $('learnt-modal').hidden = true; renderBuild(); };
+  }
 
   // ---------- spotlight tour for new students: they tap each lit-up control for real ----------
   const TOUR = [

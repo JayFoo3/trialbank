@@ -46,6 +46,15 @@
     <div class="row end"><button class="link" id="subj-cancel" hidden>Cancel</button><button class="primary" id="subj-save" disabled>Continue</button></div>
   </div>
 </div>
+<div class="modal" id="learnt-modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="learnt-title">
+    <h2 id="learnt-title">Topics you've learnt</h2>
+    <p class="muted small">Untick anything your class hasn't covered yet. It stays out of quick sets, check-ups and weak spots until you tick it.</p>
+    <div class="subj-grid" id="learnt-grid"></div>
+    <div class="row end"><button class="link" id="learnt-cancel">Cancel</button><button class="primary" id="learnt-save">Save</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
 <div class="preview-bar" id="preview-bar" hidden>Viewing as a new user <button class="link" id="preview-exit">Exit</button></div>
 
 <main id="app">
@@ -138,7 +147,7 @@
     <div class="card">
       <div class="between">
         <h2>Topics</h2>
-        <div class="small"><button class="link" id="topics-all">Select all</button> <span class="muted">/</span> <button class="link" id="topics-none">Clear</button></div>
+        <div class="small"><button class="link" id="topics-all">Select all</button> <span class="muted">/</span> <button class="link" id="topics-none">Clear</button> <span class="muted">/</span> <button class="link" id="topics-learnt">Topics I've learnt</button></div>
       </div>
       <input id="topic-filter" type="search" placeholder="Find a topic" autocomplete="off">
       <div class="chips" id="topic-chips"></div>
@@ -203,7 +212,7 @@
     <p class="verdict" id="verdict" hidden></p>
     <div id="lost-box" hidden></div>
     <div class="row end">
-      <button class="link" id="skip">Skip</button>
+      <span class="row tight"><button class="link" id="skip">Skip</button><button class="link muted-link" id="not-learnt">Haven't learnt this</button></span>
       <button class="primary" id="next" hidden>Next</button>
     </div>
     <p class="keys small muted">Keys: A B C D, S solution, Enter next</p>
