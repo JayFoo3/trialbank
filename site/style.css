@@ -935,3 +935,44 @@ textarea.ol-code { font: 0.9rem/1.5 ui-monospace, Menlo, Consolas, monospace; ta
 .ol-crit th, .ol-crit td { border: 1px solid var(--rule); padding: 6px 10px; text-align: left; vertical-align: top; background: var(--paper); }
 .ol-crit td:last-child, .ol-crit th:last-child { width: 64px; text-align: center; }
 #q-online { margin-top: 2px; }
+
+/* ---------- phones and tablets ---------- */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+a, button, select, label, summary, .ol-opt { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+/* iOS zooms into any field under 16px; keep them at 16px or more */
+@supports (-webkit-touch-callout: none) { input, select, textarea { font-size: max(16px, 1em); } }
+/* notch and home bar: header clears the status bar in the home-screen app, sides clear the notch in landscape */
+.top { padding-top: env(safe-area-inset-top); }
+.top-in, main, footer { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+/* iPad portrait and small laptops: the full nav, without crowding the header */
+@media (min-width: 641px) and (max-width: 960px) {
+  .top-in { gap: 10px; }
+  .mainnav { gap: 2px; }
+  .mainnav a { padding: 6px 9px; }
+  .mainnav svg { display: none; }
+  .brand { font-size: 1.35rem; }
+}
+/* touch screens have no hover: stop hover lifts sticking after a tap */
+@media (hover: none) {
+  .brand:hover, .avatar:hover { transform: none; }
+  .ptile:hover .pthumb { transform: none; box-shadow: none; }
+}
+/* wide tables scroll sideways inside their card instead of widening the page */
+@media (max-width: 760px) { table.tbl { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; } }
+/* online questions: code options wrap instead of pushing the page wide */
+.ol-opt { min-width: 0; white-space: normal; }
+.ol-opt .ol-text { overflow-x: auto; }
+.ol-opt pre { white-space: pre-wrap; word-break: break-word; }
+@media (max-width: 640px) {
+  .ol-opt { padding: 10px; gap: 10px; }
+  .ol-prompt pre, .ol-sample pre, .ol-opt pre { font-size: .8rem; }
+  textarea.ol-code { font-size: 16px; }
+  .ol-crit td, .ol-crit th { padding: 6px 8px; }
+}
+/* exam question chips: one swipeable row on phones instead of four rows */
+@media (max-width: 640px) {
+  .jump { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 8px; margin: 8px -2px; -webkit-overflow-scrolling: touch; }
+  .jump::-webkit-scrollbar { display: none; }
+  .jump button { flex: none; min-width: 36px; min-height: 34px; }
+}
+@media (display-mode: standalone) { body { overscroll-behavior-y: none; } }
