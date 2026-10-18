@@ -1,0 +1,7 @@
+Programming Fundamentals
+The Object-oriented Paradigm
+Programming Mechatronics
+Secure Software Architecture
+Programming for the Web
+Software Automation
+Software Engineering Project
