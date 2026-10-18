@@ -34,9 +34,9 @@ def paper_end(m):
     """Last page (1-based) of the paper itself, before the solutions.
     Albert's readings give solutionsFrom = number of paper pages; the OCR'd ones give the first solution page."""
     sf = m.get('solutions_from')
-    if not sf:
-        return m['pages']
     last_q = max((pg for q in m['questions'] for pg in q.get('pages', [])), default=0)
+    if not sf:                      # reading found no solutions: end at the last question's page
+        return last_q if 0 < last_q < m['pages'] else m['pages']
     return max(1, min(m['pages'], max(last_q, sf - 1 if m.get('ocr') else sf)))
 
 

@@ -1,0 +1,618 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 47,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 4,
+        "lastPage": 4,
+        "marks": 2,
+        "number": 11,
+        "parts": []
+      },
+      {
+        "firstPage": 4,
+        "lastPage": 4,
+        "marks": 2,
+        "number": 12,
+        "parts": []
+      },
+      {
+        "firstPage": 5,
+        "lastPage": 5,
+        "marks": 3,
+        "number": 13,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 1
+          }
+        ]
+      },
+      {
+        "firstPage": 5,
+        "lastPage": 5,
+        "marks": 3,
+        "number": 14,
+        "parts": []
+      },
+      {
+        "firstPage": 6,
+        "lastPage": 6,
+        "marks": 3,
+        "number": 15,
+        "parts": []
+      },
+      {
+        "firstPage": 6,
+        "lastPage": 6,
+        "marks": 5,
+        "number": 16,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 7,
+        "lastPage": 7,
+        "marks": 5,
+        "number": 17,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 8,
+        "lastPage": 8,
+        "marks": 5,
+        "number": 18,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 9,
+        "lastPage": 9,
+        "marks": 2,
+        "number": 19,
+        "parts": []
+      },
+      {
+        "firstPage": 9,
+        "lastPage": 10,
+        "marks": 8,
+        "number": 20,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 1
+          }
+        ]
+      },
+      {
+        "firstPage": 11,
+        "lastPage": 11,
+        "marks": 2,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 12,
+        "lastPage": 12,
+        "marks": 5,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b(i)",
+            "marks": 1
+          },
+          {
+            "label": "b(ii)",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 13,
+        "marks": 5,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 14,
+        "marks": 5,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 15,
+        "marks": 3,
+        "number": 25,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 1
+          }
+        ]
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 16,
+        "marks": 5,
+        "number": 26,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 18,
+        "marks": 6,
+        "number": 27,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 1
+          }
+        ]
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 19,
+        "marks": 3,
+        "number": 28,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 19,
+        "marks": 4,
+        "number": 29,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 4,
+        "number": 30,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 4,
+        "number": 31,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 23,
+        "marks": 6,
+        "number": 32,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 10,
+        "lastPage": 3,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 11,
+        "firstPage": 4,
+        "last": 32,
+        "lastPage": 23,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-10-18T05:38:56Z",
+  "reader": "friend",
+  "sha256": "758657ec62ce7fc3bf45d0910eb6beed6f7fc6a967c195c7922e4db59d449f50",
+  "solutions": {
+    "answerKey": [
+      {
+        "answer": "B",
+        "number": 1
+      },
+      {
+        "answer": "C",
+        "number": 2
+      },
+      {
+        "answer": "A",
+        "number": 3
+      },
+      {
+        "answer": "C",
+        "number": 4
+      },
+      {
+        "answer": "D",
+        "number": 5
+      },
+      {
+        "answer": "C",
+        "number": 6
+      },
+      {
+        "answer": "A",
+        "number": 7
+      },
+      {
+        "answer": "B",
+        "number": 8
+      },
+      {
+        "answer": "D",
+        "number": 9
+      },
+      {
+        "answer": "B",
+        "number": 10
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 27,
+        "lastPage": 27,
+        "marks": 0,
+        "number": 11,
+        "parts": []
+      },
+      {
+        "firstPage": 27,
+        "lastPage": 27,
+        "marks": 0,
+        "number": 12,
+        "parts": []
+      },
+      {
+        "firstPage": 28,
+        "lastPage": 28,
+        "marks": 0,
+        "number": 13,
+        "parts": []
+      },
+      {
+        "firstPage": 28,
+        "lastPage": 28,
+        "marks": 0,
+        "number": 14,
+        "parts": []
+      },
+      {
+        "firstPage": 29,
+        "lastPage": 29,
+        "marks": 0,
+        "number": 15,
+        "parts": []
+      },
+      {
+        "firstPage": 29,
+        "lastPage": 29,
+        "marks": 0,
+        "number": 16,
+        "parts": []
+      },
+      {
+        "firstPage": 30,
+        "lastPage": 30,
+        "marks": 0,
+        "number": 17,
+        "parts": []
+      },
+      {
+        "firstPage": 31,
+        "lastPage": 31,
+        "marks": 0,
+        "number": 18,
+        "parts": []
+      },
+      {
+        "firstPage": 32,
+        "lastPage": 32,
+        "marks": 0,
+        "number": 19,
+        "parts": []
+      },
+      {
+        "firstPage": 32,
+        "lastPage": 33,
+        "marks": 0,
+        "number": 20,
+        "parts": []
+      },
+      {
+        "firstPage": 34,
+        "lastPage": 34,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 35,
+        "lastPage": 35,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 36,
+        "lastPage": 36,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 36,
+        "lastPage": 37,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 38,
+        "lastPage": 38,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 39,
+        "lastPage": 39,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 40,
+        "lastPage": 41,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 42,
+        "lastPage": 42,
+        "marks": 0,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 42,
+        "lastPage": 42,
+        "marks": 0,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 43,
+        "lastPage": 43,
+        "marks": 0,
+        "number": 30,
+        "parts": []
+      },
+      {
+        "firstPage": 44,
+        "lastPage": 44,
+        "marks": 0,
+        "number": 31,
+        "parts": []
+      },
+      {
+        "firstPage": 45,
+        "lastPage": 46,
+        "marks": 0,
+        "number": 32,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 24,
+  "source": {
+    "number": 5328,
+    "school": "Gosford",
+    "subject": "Adv",
+    "title": "Gosford 2020 w. sol",
+    "year": 2020
+  },
+  "topics": {
+    "1": "Trigonometry and Measure of Angles",
+    "10": "Sequences and Series",
+    "11": "Trigonometry and Measure of Angles",
+    "12": "Applications of Differentiation",
+    "13a": "Trigonometry and Measure of Angles",
+    "13b": "Trigonometry and Measure of Angles",
+    "14": "Exponential and Logarithmic Functions",
+    "15": "Trigonometric Identities and Equations",
+    "16a": "Differential Calculus",
+    "16b": "Differential Calculus",
+    "17a": "Integral Calculus",
+    "17b": "Integral Calculus",
+    "18a": "Discrete Probability Distributions",
+    "18b": "Discrete Probability Distributions",
+    "19": "The Normal Distribution",
+    "2": "Working with Functions",
+    "20a": "Applications of Differentiation",
+    "20b": "Applications of Differentiation",
+    "20c": "Applications of Differentiation",
+    "20d": "Applications of Differentiation",
+    "21": "Trigonometric Functions and Graphs",
+    "22a": "Probability",
+    "22bi": "Probability",
+    "22bii": "Probability",
+    "23a": "Working with Functions",
+    "23b": "Working with Functions",
+    "24a": "Trigonometric Identities and Equations",
+    "24b": "Integral Calculus",
+    "25a": "Working with Functions",
+    "25b": "Working with Functions",
+    "25c": "Working with Functions",
+    "26a": "Applications of Differentiation",
+    "26b": "Integral Calculus",
+    "27a": "Continuous Probability Distributions",
+    "27b": "Continuous Probability Distributions",
+    "27c": "Continuous Probability Distributions",
+    "28a": "Sequences and Series",
+    "28b": "Sequences and Series",
+    "29a": "Integral Calculus",
+    "29b": "Integral Calculus",
+    "3": "Introduction to Differentiation",
+    "30a": "Descriptive Statistics and Bivariate Data",
+    "30b": "Descriptive Statistics and Bivariate Data",
+    "31a": "Financial Mathematics",
+    "31b": "Financial Mathematics",
+    "32a": "Trigonometry and Measure of Angles",
+    "32b": "Working with Functions",
+    "32c": "Applications of Differentiation",
+    "4": "Descriptive Statistics and Bivariate Data",
+    "5": "Working with Functions",
+    "6": "Graphing Techniques",
+    "7": "Trigonometric Functions and Graphs",
+    "8": "The Normal Distribution",
+    "9": "Integral Calculus"
+  }
+}
