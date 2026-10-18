@@ -785,10 +785,8 @@
   }
   // HSC-style answer stationery appended to the official paper.
   // Extension 1: an 8-page writing booklet for each of Questions 11-14. Physics: extra writing pages.
-  const BOOKLETS = {
-    Ext1: { ask: 'This exam is answered in separate writing booklets.', sub: 'Add HSC-style writing booklets for Questions 11 to 14 to the end of the PDF?', file: '-with-writing-booklets' },
-    Physics: { ask: 'Need more room than the lines under each question?', sub: 'Add an HSC writing booklet for extra answers to the end of the PDF?', file: '-with-writing-booklet' },
-  };
+  const BOOKLET_COUNT = 4;          // blank booklets added to any paper
+  const BOOKLETS = { ask: 'Want writing booklets with this exam?', sub: `Adds ${BOOKLET_COUNT} blank HSC-style writing booklets to the end of the PDF. Write the question number on each one.`, file: '-with-writing-booklets' };
   async function examWithBooklets(p, btn, errEl) {
     const old = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…'; if (errEl) errEl.hidden = true;
     try {
@@ -837,18 +835,17 @@
         t(c, heading, 120, H - 289, 10, hb);
         if (!isHsc(p)) t(c, p.school, 70, H - 312, 11, hv, G);
         t(c, course, 70, H - 352, 30);
-        t(c, q ? `Section II — Question ${q}` : 'Section II — Extra writing', 70, H - 400, 21);
-        t(c, 'Writing Booklet', 70, H - 446, 21);
+        t(c, 'Writing Booklet', 70, H - 404, 24);
         line(c, 70, H - 512, 155, H - 512, 0.8, G);
         t(c, 'Instructions', 70, H - 527, 11, hb);
         const ins = (y, lines) => { t(c, '•', 162, y, 11); lines.forEach((s, i) => t(c, s, 172, y - i * 15, 11)); };
-        ins(H - 527, [q ? `Use this writing booklet for Question ${q} ONLY` : 'Use this writing booklet for any question you need more room for']);
-        ins(H - 552, [q ? `Write your answer in the ruled area on pages 2–${LAST}` : 'Write the question number at the top of every page you use']);
-        ins(H - 577, ['Write the number of this booklet and the', 'total number of booklets that you have', `used for this ${q ? 'question' : 'section'} (eg: 1 of 3)`]);
+        ins(H - 527, ['Write the number of the question you are answering on page 2']);
+        ins(H - 552, ['Use a new booklet for each question']);
+        ins(H - 577, ['Write the number of this booklet and the', 'total number of booklets that you have', 'used for this question (eg: 1 of 3)']);
         const ay = H - 592;                                         // arrow and booklet boxes
         box(c, 382, ay - 3, 22, 6, 0.8); line(c, 404, ay + 6, 412, ay); line(c, 404, ay - 6, 412, ay); line(c, 404, ay + 6, 404, ay - 6);
         box(c, 420, ay - 14, 36, 28); t(c, 'of', 462, ay - 4, 11); box(c, 478, ay - 14, 36, 28);
-        tc(c, 'this', 438, ay - 26, 8); tc(c, 'booklet', 438, ay - 35, 8); tc(c, 'number of', 496, ay - 26, 8); tc(c, 'booklets for', 496, ay - 35, 8); tc(c, `this ${q ? 'question' : 'section'}`, 496, ay - 44, 8);
+        tc(c, 'this', 438, ay - 26, 8); tc(c, 'booklet', 438, ay - 35, 8); tc(c, 'number of', 496, ay - 26, 8); tc(c, 'booklets for', 496, ay - 35, 8); tc(c, 'this question', 496, ay - 44, 8);
         line(c, BL, 92, BR, 92, 0.8); office(c, 80);
         t(c, 'Practice copy made by Trialbank, laid out like the HSC writing booklet. Not official NESA stationery.', 70, 58, 7, hv, G);
       }
@@ -857,8 +854,8 @@
         corners(pg, H - 52, 48);
         let top = H - 70;
         if (n === 2) {
-          t(pg, q ? `Answer Question ${q} on pages 2–${LAST}.` : 'Write the number of the question you are answering.', BL + 8, H - 82, 13, tb);
-          const digits = q ? String(q).padStart(2, ' ').split('') : [' ', ' '];
+          t(pg, 'Write the number of the question you are answering.', BL + 8, H - 82, 13, tb);
+          const digits = [' ', ' '];
           digits.forEach((d, i) => { box(pg, BR - 66 + i * 22, H - 100, 22, 28); if (d.trim()) tc(pg, d, BR - 55 + i * 22, H - 92, 18, tm); });
           tr(pg, 'Question Number', BR - 22, H - 114, 10, tm);
           top = H - 130;
@@ -869,14 +866,10 @@
         tc(pg, `– ${n} –`, W / 2, bot + 5, 10, tm);
         office(pg, 62);
       }
-      if (p.subject === 'Ext1') {
-        for (const q of [11, 12, 13, 14]) { cover(q); for (let n = 2; n <= LAST; n++) inner(n, q); }
-      } else {
-        cover(null); for (let n = 2; n <= LAST; n++) inner(n, null);
-      }
+      for (let b = 0; b < BOOKLET_COUNT; b++) { cover(null); for (let n = 2; n <= LAST; n++) inner(n, null); }
       const blob = new Blob([await doc.save()], { type: 'application/pdf' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-      a.download = paperFile(p).replace('.pdf', (BOOKLETS[p.subject] || BOOKLETS.Ext1).file + '.pdf');
+      a.download = paperFile(p).replace('.pdf', BOOKLETS.file + '.pdf');
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     } catch (err) { if (errEl) { errEl.textContent = err.message || String(err); errEl.hidden = false; } }
     finally { btn.textContent = old; btn.disabled = false; }
@@ -1141,8 +1134,8 @@
     const pdfBase = { title: `${p.school} ${p.year} · ${C.subjects[p.subject] || p.subject}`, sub: `${qs.length} questions${total ? ' · ' + total + ' marks' : ''}`, filename: paperFile(p), qs: qs.filter(q => q.image_path) };
     $('paper-pdf').onclick = async () => {
       // offer HSC-style answer stationery in the same PDF
-      const bk = BOOKLETS[p.subject];
-      if (bk && p.pdf_path) {
+      const bk = BOOKLETS;
+      if (p.pdf_path) {
         const both = await confirmBox(`${bk.ask}<span class="cb-sub">${bk.sub}</span>`, 'Yes, add them', 'Just the exam');
         if (both) return examWithBooklets(p, $('paper-pdf'), $('paper-error'));
       }
