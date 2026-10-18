@@ -144,7 +144,7 @@ def main(argv=None):
     thsc.download = download_and_keep
     exams = DOCS / cfg["folder"] / "Exams"
     exams.mkdir(parents=True, exist_ok=True)
-    tmp = HERE / "reader" / "tmp"
+    tmp = HERE / "reader" / f"tmp-{key}"        # one per subject, so two readers can run side by side
     read = failed = 0
     try:
         for entry in papers:

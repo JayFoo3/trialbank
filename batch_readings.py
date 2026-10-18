@@ -13,9 +13,15 @@ if os.path.exists(summary):
         k, v = line.rstrip('\n').split('\t', 1); old[k] = v
 rows = dict(old)
 n_new = 0
+# rows are keyed '<subject folder>/<file>' (subjects share file names like '[Medium] Caringbah 2024 (w. sol).pdf');
+# older rows used the bare file name, which only these folders ever wrote
+subj_dir = os.path.basename(os.path.dirname(os.path.abspath(folder)))
+LEGACY = {'Math Extension 1', 'Physics', 'Math Advanced'}
 for p in sorted(glob.glob(os.path.join(folder, '*.pdf'))):
-    name = os.path.basename(p)
-    if name in old and not old[name].startswith('NO READING'):
+    bare = os.path.basename(p)
+    name = f'{subj_dir}/{bare}'
+    prev = old.get(name) or (old.get(bare) if subj_dir in LEGACY else None)
+    if prev and not prev.startswith('NO READING'):
         continue
     if time.time() - t0 > budget:
         print('BUDGET HIT'); break
