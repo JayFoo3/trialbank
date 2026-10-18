@@ -244,6 +244,9 @@
     return msg;
   }
   $('signout').onclick = () => sb.auth.signOut();
+  const drawSound = () => { if (window.Juice) $('sound-toggle').textContent = `Sounds: ${Juice.soundOn() ? 'On' : 'Off'}`; };
+  $('sound-toggle').onclick = () => { if (window.Juice) { Juice.setSound(!Juice.soundOn()); drawSound(); } };
+  drawSound();
   sb.auth.onAuthStateChange((_evt, session) => {
     // profile edits and token refreshes only change the user object; don't re-route mid-question
     if ((_evt === 'USER_UPDATED' || _evt === 'TOKEN_REFRESHED') && session?.user && state.user) { state.user = session.user; return; }
@@ -496,6 +499,7 @@
   async function startSet(qs, urls) {
     await attachUrls(qs, urls);
     state.set = { qs, i: 0, results: [] };
+    window.Juice && Juice.resetCombo();
     renderQuestion();
     location.hash = '#set';
   }
@@ -526,6 +530,7 @@
     const qs = pool.slice(0, o.count);
     await attachUrls(qs);
     state.set = { qs, i: 0, results: [] };
+    window.Juice && Juice.resetCombo();
     renderQuestion();
   }
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
@@ -538,6 +543,8 @@
   }
   function renderQuestion() {
     const s = state.set, x = s.qs[s.i];
+    const qcard = document.querySelector('#view-set .card.question');
+    if (qcard) { qcard.classList.remove('enter'); void qcard.offsetWidth; qcard.classList.add('enter'); }
     $('set-pos').textContent = `${s.i + 1} of ${s.qs.length} · ${topicName(x.topic)}`;
     firstHint(x);
     $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
@@ -602,6 +609,7 @@
     $('q-online').innerHTML = '';
     $('q-online').append(Online.render(x, { value: v, disabled: true, reveal: true }), Online.solution(x, v));
     $('check-online').hidden = true;
+    window.Juice && Juice.aim($('q-online').querySelector('.ol-opt.correct.picked, .ol-opt.wrong, .ol-item.correct, .ol-item.wrong'));
     record(sc, out, Array.isArray(v) ? v.join(',') : v);
     verdict(sc === out ? 'Correct.' : sc ? `${sc}/${out}. Check the ones in red.` : 'Not quite. The answer is shown in green.', sc === out ? 'good' : sc ? 'warn' : 'bad');
   };
@@ -615,6 +623,7 @@
     const s = state.set, x = s.qs[s.i];
     if (group) { group.querySelectorAll('button').forEach(o => { o.disabled = true; }); btn.classList.add('picked'); }
     s.results[s.i] = { q: x, score, outOf };
+    if (window.Juice) { if (outOf && score >= outOf) Juice.reward(outOf); else if (score > 0) Juice.partial(score); else Juice.miss(); }
     if (x.type === 'short' && !(x.content && Online.objective(x))) verdict(score === outOf ? 'Full marks.' : score === 0 ? 'Mark it, move on. It will come back around.' : `${score}/${outOf}.`, score === outOf ? 'good' : score === 0 ? 'bad' : 'warn');
     $('next').hidden = false; $('skip').hidden = true;
     if (x.type === 'short' && score < outOf && !(x.content && Online.objective(x))) showLost(s.results[s.i], outOf - score);
@@ -727,8 +736,11 @@
     $('summary-title').textContent = title; $('summary-extra').textContent = '';
     const rs = state.set.results.filter(Boolean);
     const score = rs.reduce((a, r) => a + r.score, 0), outOf = rs.reduce((a, r) => a + r.outOf, 0);
-    $('summary-score').textContent = outOf ? `${score} / ${outOf}  (${Math.round(100 * score / outOf)}%)` : 'Nothing marked';
+    $('summary-score').textContent = outOf ? `0 / ${outOf}  (0%)` : 'Nothing marked';
     const pct = outOf ? score / outOf : null;
+    if (outOf && window.Juice) Juice.countUp($('summary-score'), score, v => `${v} / ${outOf}  (${Math.round(100 * v / outOf)}%)`);
+    else if (outOf) $('summary-score').textContent = `${score} / ${outOf}  (${Math.round(100 * score / outOf)}%)`;
+    if (window.Juice) Juice.stars($('summary-stars'), pct == null ? 0 : pct >= 0.9 ? 3 : pct >= 0.7 ? 2 : pct >= 0.4 ? 1 : 0);
     $('summary-mascot').innerHTML = Mascot(pct == null ? 'think' : pct >= 0.8 ? 'cheer' : pct >= 0.5 ? 'happy' : 'sad');
     if (pct != null && pct >= 0.8) setTimeout(() => confetti(), 350);
     const byTopic = {};
@@ -1917,7 +1929,7 @@
     try { localStorage.setItem('tb_' + k, '1'); } catch { /* private mode */ }
     if (state.user && !meta[k]) {
       state.user.user_metadata = { ...(state.user.user_metadata || {}), flags: { ...meta, [k]: 1 } };
-      sb.auth.updateUser({ data: { flags: state.user.user_metadata.flags } }).then(({ data }) => { if (data?.user) state.user = data.user; }, () => {});
+      try { sb.auth.updateUser({ data: { flags: state.user.user_metadata.flags } }).then(({ data }) => { if (data?.user) state.user = data.user; }, () => {}); } catch { /* demo mode */ }
     }
   };
   // accounts that are more than a day old have already been shown around
@@ -2333,6 +2345,7 @@
   runTimerTick();
 
   // a burst of confetti for good results
+  window.TBconfetti = (n) => confetti(n);
   function confetti(n = 70) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const cols = [getComputedStyle(document.documentElement).getPropertyValue('--biro').trim(), '#ffd23f', '#1fa45a', '#e5484d', '#7c4dde', '#0f9aa8'];

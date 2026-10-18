@@ -976,3 +976,47 @@ a, button, select, label, summary, .ol-opt { -webkit-tap-highlight-color: transp
   .jump button { flex: none; min-width: 36px; min-height: 34px; }
 }
 @media (display-mode: standalone) { body { overscroll-behavior-y: none; } }
+
+/* ---------- juice: rewards for answering ---------- */
+.jz-dot { position: fixed; z-index: 1200; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; pointer-events: none;
+  animation: jz-fly .7s cubic-bezier(.15,.8,.3,1) forwards; }
+@keyframes jz-fly { 0% { transform: translate(0,0) scale(var(--s)); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } }
+.jz-float { position: fixed; z-index: 1201; transform: translate(-50%, -50%); pointer-events: none; font: 800 1.5rem/1 var(--display); color: var(--good);
+  text-shadow: 0 2px 0 var(--paper), 0 0 12px var(--paper); animation: jz-rise 1.05s cubic-bezier(.2,.8,.3,1) forwards; }
+.jz-float.part { color: #e0a100; }
+@keyframes jz-rise { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.6); } 20% { opacity: 1; transform: translate(-50%, -80%) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -260%) scale(1); } }
+.jz-pop { animation: jz-pop .45s cubic-bezier(.3,1.6,.5,1); }
+@keyframes jz-pop { 0% { transform: scale(1); } 35% { transform: scale(1.07); } 100% { transform: scale(1); } }
+.jz-shake { animation: jz-shake .42s ease-in-out; }
+@keyframes jz-shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+.jz-combo { position: fixed; z-index: 1150; left: 50%; top: calc(74px + env(safe-area-inset-top)); transform: translate(-50%, -140%); opacity: 0;
+  display: flex; align-items: center; gap: 6px; padding: 8px 16px 8px 12px; border-radius: 999px; background: var(--ink); color: var(--paper);
+  font: 800 1rem/1 var(--display); box-shadow: 0 6px 20px rgba(0,0,0,.18); transition: transform .35s cubic-bezier(.3,1.5,.5,1), opacity .25s; pointer-events: none; }
+.jz-combo.on { transform: translate(-50%, 0); opacity: 1; }
+.jz-combo b { font-size: 1.2rem; }
+.jz-combo svg { width: 20px; height: 20px; fill: #ff8a3d; }
+.jz-combo.big { background: linear-gradient(135deg, #ff8a3d, #ffd23f); color: #3a2400; }
+.jz-combo.big svg { fill: #c0390b; }
+.jz-combo.jz-bump { animation: jz-bump .4s cubic-bezier(.3,1.7,.5,1); }
+@keyframes jz-bump { 0% { transform: translate(-50%, 0) scale(1); } 40% { transform: translate(-50%, 0) scale(1.18); } 100% { transform: translate(-50%, 0) scale(1); } }
+.jz-stars { display: flex; gap: 8px; margin: 6px 0 2px; }
+.jz-star svg { width: 44px; height: 44px; fill: var(--rule); stroke: var(--rule-strong, #cfc9bd); stroke-width: 1; stroke-linejoin: round; display: block; }
+.jz-star.lit svg { fill: #ffc531; stroke: #e0a100; animation: jz-star .55s cubic-bezier(.3,1.7,.5,1) both; animation-delay: calc(.45s + var(--i) * .28s); }
+@keyframes jz-star { 0% { transform: scale(0) rotate(-40deg); } 100% { transform: scale(1) rotate(0); } }
+/* a new question slides in */
+.card.question.enter, #q-online.enter { animation: jz-enter .35s cubic-bezier(.2,.9,.3,1); }
+@keyframes jz-enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+/* the set progress bar springs forward */
+#set-bar { transition: width .5s cubic-bezier(.3,1.4,.5,1); }
+/* picking an answer feels physical */
+.ol-opt.picked .ol-box, .choices button.picked { animation: jz-pop .35s cubic-bezier(.3,1.6,.5,1); }
+.choices button.correct { animation: jz-pop .45s cubic-bezier(.3,1.6,.5,1); }
+.jump button.done { animation: jz-pop .35s cubic-bezier(.3,1.6,.5,1); }
+/* cards lift a touch under the mouse */
+@media (hover: hover) {
+  .card.qcard, .ptile, .prow { transition: transform .15s, box-shadow .15s; }
+  .ptile:hover { transform: translateY(-2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jz-pop, .jz-shake, .jz-combo, .jz-star.lit svg, .card.question.enter, #q-online.enter, .ol-opt.picked .ol-box, .choices button, .jump button.done { animation: none !important; transition: none !important; }
+}

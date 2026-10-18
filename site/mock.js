@@ -40,6 +40,7 @@
         auth: {
           getSession: () => Promise.resolve({ data: { session: { user } } }),
           onAuthStateChange: (fn) => listeners.push(fn),
+          updateUser: ({ data }) => { user.user_metadata = { ...(user.user_metadata || {}), ...(data || {}) }; return Promise.resolve({ data: { user }, error: null }); },
           signOut: () => { alert('Demo mode: no accounts.'); return Promise.resolve(); },
           signInWithPassword: () => Promise.resolve({ data: { session: { user } }, error: null }),
           signUp: () => Promise.resolve({ data: { session: { user } }, error: null }),

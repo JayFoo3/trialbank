@@ -47,6 +47,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
           <button class="menu-item" id="open-me">Personalise</button>
           <a href="#admin" id="nav-admin" hidden>Admin</a>
           <button class="menu-item" id="preview-new" hidden>Test as new user</button>
+          <button class="menu-item" id="sound-toggle">Sounds: On</button>
           <button class="menu-item" id="signout">Sign out</button>
         </div>
       </div>
@@ -279,7 +280,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <section id="view-summary" class="view" hidden>
     <div class="summary-hero"><div class="sm-mascot" id="summary-mascot"></div>
     <div><h1 id="summary-title">Set done</h1>
-    <p class="score-mark" id="summary-score"></p></div></div>
+    <p class="score-mark" id="summary-score"></p>
+    <div class="jz-stars" id="summary-stars" role="img"></div></div></div>
     <p class="muted" id="summary-extra"></p>
     <div id="summary-topics" class="bars"></div>
     <div class="row">
@@ -459,6 +461,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 </script>
 <script src="mascot.js?v=dev"></script>
 <script src="online.js?v=dev"></script>
+<script src="juice.js?v=dev"></script>
 <script src="app.js?v=dev"></script>
 </body>
 </html>
