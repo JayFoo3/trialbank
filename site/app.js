@@ -1136,8 +1136,9 @@
       // offer HSC-style answer stationery in the same PDF
       const bk = BOOKLETS;
       if (p.pdf_path) {
-        const both = await confirmBox(`${bk.ask}<span class="cb-sub">${bk.sub}</span>`, 'Yes, add them', 'Just the exam');
-        if (both) return examWithBooklets(p, $('paper-pdf'), $('paper-error'));
+        const pick = await choiceBox(`${bk.ask}<span class="cb-sub">${bk.sub}</span>`, [['cancel', 'Never mind', 'link'], ['plain', 'Just the exam', 'secondary'], ['both', 'Yes, add them', 'primary']]);
+        if (!pick || pick === 'cancel') return;
+        if (pick === 'both') return examWithBooklets(p, $('paper-pdf'), $('paper-error'));
       }
       officialPdf($('paper-pdf'), p, 'pdf_path', pdfBase, $('paper-error'));
     };
@@ -1663,6 +1664,19 @@
     const t = $('toast'); t.innerHTML = html; t.hidden = false;
     clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms);
     return t;
+  }
+  // a small dialog with any number of choices; resolves to the chosen key, or null if dismissed
+  function choiceBox(html, choices) {
+    return new Promise(res => {
+      const m = mk('div', 'modal');
+      m.innerHTML = `<div class="modal-card soon-card" role="dialog" aria-modal="true"><h2>${html}</h2><div class="row confirm-row">${choices.map(([k, label, cls]) => `<button class="${cls}" data-k="${k}">${label}</button>`).join('')}</div></div>`;
+      const done = (v) => { m.remove(); document.removeEventListener('keydown', esc_); res(v); };
+      const esc_ = (ev) => { if (ev.key === 'Escape') done(null); };
+      m.onclick = (ev) => { if (ev.target === m) done(null); const b = ev.target.closest('button[data-k]'); if (b) done(b.dataset.k); };
+      document.addEventListener('keydown', esc_);
+      document.body.appendChild(m);
+      m.querySelector('.primary')?.focus();
+    });
   }
   function confirmBox(html, yes = 'Yes', no = 'No') {
     return new Promise(res => {
