@@ -335,6 +335,13 @@
       ['Financial Mathematics', ['Sequences and Series', 'Financial Mathematics']],
       ['Statistics', ['Probability', 'Discrete Probability Distributions', 'Descriptive Statistics and Bivariate Data', 'Continuous Probability Distributions', 'The Normal Distribution']],
     ],
+    Std2: [
+      ['Algebra', ['Formulae and Equations', 'Linear Relationships', 'Non-linear Relationships']],
+      ['Measurement', ['Applications of Measurement', 'Working with Rates', 'Right-angled Triangles', 'Non-right-angled Trigonometry', 'Rates and Ratios']],
+      ['Financial Mathematics', ['Money Matters', 'Investments and Loans', 'Annuities']],
+      ['Statistical Analysis', ['Data Analysis', 'Relative Frequency and Probability', 'Bivariate Data Analysis', 'The Normal Distribution']],
+      ['Networks', ['Network Concepts', 'Critical Path Analysis']],
+    ],
     Eng: [
       ['Year 12 modules', ['Civil Structures', 'Personal and Public Transport', 'Aeronautical Engineering', 'Telecommunications Engineering']],
       ['Year 11 modules', ['Engineering Fundamentals', 'Engineered Products', 'Braking Systems', 'Biomedical Engineering']],
