@@ -78,7 +78,7 @@ def find_page(session, key):
 
 
 def pdf_name(entry):
-    label = LABEL[tier(entry["school"])]
+    label = "HSC" if entry["school"] == "HSC" else LABEL[tier(entry["school"])]
     sol = " (w. sol)" if entry["title"].endswith("w. sol") else ""
     return f"[{label}] {entry['school']} {entry['year']}{sol}.pdf"
 
