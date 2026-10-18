@@ -234,6 +234,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <p class="hint small" id="set-hint" hidden></p>
     <div class="card question">
       <img id="q-img" alt="Question">
+      <div id="q-online" hidden></div>
       <p class="muted small" id="q-coarse" hidden>Whole page shown: find the part named above.</p>
       <p class="q-syllabus" id="q-syllabus" hidden></p>
     </div>
@@ -242,10 +243,13 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <button data-l="A">A</button><button data-l="B">B</button><button data-l="C">C</button><button data-l="D">D</button>
     </div>
 
+    <button class="primary wide" id="check-online" hidden>Check answer</button>
+
     <div id="short-controls" hidden>
       <button class="secondary wide" id="show-sol">Show solution</button>
       <div id="sol-wrap" hidden>
         
+        <div id="sol-html"></div>
         <div class="card scroll"><img id="sol-img" alt="Solution"></div>
         <p><strong>Your mark?</strong></p>
         <div class="choices" id="self-mark"></div>
@@ -444,6 +448,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   }
 </script>
 <script src="mascot.js?v=dev"></script>
+<script src="online.js?v=dev"></script>
 <script src="app.js?v=dev"></script>
 </body>
 </html>

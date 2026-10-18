@@ -4,7 +4,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey);
   const $ = (id) => document.getElementById(id);
   const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun'];
-  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, syllabus_note, pages, papers!inner(subject, school, year, difficulty)';
+  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty)';
 
   document.title = C.name;
   $('brand').textContent = C.name;
@@ -342,6 +342,10 @@
       ['Statistical Analysis', ['Data Analysis', 'Relative Frequency and Probability', 'Bivariate Data Analysis', 'The Normal Distribution']],
       ['Networks', ['Network Concepts', 'Critical Path Analysis']],
     ],
+    SE: [
+      ['Year 12 focus areas', ['Secure Software Architecture', 'Programming for the Web', 'Software Automation', 'Software Engineering Project']],
+      ['Year 11 focus areas', ['Programming Fundamentals', 'The Object-oriented Paradigm', 'Programming Mechatronics']],
+    ],
     Eng: [
       ['Year 12 modules', ['Civil Structures', 'Personal and Public Transport', 'Aeronautical Engineering', 'Telecommunications Engineering']],
       ['Year 11 modules', ['Engineering Fundamentals', 'Engineered Products', 'Braking Systems', 'Biomedical Engineering']],
@@ -479,7 +483,7 @@
     let q = sb.from('questions').select(QCOLS)
       .eq('papers.subject', state.subject)
       .in('topic', [...state.topics].filter(t => o.allowSkipped || !skipped().has(t)))
-      .not('image_path', 'is', null)
+      .or('image_path.not.is.null,content.not.is.null')
       .limit(400);
     if (o.type !== 'all') q = q.eq('type', o.type);
     if (o.diff !== 'all') q = q.eq('papers.difficulty', o.diff);
@@ -516,7 +520,8 @@
     firstHint(x);
     $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
-    const qi = $('q-img'); qi.dataset.trimmed = ''; qi.crossOrigin = 'anonymous'; qi.onload = () => trimImg(qi); qi.src = x.imageUrl;
+    const qi = $('q-img'); qi.dataset.trimmed = ''; qi.crossOrigin = 'anonymous'; qi.onload = () => trimImg(qi);
+    if (x.content) qi.removeAttribute('src'); else qi.src = x.imageUrl;
     $('q-coarse').hidden = !x.coarse;
     $('star').textContent = '☆ Star';
     loadStars().then(s => { $('star').textContent = s.has(x.id) ? '★ Starred' : '☆ Star'; });
@@ -526,8 +531,13 @@
     $('mcq-controls').hidden = x.type !== 'mcq' || !!x.syllabus_note;
     $('short-controls').hidden = x.type !== 'short' || !!x.syllabus_note;
     $('q-syllabus').hidden = !x.syllabus_note;
-    $('sol-wrap').hidden = true; $('show-sol').hidden = false; $('show-sol').disabled = !x.solutionUrl;
-    $('show-sol').textContent = x.solutionUrl ? 'Show solution' : 'No solution available';
+    const on = !!x.content, obj = on && Online.objective(x);
+    qi.hidden = on; $('q-online').hidden = !on; $('q-online').innerHTML = '';
+    if (on) { x._v = null; $('q-online').appendChild(Online.render(x, { onChange: v => { x._v = v; } })); }
+    if (obj) { $('mcq-controls').hidden = true; $('short-controls').hidden = true; }
+    $('check-online').hidden = !obj || !!x.syllabus_note;
+    $('sol-wrap').hidden = true; $('show-sol').hidden = false; $('show-sol').disabled = !x.solutionUrl && !on;
+    $('show-sol').textContent = x.solutionUrl || on ? 'Show solution' : 'No solution available';
     document.querySelectorAll('#mcq-controls button').forEach(b => { b.className = ''; b.disabled = false; });
     if (x.type === 'short') {
       const sm = $('self-mark'); sm.innerHTML = '';
@@ -559,7 +569,19 @@
   });
   $('show-sol').onclick = () => {
     const x = state.set.qs[state.set.i];
-    $('sol-img').src = x.solutionUrl; $('sol-wrap').hidden = false; $('show-sol').hidden = true;
+    $('sol-html').innerHTML = ''; $('sol-img').parentElement.hidden = !!x.content;
+    if (x.content) $('sol-html').appendChild(Online.solution(x)); else $('sol-img').src = x.solutionUrl;
+    $('sol-wrap').hidden = false; $('show-sol').hidden = true;
+  };
+  $('check-online').onclick = () => {
+    const x = state.set.qs[state.set.i], v = x._v;
+    if (!Online.answered(x, v)) { toast('Pick an answer first.'); return; }
+    const sc = Online.score(x, v), out = x.marks || 1;
+    $('q-online').innerHTML = '';
+    $('q-online').append(Online.render(x, { value: v, disabled: true, reveal: true }), Online.solution(x, v));
+    $('check-online').hidden = true;
+    record(sc, out, Array.isArray(v) ? v.join(',') : v);
+    verdict(sc === out ? 'Correct.' : sc ? `${sc}/${out}. Check the ones in red.` : 'Not quite. The answer is shown in green.', sc === out ? 'good' : sc ? 'warn' : 'bad');
   };
   function verdict(text, cls) {
     const mood = cls === 'good' ? 'cheer' : cls === 'bad' ? 'sad' : 'think';
@@ -571,9 +593,9 @@
     const s = state.set, x = s.qs[s.i];
     if (group) { group.querySelectorAll('button').forEach(o => { o.disabled = true; }); btn.classList.add('picked'); }
     s.results[s.i] = { q: x, score, outOf };
-    if (x.type === 'short') verdict(score === outOf ? 'Full marks.' : score === 0 ? 'Mark it, move on. It will come back around.' : `${score}/${outOf}.`, score === outOf ? 'good' : score === 0 ? 'bad' : 'warn');
+    if (x.type === 'short' && !(x.content && Online.objective(x))) verdict(score === outOf ? 'Full marks.' : score === 0 ? 'Mark it, move on. It will come back around.' : `${score}/${outOf}.`, score === outOf ? 'good' : score === 0 ? 'bad' : 'warn');
     $('next').hidden = false; $('skip').hidden = true;
-    if (x.type === 'short' && score < outOf) showLost(s.results[s.i], outOf - score);
+    if (x.type === 'short' && score < outOf && !(x.content && Online.objective(x))) showLost(s.results[s.i], outOf - score);
     const { data: row, error } = await sb.from('attempts').insert({ user_id: state.user.id, question_id: x.id, score, out_of: outOf, chosen }).select('id').single();
     if (error) console.warn('attempt not saved', error.message);
     else { s.results[s.i].attemptId = row.id; if (s.results[s.i].lost?.length) saveLost(s.results[s.i]); }
@@ -1395,14 +1417,14 @@
     $('paper-title').textContent = isHsc(p) ? `${p.year} HSC exam` : `${p.school} ${p.year}`;
     $('tab-sol-btn').textContent = isHsc(p) ? 'Marking guidelines' : 'Solutions';
     $('paper-pdf-sol').textContent = isHsc(p) ? 'Download marking guidelines' : 'Download with solutions';
-    const hasQs = qs.some(q => q.image_path);
+    const hasQs = qs.some(q => q.image_path || q.content);
     $('paper-noq').hidden = hasQs; document.querySelector('#tab-practise .paper-actions').hidden = !hasQs;
     state.paperView = { p, qs };
     $('paper-pdf').textContent = p.pdf_path ? 'Download PDF' : 'Download';
     paperTab(p.pdf_path || !qs.length ? 'paper' : 'practise');
     $('paper-meta').innerHTML = levelBadge(p) + ' ' + esc([C.subjects[p.subject] || p.subject, qs.length ? `${qs.length} questions` : null, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · '));
     $('paper-practise').onclick = async () => {
-      const usable = qs.filter(q => q.image_path);
+      const usable = qs.filter(q => q.image_path || q.content);
       if (!usable.length) return;
       await startSet(usable, urls);
     };
@@ -1422,12 +1444,14 @@
       const c = mk('div', 'card qcard');
       c.innerHTML = `<div class="between"><strong>${qLabel(q)} ${sylFlag(q)}</strong><span class="muted small">${marksText(q.marks)} · ${q.topic ? topicName(q.topic) : 'Untagged'}</span></div>`;
       if (q.image_path) { const im = qImg(urls[q.image_path], qLabel(q)); im.loading = 'lazy'; c.appendChild(im); }
+      else if (q.content) c.appendChild(Online.render(q, { disabled: true }));
       else c.appendChild(mk('p', 'muted small', 'No image for this question.'));
       const row = mk('div', 'row');
       row.appendChild(starButton(q));
-      if (q.solution_path || q.answer) {
+      if (q.solution_path || q.answer || q.content) {
         const sb_ = mk('button', 'link', 'Show solution'), solBox = mk('div'); solBox.hidden = true;
-        solBox.innerHTML = (q.answer ? `<p><strong>Answer: ${q.answer}</strong></p>` : '') + (q.solution_path ? `<div class="card scroll"><img loading="lazy" src="${urls[q.solution_path]}" alt="Solution"></div>` : '');
+        if (q.content) solBox.appendChild(Online.solution(q));
+        else solBox.innerHTML = (q.answer ? `<p><strong>Answer: ${q.answer}</strong></p>` : '') + (q.solution_path ? `<div class="card scroll"><img loading="lazy" src="${urls[q.solution_path]}" alt="Solution"></div>` : '');
         sb_.onclick = () => { solBox.hidden = !solBox.hidden; sb_.textContent = solBox.hidden ? 'Show solution' : 'Hide solution'; };
         row.appendChild(sb_); c.appendChild(row); c.appendChild(solBox);
       } else c.appendChild(row);
@@ -1558,6 +1582,7 @@
     const sum = Object.fromEntries((sums || []).map(s => [s.paper_id, s]));
     const ok = (papers || []).filter(p => {
       const s = sum[p.id];
+      if (p.online) return true;
       return !p.scanned && s && s.n_questions >= 10 && s.n_images >= 0.9 * s.n_questions && s.n_coarse <= 0.1 * s.n_questions;
     });
     if (!ok.length) throw new Error('No papers are ready for exam mode in this subject yet.');
@@ -1575,7 +1600,7 @@
     finally { $('exam-random').disabled = false; }
   };
   async function prepareExam(paper, init) {
-    const { data: qs, error } = await sb.from('questions').select(QCOLS).eq('paper_id', paper.id).not('image_path', 'is', null).limit(300);
+    const { data: qs, error } = await sb.from('questions').select(QCOLS).eq('paper_id', paper.id).or('image_path.not.is.null,content.not.is.null').limit(300);
     if (error) throw error;
     if (!qs || !qs.length) throw new Error('That paper has no question images yet.');
     qs.sort(byOrder);
@@ -1663,6 +1688,7 @@
     const out = [];
     e.qs.forEach(q => {
       if (q.syllabus_note) { const m = q.type === 'mcq' ? 1 : (q.marks || 0); if (m) out.push({ q, score: m, outOf: m, chosen: e.answers[q.id] || null, auto: true }); return; }
+      if (q.content && Online.objective(q)) { const v = e.answers[q.id]; out.push({ q, score: Online.score(q, v), outOf: q.marks || 1, chosen: v == null ? null : Array.isArray(v) ? v.join(',') : v }); return; }
       if (q.type === 'mcq') { if (q.answer) out.push({ q, score: e.answers[q.id] === q.answer ? 1 : 0, outOf: 1, chosen: e.answers[q.id] || null }); }
       else if (q.marks) out.push({ q, score: Math.min(e.marks[q.id] || 0, q.marks), outOf: q.marks, chosen: null });
     });
@@ -1673,7 +1699,7 @@
     const rs = examResults(e);
     $('exam-clock').className = 'clock';
     $('exam-clock').textContent = `${rs.reduce((a, r) => a + r.score, 0)} / ${rs.reduce((a, r) => a + r.outOf, 0)}`;
-    const shorts = e.qs.filter(q => q.type !== 'mcq' && q.marks && !q.syllabus_note);
+    const shorts = e.qs.filter(q => q.type !== 'mcq' && q.marks && !q.syllabus_note && !(q.content && Online.objective(q)));
     const done = shorts.filter(q => e.marks[q.id] != null).length;
     if (!$('exam-note').textContent || /marked/.test($('exam-note').textContent)) $('exam-note').textContent = `${done} of ${shorts.length} written questions marked. Unmarked ones count as 0.`;
   }
@@ -1683,18 +1709,25 @@
     const jump = $('exam-jump'); jump.innerHTML = '';
     if (marking) body.appendChild(automarkCard());
     e.qs.forEach((q, idx) => {
-      const chip = mk('button', e.answers[q.id] || e.marks[q.id] != null ? 'done' : '', qLabel(q).replace(/^Q/, ''));
+      const has = q.content ? Online.answered(q, e.answers[q.id]) : !!e.answers[q.id];
+      const chip = mk('button', has || e.marks[q.id] != null ? 'done' : '', qLabel(q).replace(/^Q/, ''));
       chip.onclick = () => document.getElementById('xq' + idx).scrollIntoView({ block: 'start' });
       jump.appendChild(chip);
       const c = mk('div', 'card qcard'); c.id = 'xq' + idx;
       c.innerHTML = `<div class="between"><strong>${qLabel(q)} ${sylFlag(q)}</strong><span class="muted small">${marksText(q.marks)}</span></div>`;
-      c.appendChild(qImg(q.imageUrl, 'Question ' + qLabel(q)));
+      if (q.content) c.appendChild(Online.render(q, { value: e.answers[q.id], disabled: e.phase !== 'working', reveal: marking && Online.objective(q),
+        onChange: v => { e.answers[q.id] = v; saveExam(); chip.classList.toggle('done', Online.answered(q, v)); } }));
+      else c.appendChild(qImg(q.imageUrl, 'Question ' + qLabel(q)));
       if (marking && q.syllabus_note) {
         c.appendChild(mk('p', 'muted small', `${esc(q.syllabus_note)} Auto-marked as correct.`));
         chip.classList.add('done'); body.appendChild(c); return;
       }
       const ai = marking && e.ai && e.ai[q.id];
       if (ai) c.appendChild(mk('p', 'ai-note', `<b>Auto-marker: ${ai.found ? `${ai.awarded}/${ai.out_of}` : 'not found in your upload'}</b> ${esc(ai.feedback || '')}`));
+      if (q.content && Online.objective(q)) {
+        if (marking) { c.appendChild(mk('p', 'small', `<b>${Online.score(q, e.answers[q.id])} / ${q.marks}</b>`)); c.appendChild(Online.solution(q)); }
+        body.appendChild(c); return;
+      }
       if (q.type === 'mcq') {
         const ch = mk('div', 'choices');
         ['A', 'B', 'C', 'D'].forEach(l => {
@@ -1712,12 +1745,12 @@
         c.appendChild(ch);
         if (marking) c.appendChild(mk('p', 'muted small', q.answer ? `You: ${e.answers[q.id] || 'blank'} · Answer: ${q.answer}` : 'No answer key for this one (not counted).'));
       } else if (!marking) {
-        c.appendChild(mk('p', 'muted small', 'Write your working on paper.'));
+        if (!q.content) c.appendChild(mk('p', 'muted small', 'Write your working on paper.'));
       } else {
-        const sol = mk('button', 'secondary', q.solutionUrl ? 'Show solution' : 'No solution available'); sol.disabled = !q.solutionUrl;
+        const sol = mk('button', 'secondary', q.solutionUrl || q.content ? 'Show solution' : 'No solution available'); sol.disabled = !q.solutionUrl && !q.content;
         const solBox = mk('div'); solBox.hidden = true;
         sol.onclick = () => {
-          if (!solBox.innerHTML) solBox.innerHTML = `<div class="card scroll"><img src="${q.solutionUrl}" alt="Solution"></div>`;
+          if (!solBox.innerHTML) { if (q.content) solBox.appendChild(Online.solution(q)); else solBox.innerHTML = `<div class="card scroll"><img src="${q.solutionUrl}" alt="Solution"></div>`; }
           solBox.hidden = !solBox.hidden; sol.textContent = solBox.hidden ? 'Show solution' : 'Hide solution';
         };
         c.appendChild(sol); c.appendChild(solBox);
@@ -1801,7 +1834,7 @@
   function reviewError(msg) { $('review-error').textContent = msg; $('review-error').hidden = false; }
   async function setFromIds(ids, n) {
     if (!ids.length) return false;
-    const { data, error } = await sb.from('questions').select(QCOLS).in('id', ids.slice(0, 100)).eq('papers.subject', state.subject).not('image_path', 'is', null);
+    const { data, error } = await sb.from('questions').select(QCOLS).in('id', ids.slice(0, 100)).eq('papers.subject', state.subject).or('image_path.not.is.null,content.not.is.null');
     if (error) throw error;
     if (!data.length) return false;
     shuffle(data);
@@ -1889,7 +1922,7 @@
     try {
       await busy(async () => {
         const { data, error } = await sb.from('questions').select(QCOLS).eq('papers.subject', state.subject)
-          .eq('type', 'mcq').not('answer', 'is', null).not('image_path', 'is', null).not('topic', 'is', null).limit(800);
+          .eq('type', 'mcq').not('answer', 'is', null).or('image_path.not.is.null,content.not.is.null').not('topic', 'is', null).limit(800);
         if (error) throw error;
         const byTopic = {};
         shuffle((data || []).filter(q => !hardQs().has(q.id) && !q.syllabus_note)).forEach(q => { (byTopic[q.topic] = byTopic[q.topic] || []).push(q); });

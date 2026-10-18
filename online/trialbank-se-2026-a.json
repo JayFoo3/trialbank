@@ -1,0 +1,925 @@
+{
+ "paper": {
+  "slug": "trialbank-se-2026-a",
+  "subject": "SE",
+  "school": "Trialbank",
+  "year": 2026,
+  "online": true
+ },
+ "questions": [
+  {
+   "number": 1,
+   "qid": "q01",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Secure Software Architecture",
+   "answer": "C",
+   "content": {
+    "kind": "single",
+    "prompt": "Which line of Python safely queries the database using the variable <i>name</i>?",
+    "options": [
+     "<pre>cursor.execute(&quot;SELECT * FROM users WHERE name = &#x27;&quot; + name + &quot;&#x27;&quot;)</pre>",
+     "<pre>cursor.execute(f&quot;SELECT * FROM users WHERE name = &#x27;{name}&#x27;&quot;)</pre>",
+     "<pre>cursor.execute(&quot;SELECT * FROM users WHERE name = ?&quot;, (name,))</pre>",
+     "<pre>cursor.execute(&quot;SELECT * FROM users WHERE name = %s&quot; % name)</pre>"
+    ],
+    "answer": "C",
+    "why": "A parameterised query sends the value separately from the SQL, so input can't change the query. The other three build the SQL string from user input."
+   }
+  },
+  {
+   "number": 2,
+   "qid": "q02",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Programming for the Web",
+   "answer": "C",
+   "content": {
+    "kind": "single",
+    "prompt": "A browser requests a page that does not exist on the server. Which HTTP status code is returned?",
+    "options": [
+     "200",
+     "301",
+     "404",
+     "500"
+    ],
+    "answer": "C",
+    "why": "404 Not Found. 200 is OK, 301 is a permanent redirect, 500 is a server error."
+   }
+  },
+  {
+   "number": 3,
+   "qid": "q03",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Programming for the Web",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "Which statement best describes a progressive web app (PWA)?",
+    "options": [
+     "It can only be installed from an app store",
+     "It runs in a browser but can be installed and work offline using a service worker",
+     "It must be rewritten in native code for each operating system",
+     "It is rendered entirely on the server with no client-side code"
+    ],
+    "answer": "B",
+    "why": "PWAs are web apps that can be installed and use a service worker to cache content for offline use."
+   }
+  },
+  {
+   "number": 4,
+   "qid": "q04",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Software Automation",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "A company trains a model on ten years of its past hiring decisions. The model now ranks male applicants higher. What is the most likely cause?",
+    "options": [
+     "Overfitting caused by training for too many epochs",
+     "Bias in the training data",
+     "Underfitting caused by too few features",
+     "A learning rate that is too small"
+    ],
+    "answer": "B",
+    "why": "The model learnt the pattern in the historical decisions, which were themselves biased."
+   }
+  },
+  {
+   "number": 5,
+   "qid": "q05",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "The Object-oriented Paradigm",
+   "answer": "C",
+   "content": {
+    "kind": "single",
+    "prompt": "Which OOP concept is best demonstrated by this code?<pre>class Account:\n    def __init__(self, balance):\n        self.__balance = balance\n\n    def deposit(self, amount):\n        if amount &gt; 0:\n            self.__balance += amount</pre>",
+    "options": [
+     "Inheritance",
+     "Polymorphism",
+     "Encapsulation",
+     "Generalisation"
+    ],
+    "answer": "C",
+    "why": "The balance is bound to the class and made private, and can only be changed through the deposit() method."
+   }
+  },
+  {
+   "number": 6,
+   "qid": "q06",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Secure Software Architecture",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "A tester sends thousands of unusual HTTP requests to a running web app to see how it responds. Which method is this?",
+    "options": [
+     "Static application security testing (SAST)",
+     "Dynamic application security testing (DAST)",
+     "Code review",
+     "Desk checking"
+    ],
+    "answer": "B",
+    "why": "DAST tests the program while it runs. SAST and code review read the code without running it."
+   }
+  },
+  {
+   "number": 7,
+   "qid": "q07",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Programming Fundamentals",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "What is the output of this code?<pre>data = [3, 8, 1, 9, 4]\nresult = [x * 2 for x in data if x &gt; 3]\nprint(result)</pre>",
+    "options": [
+     "[6, 16, 2, 18, 8]",
+     "[16, 18, 8]",
+     "[8, 9, 4]",
+     "[16, 18]"
+    ],
+    "answer": "B",
+    "why": "Only 8, 9 and 4 are greater than 3, and each is doubled."
+   }
+  },
+  {
+   "number": 8,
+   "qid": "q08",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Programming for the Web",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "A web page loads slowly because it downloads a 6 MB photo that is displayed 300 pixels wide. What is the best fix?",
+    "options": [
+     "Minify the JavaScript files",
+     "Resize and compress the image, and serve it in a modern format such as WebP",
+     "Add more CSS rules",
+     "Serve the page over HTTP instead of HTTPS"
+    ],
+    "answer": "B",
+    "why": "The image is the bottleneck. Resizing it to the size it is displayed at cuts most of the download."
+   }
+  },
+  {
+   "number": 9,
+   "qid": "q09",
+   "type": "short",
+   "marks": 1,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "multi",
+    "prompt": "Which of the following does HTTPS provide that HTTP does not? Select ALL that apply.",
+    "options": [
+     "Data is encrypted in transit",
+     "The server's identity is verified using a certificate",
+     "SQL injection is prevented",
+     "Tampering with data in transit is detected",
+     "Pages can load without a server",
+     "The domain name is hidden from DNS servers"
+    ],
+    "answer": [
+     "A",
+     "B",
+     "D"
+    ],
+    "why": "TLS gives encryption, server authentication and integrity checks. It does nothing for SQL injection, and DNS lookups still reveal the domain."
+   }
+  },
+  {
+   "number": 10,
+   "qid": "q10",
+   "type": "short",
+   "marks": 1,
+   "topic": "The Object-oriented Paradigm",
+   "answer": null,
+   "content": {
+    "kind": "multi",
+    "prompt": "Select ALL statements that are true for this code.<pre>class Shape:\n    def area(self):\n        return 0\n\nclass Square(Shape):\n    def __init__(self, side):\n        self.side = side\n    def area(self):\n        return self.side ** 2\n\nclass Circle(Shape):\n    def __init__(self, radius):\n        self.radius = radius\n\nfor s in [Square(3), Circle(2)]:\n    print(s.area())</pre>",
+    "options": [
+     "Square is a subclass of Shape",
+     "Square overrides the area() method",
+     "The output is 9 then 12.57",
+     "The output is 9 then 0",
+     "Circle inherits area() from its superclass",
+     "Shape is a subclass of Circle",
+     "The loop demonstrates polymorphism"
+    ],
+    "answer": [
+     "A",
+     "B",
+     "D",
+     "E",
+     "G"
+    ],
+    "why": "Circle never overrides area(), so it inherits Shape's version, which returns 0. Calling area() on objects of different classes through one loop is polymorphism."
+   }
+  },
+  {
+   "number": 11,
+   "qid": "q11",
+   "type": "short",
+   "marks": 1,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "multi",
+    "prompt": "Which of these are supervised learning tasks? Select ALL that apply.",
+    "options": [
+     "Predicting a house's price from its size, using past sales",
+     "Grouping news articles by topic when none are labelled",
+     "Classifying emails as spam using emails already labelled spam or not spam",
+     "A robot learning to walk by receiving rewards",
+     "Predicting whether a scan is benign using scans labelled by doctors"
+    ],
+    "answer": [
+     "A",
+     "C",
+     "E"
+    ],
+    "why": "Supervised learning needs labelled data. B is unsupervised (clustering) and D is reinforcement learning."
+   }
+  },
+  {
+   "number": 12,
+   "qid": "q12",
+   "type": "short",
+   "marks": 1,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "multi",
+    "prompt": "Which measures reduce the risk or impact of cross-site scripting (XSS)? Select ALL that apply.",
+    "options": [
+     "Encoding (escaping) user input before displaying it on a page",
+     "Sending a Content Security Policy header",
+     "Hashing passwords with bcrypt",
+     "Validating and sanitising input",
+     "Serving the site over HTTP instead of HTTPS",
+     "Setting the HttpOnly flag on session cookies"
+    ],
+    "answer": [
+     "A",
+     "B",
+     "D",
+     "F"
+    ],
+    "why": "Output encoding, input sanitising and CSP stop injected scripts running. HttpOnly stops a script that does run from stealing the session cookie. Password hashing protects stored passwords, not against XSS."
+   }
+  },
+  {
+   "number": 13,
+   "qid": "q13",
+   "type": "short",
+   "marks": 2,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "match",
+    "prompt": "Match each vulnerability to its description.",
+    "items": [
+     "SQL injection",
+     "Cross-site scripting (XSS)",
+     "Cross-site request forgery (CSRF)",
+     "Broken authentication"
+    ],
+    "options": [
+     "An attacker's script runs in another user's browser",
+     "A logged-in user's browser is tricked into sending an unwanted request",
+     "User input changes the meaning of a database query",
+     "Weak passwords or session handling let an attacker take over an account"
+    ],
+    "answer": [
+     "C",
+     "A",
+     "B",
+     "D"
+    ]
+   }
+  },
+  {
+   "number": 14,
+   "qid": "q14",
+   "type": "short",
+   "marks": 2,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "match",
+    "prompt": "Match each machine learning model to the task it suits best.",
+    "items": [
+     "Linear regression",
+     "Logistic regression",
+     "Decision tree",
+     "K-means clustering",
+     "Neural network"
+    ],
+    "options": [
+     "Grouping customers who have no labels",
+     "Recognising handwritten digits from pixel values",
+     "Predicting a house price in dollars",
+     "Predicting the probability that a student passes or fails",
+     "Making a loan decision that must be explained as a set of if-then rules"
+    ],
+    "answer": [
+     "C",
+     "D",
+     "E",
+     "A",
+     "B"
+    ]
+   }
+  },
+  {
+   "number": 15,
+   "qid": "q15",
+   "type": "short",
+   "marks": 2,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "match",
+    "prompt": "Match each HTTP method to its usual purpose.",
+    "items": [
+     "GET",
+     "POST",
+     "PUT",
+     "DELETE"
+    ],
+    "options": [
+     "Remove a resource",
+     "Retrieve a resource without changing it",
+     "Submit data to create a new resource",
+     "Replace or update an existing resource"
+    ],
+    "answer": [
+     "B",
+     "C",
+     "D",
+     "A"
+    ]
+   }
+  },
+  {
+   "number": 16,
+   "qid": "q16",
+   "type": "short",
+   "marks": 2,
+   "topic": "Software Engineering Project",
+   "answer": null,
+   "content": {
+    "kind": "match",
+    "prompt": "Match each activity to the phase of a software engineering project where it mainly belongs.",
+    "items": [
+     "Writing the requirements and constraints",
+     "Creating a Gantt chart",
+     "Coding modules and reviewing each other's code",
+     "Acceptance testing with the client",
+     "Choosing between Agile and Waterfall",
+     "Comparing the finished product against the success criteria"
+    ],
+    "options": [
+     "Identifying and defining",
+     "Research and planning",
+     "Producing and implementing",
+     "Testing and evaluating"
+    ],
+    "answer": [
+     "A",
+     "B",
+     "C",
+     "D",
+     "B",
+     "D"
+    ]
+   }
+  },
+  {
+   "number": 17,
+   "qid": "q17",
+   "type": "short",
+   "marks": 2,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Distinguish between symmetric and asymmetric encryption.",
+    "criteria": [
+     [
+      "Clearly distinguishes between the two, with reference to keys",
+      "2"
+     ],
+     [
+      "Describes one type",
+      "1"
+     ]
+    ],
+    "sample": "<p>Symmetric encryption uses one shared secret key to both encrypt and decrypt, which is fast but means the key has to be shared securely. Asymmetric encryption uses a key pair: data encrypted with the public key can only be decrypted with the matching private key, so no secret has to be shared, but it is much slower. HTTPS uses asymmetric encryption to agree on a symmetric session key.</p>",
+    "lines": 6
+   }
+  },
+  {
+   "number": 18,
+   "qid": "q18",
+   "type": "short",
+   "marks": 4,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A login function is shown.<pre>def login(username, password):\n    query = (&quot;SELECT * FROM users WHERE username = &#x27;&quot; + username +\n             &quot;&#x27; AND password = &#x27;&quot; + password + &quot;&#x27;&quot;)\n    return db.execute(query).fetchone()</pre><p>(a) Explain how entering <code>admin' --</code> as the username could let an attacker log in without the password. <b>(2 marks)</b></p><p>(b) Rewrite the function so it is secure. Assume each user's password is stored as a bcrypt hash in a column called <code>password_hash</code>. <b>(2 marks)</b></p>",
+    "criteria": [
+     [
+      "(a) Explains that the input closes the string and that -- comments out the password check, so the query matches the admin row",
+      "2"
+     ],
+     [
+      "(a) Identifies SQL injection",
+      "1"
+     ],
+     [
+      "(b) Uses a parameterised query AND checks the password against the stored hash",
+      "2"
+     ],
+     [
+      "(b) Does one of these",
+      "1"
+     ]
+    ],
+    "sample": "<p>(a) The query becomes <code>... WHERE username = 'admin' --' AND password = '...'</code>. The quote ends the username string, and <code>--</code> turns the rest of the line into a comment, so the password condition is never checked. The query returns the admin row and the attacker is logged in. This is SQL injection.</p><pre>import bcrypt\n\ndef login(username, password):\n    row = db.execute(\n        &quot;SELECT password_hash FROM users WHERE username = ?&quot;,\n        (username,)).fetchone()\n    return row is not None and bcrypt.checkpw(password.encode(), row[0])</pre>",
+    "lines": 14
+   }
+  },
+  {
+   "number": 19,
+   "qid": "q19",
+   "type": "short",
+   "marks": 3,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A school is building an app that stores students' names, contact details and timetables. Describe how the principles of <i>privacy by design</i> could be applied to this app.",
+    "criteria": [
+     [
+      "Describes several privacy by design principles, each applied to the app",
+      "3"
+     ],
+     [
+      "Outlines some principles with some link to the app",
+      "2"
+     ],
+     [
+      "Identifies a relevant principle",
+      "1"
+     ]
+    ],
+    "sample": "<p>Privacy is built in from the start rather than added after a breach. The app should collect only the data it needs (data minimisation): for example, no home address if timetables don't need it. Privacy should be the default, so contact details are hidden from other students unless a student chooses to share them. Data should be protected end to end: encrypted in transit with HTTPS and at rest in the database, with access limited by role. The school should be transparent through a clear privacy policy, and data should be deleted when a student leaves.</p>",
+    "lines": 9
+   }
+  },
+  {
+   "number": 20,
+   "qid": "q20",
+   "type": "short",
+   "marks": 4,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A web app keeps users logged in using a session cookie.<p>(a) Outline how a session cookie keeps a user logged in between page requests. <b>(2 marks)</b></p><p>(b) Describe TWO ways to make the session more secure. <b>(2 marks)</b></p>",
+    "criteria": [
+     [
+      "(a) Outlines that the server creates a session ID after login, the browser stores it in a cookie and sends it with each request, and the server looks it up",
+      "2"
+     ],
+     [
+      "(a) Identifies a feature",
+      "1"
+     ],
+     [
+      "(b) Describes two appropriate measures",
+      "2"
+     ],
+     [
+      "(b) Describes one",
+      "1"
+     ]
+    ],
+    "sample": "<p>(a) After a successful login the server creates a random session ID, stores it with the user's details, and sends it to the browser in a cookie. HTTP is stateless, so the browser sends the cookie with every later request, and the server looks up the ID to know who the user is.</p><p>(b) Any two: set the <b>Secure</b> flag so the cookie is only sent over HTTPS; set <b>HttpOnly</b> so JavaScript (and so an XSS attack) can't read it; set <b>SameSite</b> to reduce CSRF; make sessions <b>expire</b> after inactivity and on logout; <b>regenerate</b> the session ID after login to prevent session fixation.</p>",
+    "lines": 11
+   }
+  },
+  {
+   "number": 21,
+   "qid": "q21",
+   "type": "short",
+   "marks": 3,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "This Flask route handles a form that adds a score to a leaderboard.<pre>@app.route(&quot;/scores&quot;, methods=[&quot;POST&quot;])\ndef add_score():\n    name = request.form[&quot;name&quot;]\n    score = int(request.form[&quot;score&quot;])\n    db.execute(&quot;INSERT INTO scores (name, score) VALUES (?, ?)&quot;,\n               (name, score))\n    return redirect(&quot;/leaderboard&quot;)</pre><p>(a) Outline what happens, from browser to database, when the form is submitted. <b>(2 marks)</b></p><p>(b) Identify ONE validation check this route is missing. <b>(1 mark)</b></p>",
+    "criteria": [
+     [
+      "(a) Outlines the POST request, the back-end reading the form data and inserting it, and the redirect",
+      "2"
+     ],
+     [
+      "(a) Some relevant steps",
+      "1"
+     ],
+     [
+      "(b) Identifies a missing check",
+      "1"
+     ]
+    ],
+    "sample": "<p>(a) The browser sends an HTTP POST request to /scores with the form fields. On the back end, Flask runs add_score(), reads name and score from the request, converts the score to an integer and inserts a row with a parameterised query. The server then returns a redirect, and the browser requests /leaderboard.</p><p>(b) Any one: a non-numeric score crashes <code>int()</code> (no try/except); no range check on the score (for example 0 to 100); no check that the name is present or under a maximum length.</p>",
+    "lines": 10
+   }
+  },
+  {
+   "number": 22,
+   "qid": "q22",
+   "type": "short",
+   "marks": 3,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "code",
+    "prompt": "A database has these tables:<p><code>Students(id, name, year)</code><br><code>Results(student_id, subject, mark)</code></p>Write an SQL query that lists the name and mark of every Year 12 student who scored 80 or more in Software Engineering, highest mark first.",
+    "criteria": [
+     [
+      "Correct query with join, all three conditions and correct ordering",
+      "3"
+     ],
+     [
+      "Query with one error",
+      "2"
+     ],
+     [
+      "Some correct SQL",
+      "1"
+     ]
+    ],
+    "sample": "<pre>SELECT Students.name, Results.mark\nFROM Students\nJOIN Results ON Students.id = Results.student_id\nWHERE Students.year = 12\n  AND Results.subject = &#x27;Software Engineering&#x27;\n  AND Results.mark &gt;= 80\nORDER BY Results.mark DESC;</pre>",
+    "lines": 7,
+    "lang": "sql",
+    "tests": []
+   }
+  },
+  {
+   "number": 23,
+   "qid": "q23",
+   "type": "short",
+   "marks": 2,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Outline TWO ways that following the Web Content Accessibility Guidelines (WCAG) improves a website for its users.",
+    "criteria": [
+     [
+      "Outlines two ways",
+      "2"
+     ],
+     [
+      "Outlines one way",
+      "1"
+     ]
+    ],
+    "sample": "<p>Any two: alt text on images lets screen readers describe them to vision-impaired users; sufficient colour contrast makes text readable for people with low vision or colour blindness; full keyboard navigation helps people who can't use a mouse; captions help deaf or hard-of-hearing users; clear headings and labels make the page easier for everyone to follow.</p>",
+    "lines": 6
+   }
+  },
+  {
+   "number": 24,
+   "qid": "q24",
+   "type": "short",
+   "marks": 5,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "code",
+    "prompt": "Write a Python function <code>validate_password(pw)</code> that returns a list of the rules the password fails, in this order:<ul><li><code>\"length\"</code> if it has fewer than 12 characters</li><li><code>\"digit\"</code> if it has no digit</li><li><code>\"uppercase\"</code> if it has no uppercase letter</li><li><code>\"symbol\"</code> if it has none of the characters <code>!@#$%^&amp;*</code></li></ul>A password that passes every rule returns an empty list. For example, <code>validate_password(\"longpassword12\")</code> returns <code>[\"uppercase\", \"symbol\"]</code>.",
+    "criteria": [
+     [
+      "Correct function that passes all tests, including an empty list for a valid password",
+      "5"
+     ],
+     [
+      "Correct function with one minor error",
+      "4"
+     ],
+     [
+      "Checks most rules correctly",
+      "3"
+     ],
+     [
+      "Checks some rules correctly",
+      "2"
+     ],
+     [
+      "Some relevant code",
+      "1"
+     ]
+    ],
+    "sample": "<pre>def validate_password(pw):\n    failed = []\n    if len(pw) &lt; 12:\n        failed.append(&quot;length&quot;)\n    if not any(c.isdigit() for c in pw):\n        failed.append(&quot;digit&quot;)\n    if not any(c.isupper() for c in pw):\n        failed.append(&quot;uppercase&quot;)\n    if not any(c in &quot;!@#$%^&amp;*&quot; for c in pw):\n        failed.append(&quot;symbol&quot;)\n    return failed</pre><p class=\"note\">Tests: \"Short1!\" gives [\"length\"]; \"longpassword12\" gives [\"uppercase\", \"symbol\"]; \"Correct#Horse9Battery\" gives [].</p>",
+    "lines": 16,
+    "lang": "python",
+    "tests": [
+     {
+      "call": "validate_password(\"Short1!\")",
+      "expect": "['length']"
+     },
+     {
+      "call": "validate_password(\"longpassword12\")",
+      "expect": "['uppercase', 'symbol']"
+     },
+     {
+      "call": "validate_password(\"Correct#Horse9Battery\")",
+      "expect": "[]"
+     },
+     {
+      "call": "validate_password(\"abc\")",
+      "expect": "['length', 'digit', 'uppercase', 'symbol']"
+     }
+    ]
+   }
+  },
+  {
+   "number": 25,
+   "qid": "q25",
+   "type": "short",
+   "marks": 2,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Explain what <i>overfitting</i> is, and ONE way to prevent it.",
+    "criteria": [
+     [
+      "Explains overfitting and a valid way to prevent it",
+      "2"
+     ],
+     [
+      "Outlines overfitting or a prevention method",
+      "1"
+     ]
+    ],
+    "sample": "<p>Overfitting is when a model learns the training data too closely, including its noise, so it scores well on training data but poorly on new data. It can be prevented by testing on a separate validation set and stopping training when validation error starts rising (early stopping), or by using more training data or a simpler model.</p>",
+    "lines": 6
+   }
+  },
+  {
+   "number": 26,
+   "qid": "q26",
+   "type": "short",
+   "marks": 4,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A model predicts a student's test score <i>ŷ</i> from the hours studied <i>x</i> using the regression line <i>ŷ</i> = 6<i>x</i> + 40.<p>(a) Predict the score of a student who studies for 7 hours. <b>(1 mark)</b></p><p>(b) Explain why the model is unreliable for a student who studies for 20 hours. <b>(2 marks)</b></p><p>(c) The model is tested on three students: (2 hours, 50), (5 hours, 72) and (8 hours, 86). Calculate the mean squared error. <b>(1 mark)</b></p>",
+    "criteria": [
+     [
+      "(a) 82",
+      "1"
+     ],
+     [
+      "(b) Explains that 20 hours is outside the range of the training data (extrapolation) and the prediction of 160 exceeds the maximum possible score",
+      "2"
+     ],
+     [
+      "(b) Identifies one reason",
+      "1"
+     ],
+     [
+      "(c) MSE = 4",
+      "1"
+     ]
+    ],
+    "sample": "<p>(a) 6 × 7 + 40 = 82</p><p>(b) The model predicts 6 × 20 + 40 = 160, which is impossible on a test out of 100. Twenty hours is outside the range of the data the model was trained on, so this is extrapolation: the straight-line relationship probably doesn't hold (returns diminish as scores approach the maximum).</p><p>(c) Predictions are 52, 70 and 88. Errors are −2, 2 and −2, so squared errors are 4, 4 and 4. MSE = (4 + 4 + 4) ÷ 3 = 4.</p>",
+    "lines": 11
+   }
+  },
+  {
+   "number": 27,
+   "qid": "q27",
+   "type": "short",
+   "marks": 6,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Evaluate the impact of automation through machine learning on employment and on society.",
+    "criteria": [
+     [
+      "Makes a well-supported judgement, with detailed positive and negative effects on both employment and society and relevant examples",
+      "5–6"
+     ],
+     [
+      "Describes positive and negative effects on employment and society",
+      "3–4"
+     ],
+     [
+      "Outlines some effects",
+      "1–2"
+     ]
+    ],
+    "sample": "<p><b>Employment:</b> ML automates repetitive, rules-based tasks such as data entry, invoice processing and basic customer service, which reduces those jobs and puts most pressure on low-skilled workers. At the same time it creates new roles (data scientists, ML engineers, people who maintain and audit models) and frees workers from dangerous or tedious work. The net effect depends on reskilling: workers whose jobs change need training to move into the new roles.</p><p><b>Society:</b> automation lowers costs and enables new services, such as faster medical image screening and fraud detection. However, models trained on biased data can make unfair decisions in hiring, lending or policing at a large scale, and \"black box\" models make those decisions hard to explain or challenge. Large datasets also raise privacy concerns, and the benefits can flow mainly to the companies that own the technology, widening inequality.</p><p><b>Judgement:</b> overall the impact is positive for productivity and safety, but only if it is managed: governments and businesses need to invest in reskilling and require transparency and bias testing in high-stakes decisions.</p>",
+    "lines": 18
+   }
+  },
+  {
+   "number": 28,
+   "qid": "q28",
+   "type": "short",
+   "marks": 4,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A single neuron has inputs <i>x</i>₁ = 2 and <i>x</i>₂ = 3, weights <i>w</i>₁ = 0.5 and <i>w</i>₂ = −1, a bias of 1 and a ReLU activation function, where ReLU(<i>z</i>) = max(0, <i>z</i>).<p>(a) Calculate the neuron's output. Show your working. <b>(2 marks)</b></p><p>(b) Outline how training would change this neuron if its output was too low. <b>(2 marks)</b></p>",
+    "criteria": [
+     [
+      "(a) Correct weighted sum (−1) and output (0)",
+      "2"
+     ],
+     [
+      "(a) Correct weighted sum or a correct method",
+      "1"
+     ],
+     [
+      "(b) Outlines that the error is backpropagated and the weights and bias are adjusted (gradient descent) to reduce the error",
+      "2"
+     ],
+     [
+      "(b) States the weights change",
+      "1"
+     ]
+    ],
+    "sample": "<p>(a) <i>z</i> = (0.5 × 2) + (−1 × 3) + 1 = 1 − 3 + 1 = −1. Output = ReLU(−1) = max(0, −1) = 0.</p><p>(b) A loss function measures how far the output is from the target. Backpropagation calculates how much each weight and the bias contributed to that error, and gradient descent adjusts them by a small amount (set by the learning rate), for example increasing <i>w</i>₂ or the bias so <i>z</i> becomes positive. This repeats over many examples until the error is low.</p>",
+    "lines": 11
+   }
+  },
+  {
+   "number": 29,
+   "qid": "q29",
+   "type": "short",
+   "marks": 5,
+   "topic": "The Object-oriented Paradigm",
+   "answer": null,
+   "content": {
+    "kind": "code",
+    "prompt": "A library system stores items. Every <b>LibraryItem</b> has a <code>title</code> and an <code>item_id</code>, and a method <code>describe()</code> that returns a string. A <b>Book</b> is a LibraryItem that also has an <code>author</code>. A <b>DVD</b> is a LibraryItem that also has a <code>runtime</code> in minutes. Book and DVD each override <code>describe()</code> to include their extra attribute.<p>Write Python code for all three classes.</p>",
+    "criteria": [
+     [
+      "All three classes correct: subclasses extend LibraryItem, call super().__init__, add their attribute and override describe()",
+      "5"
+     ],
+     [
+      "Mostly correct with one error (for example a missing super().__init__)",
+      "4"
+     ],
+     [
+      "Superclass and at least one subclass mostly correct",
+      "3"
+     ],
+     [
+      "Superclass correct or partial subclasses",
+      "2"
+     ],
+     [
+      "Some relevant code",
+      "1"
+     ]
+    ],
+    "sample": "<pre>class LibraryItem:\n    def __init__(self, title, item_id):\n        self.title = title\n        self.item_id = item_id\n\n    def describe(self):\n        return f&quot;{self.item_id}: {self.title}&quot;\n\n\nclass Book(LibraryItem):\n    def __init__(self, title, item_id, author):\n        super().__init__(title, item_id)\n        self.author = author\n\n    def describe(self):\n        return f&quot;{super().describe()} by {self.author}&quot;\n\n\nclass DVD(LibraryItem):\n    def __init__(self, title, item_id, runtime):\n        super().__init__(title, item_id)\n        self.runtime = runtime\n\n    def describe(self):\n        return f&quot;{super().describe()} ({self.runtime} min)&quot;</pre>",
+    "lines": 18,
+    "lang": "python",
+    "tests": [
+     {
+      "call": "issubclass(Book, LibraryItem) and issubclass(DVD, LibraryItem)",
+      "expect": "True"
+     },
+     {
+      "call": "Book(\"Dune\", 7, \"Herbert\").title",
+      "expect": "'Dune'"
+     },
+     {
+      "call": "Book(\"Dune\", 7, \"Herbert\").author",
+      "expect": "'Herbert'"
+     },
+     {
+      "call": "DVD(\"Up\", 3, 96).runtime",
+      "expect": "96"
+     },
+     {
+      "call": "\"Herbert\" in Book(\"Dune\", 7, \"Herbert\").describe()",
+      "expect": "True"
+     },
+     {
+      "call": "\"96\" in DVD(\"Up\", 3, 96).describe()",
+      "expect": "True"
+     }
+    ]
+   }
+  },
+  {
+   "number": 30,
+   "qid": "q30",
+   "type": "short",
+   "marks": 3,
+   "topic": "The Object-oriented Paradigm",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "With reference to your code in the previous question, explain how it shows <i>generalisation</i>, <i>inheritance</i> and <i>polymorphism</i>. Use the terms superclass and subclass.",
+    "criteria": [
+     [
+      "Explains all three concepts with correct terms and specific reference to the code",
+      "3"
+     ],
+     [
+      "Explains two, or all three with limited reference to the code",
+      "2"
+     ],
+     [
+      "Outlines one concept",
+      "1"
+     ]
+    ],
+    "sample": "<p><b>Generalisation:</b> the attributes and behaviour common to every item (title, item_id, describe()) are moved up into the superclass LibraryItem instead of being repeated. <b>Inheritance:</b> Book and DVD are subclasses that inherit title, item_id and describe() from LibraryItem, and call super().__init__() so the superclass sets them up. <b>Polymorphism:</b> each subclass overrides describe(), so calling item.describe() on a list of mixed Books and DVDs runs the right version for each object without the caller checking its type.</p>",
+    "lines": 9
+   }
+  },
+  {
+   "number": 31,
+   "qid": "q31",
+   "type": "short",
+   "marks": 4,
+   "topic": "Software Engineering Project",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A team is building a canteen ordering app using Scrum.<p>(a) Write a user story for ordering lunch, with TWO acceptance criteria. <b>(2 marks)</b></p><p>(b) Explain how working in sprints helps the team manage changing requirements. <b>(2 marks)</b></p>",
+    "criteria": [
+     [
+      "(a) User story in the correct form with two testable acceptance criteria",
+      "2"
+     ],
+     [
+      "(a) User story or criteria",
+      "1"
+     ],
+     [
+      "(b) Explains how short iterations with feedback and a reprioritised backlog absorb change",
+      "2"
+     ],
+     [
+      "(b) Outlines a feature of sprints",
+      "1"
+     ]
+    ],
+    "sample": "<p>(a) As a student, I want to order and pay for my lunch before recess so that I don't have to queue. Acceptance criteria: orders close at 10:30 am on the day; the student receives an order number and an order summary on screen after paying.</p><p>(b) Each sprint is a short, fixed period (usually 1 to 4 weeks) that ends with working software shown to the client in a sprint review. Feedback and new requirements are added to the product backlog and reprioritised before the next sprint starts, so changes are absorbed every few weeks instead of forcing a redesign of a plan fixed at the start.</p>",
+    "lines": 12
+   }
+  },
+  {
+   "number": 32,
+   "qid": "q32",
+   "type": "short",
+   "marks": 6,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A school canteen app lets students log in, order food and pay online. Justify FOUR security measures the developers should build into the app, covering different parts of the system.",
+    "criteria": [
+     [
+      "Justifies four appropriate measures across different parts of the system, each linked to a specific threat",
+      "5–6"
+     ],
+     [
+      "Describes three or four measures with some justification",
+      "3–4"
+     ],
+     [
+      "Outlines some measures",
+      "1–2"
+     ]
+    ],
+    "sample": "<p><b>Authentication:</b> store passwords as salted hashes (bcrypt) and offer multi-factor authentication, so a stolen database doesn't reveal passwords and a guessed password alone can't take over an account. <b>Input handling:</b> validate all input on the server and use parameterised queries and output encoding, which stops SQL injection and XSS through order notes or names. <b>Network:</b> serve everything over HTTPS with Secure, HttpOnly and SameSite cookies, so payment and login data can't be read or changed in transit and sessions can't be stolen. <b>Payments and data:</b> use a certified payment provider instead of storing card details, and give the database account least privilege. <b>Testing and monitoring:</b> run SAST and DAST before release and log logins and orders, so vulnerabilities are found early and suspicious activity can be traced (accountability).</p>",
+    "lines": 18
+   }
+  }
+ ]
+}

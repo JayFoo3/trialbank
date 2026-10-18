@@ -884,3 +884,54 @@ svg.out text { stroke: var(--muted); }
 .rel-row input[type=range] { width: 100%; accent-color: var(--biro); margin: 6px 0 2px; padding: 0; }
 .rel-what { margin: 0; min-height: 2.6em; }
 .release-note { margin: 6px 0 0; }
+
+/* ---------- online questions (typed, like the online HSC) ---------- */
+.ol-prompt { line-height: 1.55; }
+.ol-prompt p { margin: 8px 0; }
+.ol-prompt pre, .ol-sample pre, .ol-opt pre { background: var(--soft); border: 1px solid var(--rule); border-radius: var(--r-sm); padding: 10px 12px; overflow-x: auto; font: 0.88rem/1.45 ui-monospace, Menlo, Consolas, monospace; margin: 8px 0; white-space: pre; }
+.ol-prompt code, .ol-sol code, .ol-test code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; }
+.ol-hint { font-weight: 700; margin: 10px 0 4px; }
+.ol-opts { display: grid; gap: 8px; margin: 12px 0; }
+.ol-opt { display: flex; gap: 12px; align-items: flex-start; text-align: left; width: 100%; padding: 10px 12px; font-weight: 400; background: var(--paper); }
+.ol-opt .ol-text { flex: 1; min-width: 0; padding-top: 3px; }
+.ol-opt .ol-text pre { margin: 0; }
+.ol-box { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 2px solid var(--rule); font-weight: 800; background: var(--paper); }
+.ol-opts.single .ol-box { border-radius: 50%; }
+.ol-opts.multi .ol-box { border-radius: 7px; }
+.ol-opt.picked { border-color: var(--ink); }
+.ol-opt.picked .ol-box { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.ol-opt.correct { border-color: var(--good); background: var(--good-soft); }
+.ol-opt.correct .ol-box { border-color: var(--good); }
+.ol-opt.correct.picked .ol-box { background: var(--good); color: #fff; }
+.ol-opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.ol-opt.wrong .ol-box { background: var(--bad); border-color: var(--bad); color: #fff; }
+.ol-match { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin: 12px 0; }
+.ol-items { display: grid; gap: 8px; align-content: start; }
+.ol-item { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 2px solid var(--rule); border-radius: var(--r-sm); background: var(--paper); margin: 0; }
+.ol-item .ol-text { flex: 1; }
+.ol-item select { width: 70px; margin: 0; flex: none; padding: 6px 8px; font-weight: 700; }
+.ol-item.correct { border-color: var(--good); background: var(--good-soft); }
+.ol-item.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.ol-num { font-weight: 800; width: 18px; }
+.ol-key { font-weight: 800; color: var(--good); }
+.ol-letters { list-style: none; margin: 0; padding: 12px; display: grid; gap: 8px; align-content: start; background: var(--soft); border-radius: var(--r-sm); }
+.ol-letters li { display: flex; gap: 10px; align-items: flex-start; }
+.ol-letters .ol-box { width: 26px; height: 26px; border-radius: 7px; font-size: .9rem; }
+@media (max-width: 640px) { .ol-match { grid-template-columns: 1fr; } }
+textarea.ol-written { min-height: 120px; line-height: 1.55; }
+textarea.ol-code { font: 0.9rem/1.5 ui-monospace, Menlo, Consolas, monospace; tab-size: 4; white-space: pre; overflow-x: auto; min-height: 160px; }
+.ol-run { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.ol-tests { margin-top: 8px; }
+.ol-sum { font-weight: 800; margin: 6px 0; }
+.ol-sum.good { color: var(--good); } .ol-sum.bad { color: var(--bad); }
+.ol-test { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: 4px 0; font-size: .92rem; }
+.ol-test.ok > span:first-child { color: var(--good); font-weight: 800; }
+.ol-test.no > span:first-child { color: var(--bad); font-weight: 800; }
+.ol-err { color: var(--bad); font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .9rem; }
+.ol-stdout { background: var(--soft); padding: 8px 10px; border-radius: var(--r-sm); font-size: .85rem; }
+.ol-sol { margin-top: 14px; padding: 14px 16px; background: var(--soft); border-radius: var(--r); }
+.ol-sol p { margin: 6px 0; }
+.ol-crit { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: .92rem; }
+.ol-crit th, .ol-crit td { border: 1px solid var(--rule); padding: 6px 10px; text-align: left; vertical-align: top; background: var(--paper); }
+.ol-crit td:last-child, .ol-crit th:last-child { width: 64px; text-align: center; }
+#q-online { margin-top: 2px; }
