@@ -319,7 +319,7 @@
       }
     ]
   },
-  "readAt": "2026-10-18T05:37:33Z",
+  "readAt": "2026-10-18T07:25:09Z",
   "reader": "friend",
   "sha256": "692f9f6acfe8df96a130c5e15fff928533451215ca81f5dbda8e1637da9fb69c",
   "solutions": {
@@ -337,7 +337,7 @@
   },
   "topics": {
     "1": "Working with Functions",
-    "10": "Integral Calculus",
+    "10": "Applications of Differentiation",
     "11": "Integral Calculus",
     "12": "Working with Functions",
     "13": "Differential Calculus",
@@ -367,7 +367,7 @@
     "25": "Discrete Probability Distributions",
     "26a": "Exponential and Logarithmic Functions",
     "26b": "Exponential and Logarithmic Functions",
-    "26c": "Exponential and Logarithmic Functions",
+    "26c": "Differential Calculus",
     "27a": "Trigonometric Functions and Graphs",
     "27b": "Integral Calculus",
     "28a": "Probability",

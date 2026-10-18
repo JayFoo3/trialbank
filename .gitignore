@@ -9,3 +9,4 @@ site/mock-data.js
 _preview/
 hsc/
 reader/tmp/
+reader/tmp-hsc/

@@ -279,7 +279,7 @@
       }
     ]
   },
-  "readAt": "2026-10-18T05:30:07Z",
+  "readAt": "2026-10-18T07:23:44Z",
   "reader": "friend",
   "sha256": "4e620917fdbfa0126bb61d5ecaf27317a5f48c867360f9ff792beb0f963739c5",
   "solutions": {
@@ -314,7 +314,7 @@
     "19a": "Trigonometry and Measure of Angles",
     "19b": "Trigonometry and Measure of Angles",
     "2": "Applications of Differentiation",
-    "20": "Trigonometric Functions and Graphs",
+    "20": "Graphing Techniques",
     "21": "Exponential and Logarithmic Functions",
     "22": "Integral Calculus",
     "23a": "Applications of Differentiation",
@@ -327,11 +327,11 @@
     "26": "Trigonometric Functions and Graphs",
     "27": "Exponential and Logarithmic Functions",
     "28": "Trigonometry and Measure of Angles",
-    "29a": "Applications of Differentiation",
+    "29a": "Trigonometry and Measure of Angles",
     "29b": "Applications of Differentiation",
     "3": "Sequences and Series",
     "30": "Sequences and Series",
-    "31a": "Integral Calculus",
+    "31a": "Differential Calculus",
     "31b": "Integral Calculus",
     "32": "Discrete Probability Distributions",
     "33": "Differential Calculus",

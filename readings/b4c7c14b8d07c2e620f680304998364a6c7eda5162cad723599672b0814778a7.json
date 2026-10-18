@@ -350,7 +350,7 @@
       }
     ]
   },
-  "readAt": "2026-10-18T05:20:51Z",
+  "readAt": "2026-10-18T07:22:55Z",
   "reader": "friend",
   "sha256": "b4c7c14b8d07c2e620f680304998364a6c7eda5162cad723599672b0814778a7",
   "solutions": {
@@ -391,7 +391,7 @@
     "21": "Trigonometry and Measure of Angles",
     "22a": "Continuous Probability Distributions",
     "22b": "Continuous Probability Distributions",
-    "23a": "Applications of Differentiation",
+    "23a": "Differential Calculus",
     "23b": "Applications of Differentiation",
     "24": "Integral Calculus",
     "25a": "Discrete Probability Distributions",

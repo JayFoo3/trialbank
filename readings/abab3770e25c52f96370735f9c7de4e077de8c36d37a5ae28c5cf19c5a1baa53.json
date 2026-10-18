@@ -383,7 +383,7 @@
       }
     ]
   },
-  "readAt": "2026-10-18T05:27:30Z",
+  "readAt": "2026-10-18T07:23:19Z",
   "reader": "friend",
   "sha256": "abab3770e25c52f96370735f9c7de4e077de8c36d37a5ae28c5cf19c5a1baa53",
   "solutions": {
@@ -419,8 +419,8 @@
     "20a": "Descriptive Statistics and Bivariate Data",
     "20b": "Descriptive Statistics and Bivariate Data",
     "20c": "Descriptive Statistics and Bivariate Data",
-    "21a": "Applications of Differentiation",
-    "21b": "Applications of Differentiation",
+    "21a": "Exponential and Logarithmic Functions",
+    "21b": "Exponential and Logarithmic Functions",
     "22": "Exponential and Logarithmic Functions",
     "23": "Sequences and Series",
     "24": "Differential Calculus",
@@ -440,7 +440,7 @@
     "31a": "Sequences and Series",
     "31b": "Sequences and Series",
     "32a": "Trigonometric Functions and Graphs",
-    "32b": "Trigonometric Identities and Equations",
+    "32b": "Trigonometric Functions and Graphs",
     "33a": "Working with Functions",
     "33b": "Working with Functions",
     "33c": "Differential Calculus",

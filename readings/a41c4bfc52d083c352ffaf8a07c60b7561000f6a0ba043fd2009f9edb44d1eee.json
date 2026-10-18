@@ -411,7 +411,7 @@
       }
     ]
   },
-  "readAt": "2026-10-18T05:33:30Z",
+  "readAt": "2026-10-18T07:24:47Z",
   "reader": "friend",
   "sha256": "a41c4bfc52d083c352ffaf8a07c60b7561000f6a0ba043fd2009f9edb44d1eee",
   "solutions": {
@@ -446,7 +446,7 @@
     "16a": "Trigonometry and Measure of Angles",
     "16b": "Trigonometry and Measure of Angles",
     "17a": "Introduction to Differentiation",
-    "17b": "Applications of Differentiation",
+    "17b": "Differential Calculus",
     "17c": "Exponential and Logarithmic Functions",
     "17d": "Exponential and Logarithmic Functions",
     "18a": "Sequences and Series",

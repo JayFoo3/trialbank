@@ -372,7 +372,7 @@
       }
     ]
   },
-  "readAt": "2026-10-18T05:31:13Z",
+  "readAt": "2026-10-18T07:24:15Z",
   "reader": "friend",
   "sha256": "46a85fce23593ae8dbac50e6d618ff15a5f257abca7b99534e21c937a8e7bfc3",
   "solutions": {
@@ -422,11 +422,11 @@
     "28a": "Integral Calculus",
     "28b": "Applications of Differentiation",
     "28c": "Graphing Techniques",
-    "29": "Trigonometry and Measure of Angles",
+    "29": "Trigonometric Identities and Equations",
     "3": "Working with Functions",
     "30a": "Applications of Differentiation",
     "30b": "Graphing Techniques",
-    "30c": "Graphing Techniques",
+    "30c": "Applications of Differentiation",
     "31a": "Applications of Differentiation",
     "31b": "Differential Calculus",
     "31c": "Applications of Differentiation",

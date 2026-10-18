@@ -42,7 +42,7 @@ def main(argv=None):
     exams.mkdir(parents=True, exist_ok=True)
     (HERE / "readings").mkdir(exist_ok=True)
     done = rp.done_sources(HERE)
-    tmp = HERE / "reader" / "tmp"
+    tmp = HERE / "reader" / "tmp-hsc"          # its own scratch folder, so it can run beside overnight.sh
     read = 0
     for s, year, _, _ in PAPERS:
         if s != a.subject:

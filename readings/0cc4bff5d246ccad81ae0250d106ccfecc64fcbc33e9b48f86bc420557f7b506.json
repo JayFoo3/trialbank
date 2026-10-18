@@ -298,7 +298,7 @@
       }
     ]
   },
-  "readAt": "2026-10-18T05:11:29Z",
+  "readAt": "2026-10-18T07:21:20Z",
   "reader": "friend",
   "sha256": "0cc4bff5d246ccad81ae0250d106ccfecc64fcbc33e9b48f86bc420557f7b506",
   "solutions": {
@@ -339,16 +339,16 @@
     "25b": "Probability",
     "26a": "Trigonometry and Measure of Angles",
     "26b": "Trigonometry and Measure of Angles",
-    "27": "Exponential and Logarithmic Functions",
+    "27": "Working with Functions",
     "28": "Exponential and Logarithmic Functions",
     "29a": "Applications of Differentiation",
     "29b": "Integral Calculus",
-    "3": "Working with Functions",
+    "3": "Graphing Techniques",
     "30a": "Differential Calculus",
     "30b": "Integral Calculus",
     "31a": "Applications of Differentiation",
     "31b": "Applications of Differentiation",
-    "31c": "Applications of Differentiation",
+    "31c": "Graphing Techniques",
     "32": "Trigonometric Functions and Graphs",
     "33a": "Trigonometric Functions and Graphs",
     "33b": "Trigonometric Functions and Graphs",

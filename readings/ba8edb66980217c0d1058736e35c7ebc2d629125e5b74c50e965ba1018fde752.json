@@ -281,7 +281,7 @@
       },
       {
         "firstPage": 39,
-        "lastPage": 39,
+        "lastPage": 40,
         "marks": 3,
         "number": 31,
         "parts": []
@@ -322,7 +322,7 @@
       }
     ]
   },
-  "readAt": "2026-10-18T05:11:52Z",
+  "readAt": "2026-10-18T07:21:42Z",
   "reader": "friend",
   "sha256": "ba8edb66980217c0d1058736e35c7ebc2d629125e5b74c50e965ba1018fde752",
   "solutions": {
@@ -386,7 +386,7 @@
     "5": "Exponential and Logarithmic Functions",
     "6": "Differential Calculus",
     "7": "Integral Calculus",
-    "8": "Introduction to Differentiation",
+    "8": "Applications of Differentiation",
     "9": "Working with Functions"
   }
 }

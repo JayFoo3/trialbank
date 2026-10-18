@@ -343,7 +343,7 @@
       }
     ]
   },
-  "readAt": "2026-10-18T05:13:00Z",
+  "readAt": "2026-10-18T07:22:08Z",
   "reader": "friend",
   "sha256": "4d8829cbfb19b7addc8edb4b548cb0165273a2b7246dd8aa4169f435c02e6c37",
   "solutions": {
@@ -378,7 +378,7 @@
     "18a": "Trigonometry and Measure of Angles",
     "18b": "Trigonometry and Measure of Angles",
     "18c": "Trigonometry and Measure of Angles",
-    "19a": "Integral Calculus",
+    "19a": "Working with Functions",
     "19b": "Integral Calculus",
     "2": "Sequences and Series",
     "20a": "Graphing Techniques",
@@ -395,7 +395,7 @@
     "25a": "Trigonometric Identities and Equations",
     "25b": "Integral Calculus",
     "26": "The Normal Distribution",
-    "27": "Differential Calculus",
+    "27": "Applications of Differentiation",
     "28a": "Descriptive Statistics and Bivariate Data",
     "28b": "Descriptive Statistics and Bivariate Data",
     "29a": "Sequences and Series",

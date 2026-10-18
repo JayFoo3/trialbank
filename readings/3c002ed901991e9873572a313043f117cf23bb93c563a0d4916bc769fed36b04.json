@@ -328,7 +328,7 @@
       },
       {
         "first": 11,
-        "firstPage": 5,
+        "firstPage": 6,
         "last": 33,
         "lastPage": 29,
         "multipleChoice": false,
@@ -336,7 +336,7 @@
       }
     ]
   },
-  "readAt": "2026-10-18T05:17:54Z",
+  "readAt": "2026-10-18T07:22:32Z",
   "reader": "friend",
   "sha256": "3c002ed901991e9873572a313043f117cf23bb93c563a0d4916bc769fed36b04",
   "solutions": {
@@ -363,7 +363,7 @@
     "15b": "Descriptive Statistics and Bivariate Data",
     "15c": "Descriptive Statistics and Bivariate Data",
     "16": "Applications of Differentiation",
-    "17": "Exponential and Logarithmic Functions",
+    "17": "Integral Calculus",
     "18a": "Differential Calculus",
     "18b": "Differential Calculus",
     "19a": "Sequences and Series",
@@ -395,7 +395,7 @@
     "31a": "Differential Calculus",
     "31b": "Working with Functions",
     "31c": "Applications of Differentiation",
-    "31d": "Applications of Differentiation",
+    "31d": "Graphing Techniques",
     "32a": "Working with Functions",
     "32b": "Integral Calculus",
     "33a": "Trigonometry and Measure of Angles",
@@ -404,7 +404,7 @@
     "5": "Exponential and Logarithmic Functions",
     "6": "Working with Functions",
     "7": "Graphing Techniques",
-    "8": "Trigonometric Identities and Equations",
+    "8": "Exponential and Logarithmic Functions",
     "9": "Differential Calculus"
   }
 }
