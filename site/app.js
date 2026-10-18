@@ -2235,12 +2235,57 @@
 
   // ---------- auto-marking allowance: "3 of 4 left this month" ----------
   const PER_PAPER_USD = 0.45;            // rough cost of marking one paper
+  // ---------- marking packs: bought auto-marks, separate from the free monthly ones ----------
+  let myMarks = { balance: 0, bought: false, can_buy: false };
+  async function loadMyMarks() {
+    if (!state.user || state.preview) return myMarks;
+    const { data, error } = await sb.rpc('my_marks');
+    if (!error && data) myMarks = data;
+    $('buy-marks').hidden = !myMarks.can_buy;
+    return myMarks;
+  }
+  async function openBuy() {
+    const P = C.packs || [];
+    if (!P.length) return;
+    const pick = await choiceBox(`Marking packs<span class="cb-sub">Each mark auto-marks one full paper you upload. Bought marks are yours: they never expire and don't count against the free monthly marks. ${myMarks.balance ? `You have ${myMarks.balance} left.` : ''}</span>`,
+      [...P.map((p, i) => [String(p.marks), `${p.marks} marks · ${p.price}`, i === 1 ? 'primary' : 'secondary']), ['cancel', 'Not now', 'link']]);
+    if (!pick || pick === 'cancel') return;
+    toast('Opening secure checkout…');
+    const { data, error } = await sb.functions.invoke('buy-marks', { body: { pack: pick } });
+    if (error || !data?.url) {
+      let msg = error?.message || 'Could not start the payment.';
+      try { msg = (await error.context.json()).error || msg; } catch {}
+      return toast(esc(msg));
+    }
+    location.href = data.url;               // Stripe's own payment page; it sends them back here afterwards
+  }
+  $('buy-marks').onclick = () => { $('account-menu').hidden = true; openBuy(); };
+  // back from Stripe: the marks arrive a few seconds later, when Stripe tells the server
+  (function afterCheckout() {
+    const n = new URLSearchParams(location.search).get('bought');
+    if (!n) return;
+    history.replaceState(null, '', location.pathname + location.hash);
+    toast(`Payment received. Adding your ${esc(n)} marks…`);
+    const since = new Date(Date.now() - 15 * 60e3).toISOString();
+    let tries = 0;
+    const poll = setInterval(async () => {
+      if (!state.user) return;
+      const { data: got } = await sb.from('mark_ledger').select('id').eq('kind', 'purchase').gte('created_at', since).limit(1);
+      const arrived = !!(got && got.length);
+      if (arrived || ++tries > 15) {
+        clearInterval(poll); const m = await loadMyMarks(); drawMarkLeft();
+        if (arrived) { toast(`${m.balance} marks ready. Upload a paper with "Mark my paper".`); window.Juice && Juice.burst($('account-btn'), 16, 60); }
+        else toast('Your marks are taking a while. Refresh in a minute; if they still aren\'t there, contact Jayden.');
+      }
+    }, 2000);
+  })();
   async function drawMarkLeft() {
     if (!state.user || state.preview) return;
-    const { data, error } = await sb.rpc('my_automark_usage');
+    const [{ data, error }, m] = await Promise.all([sb.rpc('my_automark_usage'), loadMyMarks()]);
     const u = !error && data && data[0]; if (!u) return;
     let text, out = false;
-    if (u.unlimited) text = 'Upload your working · unlimited (admin)';
+    if (m.balance > 0) text = `Upload your working · ${m.balance} bought mark${m.balance === 1 ? '' : 's'} left`;
+    else if (u.unlimited) text = 'Upload your working · unlimited (admin)';
     else {
       const total = Math.max(1, Math.floor(Number(u.limit_usd) / PER_PAPER_USD));
       const left = Math.max(0, Math.min(total, Math.floor((Number(u.limit_usd) - Number(u.used_usd)) / PER_PAPER_USD)));
@@ -2566,6 +2611,7 @@
     if (!files || !files.length) return say('Choose your PDF or photos first.', 'error');
     btn.disabled = true;
     const run = Date.now().toString(36), uid = state.user.id, paths = [];
+    const session = (crypto.randomUUID ? crypto.randomUUID() : run + Math.random().toString(36).slice(2)).replace(/[^\w-]/g, '');   // one upload = one bought mark
     try {
       const blobs = await filesToPages([...files], say);
       for (let i = 0; i < blobs.length; i++) {
@@ -2580,7 +2626,7 @@
       const chunks = await sliceTallImages(groups.flat(), `${uid}/${run}`, say, paths);
       let done = 0, cost = 0; const failed = [];
       const call = async (g) => {
-        const { data, error } = await sb.functions.invoke('automark', { body: { paper_id: e.paper.id, pages: pagePaths, question_ids: g.map(q => q.id), chunks: pick(chunks, g) } });
+        const { data, error } = await sb.functions.invoke('automark', { body: { paper_id: e.paper.id, pages: pagePaths, question_ids: g.map(q => q.id), chunks: pick(chunks, g), session } });
         if (error) {
           let msg = error.message;
           try { msg = (await error.context.json()).error || msg; } catch {}

@@ -90,11 +90,7 @@ Deno.serve(async (req) => {
   const { data: ures, error: uerr } = await admin.auth.getUser(token);
   const user = ures?.user;
   if (uerr || !user) return json({ error: 'Please sign in again.' }, 401);
-  // release dial: auto-marking opens at 75 (see supabase/release.sql)
-  const { data: dial } = await admin.rpc('release_for', { uid: user.id });
-  if (dial !== null && Number(dial) < 75) return json({ error: 'Auto-marking is not open yet.' }, 403);
-
-  let body: { paper_id?: number; pages?: string[]; question_ids?: string[]; chunks?: Record<string, string[]> };
+  let body: { paper_id?: number; pages?: string[]; question_ids?: string[]; chunks?: Record<string, string[]>; session?: string };
   try { body = await req.json(); } catch { return json({ error: 'Bad request' }, 400); }
   const { paper_id, pages, question_ids } = body;
   // tall question/solution images arrive pre-sliced by the browser (the API caps image size)
@@ -109,23 +105,43 @@ Deno.serve(async (req) => {
   if (!Array.isArray(question_ids) || !question_ids.length || question_ids.length > 24)
     return json({ error: 'Bad question list' }, 400);
 
+  // paid or free? One upload (session) uses one bought mark, claimed when its first section is marked.
+  // A student with bought marks skips the free pool and the release dial; everyone else uses the free pool.
+  const session = typeof body.session === 'string' && /^[\w-]{8,64}$/.test(body.session) ? body.session : null;
+  let paid = false;
+  if (session) {
+    const { data: already } = await admin.rpc('session_paid', { uid: user.id, sess: session, paper: paper_id });
+    if (already) paid = true;
+    else {
+      const { data: cr } = await admin.from('mark_credits').select('balance').eq('user_id', user.id).maybeSingle();
+      paid = (cr?.balance ?? 0) > 0;
+    }
+  }
+  if (!paid) {   // release dial: free auto-marking opens at 75 (see supabase/release.sql)
+    const { data: dial } = await admin.rpc('release_for', { uid: user.id });
+    if (dial !== null && Number(dial) < 75) return json({ error: 'Auto-marking is not open yet.' }, 403);
+  }
+
   // limits
   const { data: srows } = await admin.from('settings').select('key, value').or('key.like.automark_%,key.eq.admin_emails');
   const s = Object.fromEntries((srows ?? []).map((r) => [r.key, r.value]));
   if (s.automark_enabled === 'off') return json({ error: 'Auto-marking is switched off right now.' }, 403);
-  const cap = Number(s.automark_monthly_cap_usd ?? 20), perDay = Number(s.automark_daily_calls ?? 16);
+  const cap = Number(paid ? s.automark_paid_cap_usd ?? 50 : s.automark_monthly_cap_usd ?? 20);
+  const perDay = Number(paid ? s.automark_paid_daily_calls ?? 60 : s.automark_daily_calls ?? 16);
   const month = new Date(); month.setUTCDate(1); month.setUTCHours(0, 0, 0, 0);
-  const { data: spent } = await admin.from('automark_runs').select('cost_usd').gte('created_at', month.toISOString());
+  // the free pool and the paid pool are counted separately, so buyers never use up the free marks
+  const { data: spent } = await admin.from('automark_runs').select('cost_usd').eq('paid', paid).gte('created_at', month.toISOString());
   const total = (spent ?? []).reduce((a, r) => a + Number(r.cost_usd), 0);
-  if (total >= cap) return json({ error: "Auto-marking has used this month's budget. Mark this one yourself against the solutions." }, 429);
+  if (total >= cap) return json({ error: paid ? 'Paid marking is paused for a moment. Your marks are safe; try again later.'
+    : "Auto-marking has used this month's budget. Mark this one yourself against the solutions." }, 429);
   const { count } = await admin.from('automark_runs').select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id).gte('created_at', new Date(Date.now() - 864e5).toISOString());
+    .eq('user_id', user.id).eq('paid', paid).gte('created_at', new Date(Date.now() - 864e5).toISOString());
   if ((count ?? 0) >= perDay) return json({ error: "You've hit today's auto-marking limit. Try again tomorrow." }, 429);
-  // per-student monthly budget (admins exempt)
+  // per-student monthly budget on the free pool (admins and paid runs exempt)
   const isAdmin = String(s.admin_emails ?? '').toLowerCase().split(/[\s,]+/).includes(String(user.email ?? '').toLowerCase());
   const userCap = Number(s.automark_user_monthly_usd ?? 2);
-  if (!isAdmin && userCap > 0) {
-    const { data: mine } = await admin.from('automark_runs').select('cost_usd').eq('user_id', user.id).gte('created_at', month.toISOString());
+  if (!paid && !isAdmin && userCap > 0) {
+    const { data: mine } = await admin.from('automark_runs').select('cost_usd').eq('user_id', user.id).eq('paid', false).gte('created_at', month.toISOString());
     const used = (mine ?? []).reduce((a, r) => a + Number(r.cost_usd), 0);
     if (used >= userCap) return json({ error: "You've used your auto-marking for this month. It resets on the 1st." }, 429);
   }
@@ -183,6 +199,7 @@ Deno.serve(async (req) => {
       user_id: user.id, paper_id, n_questions: qs.length, n_pages: pages.length,
       input_tokens: u.input_tokens, output_tokens: u.output_tokens, cache_write: u.cache_creation_input_tokens,
       cache_read: u.cache_read_input_tokens, cost_usd: cost, error: r.ok ? null : JSON.stringify(out.error ?? out).slice(0, 500),
+      paid, session_id: session,
     });
     if (!r.ok) return json({ error: `The marker failed (${out.error?.type ?? r.status}). Try again in a minute.` }, 502);
 
@@ -206,7 +223,9 @@ Deno.serve(async (req) => {
           .filter((l) => REASONS.includes(l.reason) && l.mark >= 1 && l.mark <= max).slice(0, max) : [];
         return { id: q.id, found: !!x.found, choice, awarded, out_of: max, feedback: String(x.feedback ?? '').slice(0, 600), lost };
       });
-    return json({ results, cost_usd: Number(cost.toFixed(4)) });
+    // charge the bought mark only once a section has actually been marked, so failed runs cost nothing
+    if (paid && session) await admin.rpc('use_mark', { uid: user.id, sess: session, paper: paper_id });
+    return json({ results, cost_usd: Number(cost.toFixed(4)), paid });
   } catch (err) {
     return json({ error: String((err as Error).message ?? err) }, 500);
   }

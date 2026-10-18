@@ -6,5 +6,6 @@ window.APP_CONFIG = {
   supabaseAnonKey: 'YOUR-ANON-KEY',
   subjects: { Ext1: 'Mathematics Extension 1', Physics: 'Physics' },
   exam: { Ext1: { reading: 10, working: 120 }, Physics: { reading: 5, working: 180 } },
+  packs: [{ marks: 10, price: '$4.99' }, { marks: 25, price: '$9.99' }, { marks: 60, price: '$19.99' }],
   schoolDomain: 'education.nsw.gov.au',
 };
