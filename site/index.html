@@ -300,11 +300,11 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </div>
     <p class="error" id="paper-error" hidden></p>
     <div class="tabpane" id="tab-paper">
-      <div class="pdfbar"><span class="muted small" id="pdf-pages"></span><button class="primary" id="paper-pdf">Download PDF</button></div>
+      <div class="pdfbar"><div class="pdfnav"><button class="pgbtn" data-go="-1" aria-label="Previous page">‹</button><span class="pgnum" id="pdf-pages"></span><button class="pgbtn" data-go="1" aria-label="Next page">›</button></div><button class="primary" id="paper-pdf">Download PDF</button></div>
       <div class="pdfview" id="pdf-view"></div>
     </div>
     <div class="tabpane" id="tab-sol" hidden>
-      <div class="pdfbar"><span class="muted small" id="sol-pages"></span><button class="primary" id="paper-pdf-sol">Download with solutions</button></div>
+      <div class="pdfbar"><div class="pdfnav"><button class="pgbtn" data-go="-1" aria-label="Previous page">‹</button><span class="pgnum" id="sol-pages"></span><button class="pgbtn" data-go="1" aria-label="Next page">›</button></div><button class="primary" id="paper-pdf-sol">Download with solutions</button></div>
       <div class="pdfview" id="sol-view"></div>
     </div>
     <div class="tabpane" id="tab-practise" hidden>

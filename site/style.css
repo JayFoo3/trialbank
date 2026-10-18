@@ -729,3 +729,22 @@ svg.out text { stroke: var(--muted); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 #paper-meta .lvl { margin-right: 6px; }
 @media (prefers-reduced-motion: reduce) { .lvl-impossible .bars i.on { animation: none; } }
+
+/* ---------- one page at a time, fitted to the screen ---------- */
+.pdfview { display: block; position: relative; }
+.pdfstage { position: relative; height: 100%; display: grid; place-items: center; background: var(--soft); border: 2px solid var(--rule); border-radius: var(--r-lg); overflow: hidden; }
+.pdfstage canvas { display: block; background: #fff; border-radius: 6px; box-shadow: 0 2px 0 var(--rule), 0 10px 30px var(--shadow); }
+.pdfstage canvas.in-next { animation: pg-next .22s ease-out; }
+.pdfstage canvas.in-prev { animation: pg-prev .22s ease-out; }
+@keyframes pg-next { from { opacity: 0; transform: translateX(28px); } }
+@keyframes pg-prev { from { opacity: 0; transform: translateX(-28px); } }
+.pdfhit { position: absolute; top: 0; bottom: 0; width: 30%; z-index: 2; border: 0; background: none !important; box-shadow: none !important; border-radius: 0; padding: 0; }
+.pdfhit:active { transform: none !important; }
+.pdfhit.prev { left: 0; cursor: w-resize; } .pdfhit.next { right: 0; cursor: e-resize; }
+.pdfnav { display: flex; align-items: center; gap: 8px; }
+.pgbtn { width: 44px; height: 40px; padding: 0; font-size: 1.6rem; line-height: 1; }
+.pgnum { min-width: 64px; text-align: center; font-family: var(--display); font-weight: 800; font-variant-numeric: tabular-nums; }
+.pdfbar { margin-bottom: 10px; }
+#view-paper h1 { margin-bottom: 0; }
+#view-paper .tabs { margin: 10px 0 12px; }
+@media (max-width: 640px) { .pgbtn { width: 40px; } #view-paper .back { display: none; } }

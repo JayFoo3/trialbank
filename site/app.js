@@ -934,38 +934,83 @@
     if (name === 'sol') showPdf(cur.p, 'pdf_sol_path', 'sol-view', 'sol-pages');
   }
   document.querySelectorAll('#paper-tabs [data-tab]').forEach(b => { b.onclick = () => paperTab(b.dataset.tab); });
-  // draw a PDF from storage into the page, a page at a time as it scrolls into view
+  // show a PDF one page at a time, sized so the whole page fits on screen; flip with arrows, keys, taps or swipes
+  const pdfState = {};                 // viewId -> { doc, i, n, key, cache }
+  function fitPdfView(view) {
+    const top = view.getBoundingClientRect().top + window.scrollY;
+    const bottomGap = window.innerWidth <= 640 ? 92 : 20;        // room for the phone tab bar
+    view.style.height = Math.max(260, window.innerHeight - top - bottomGap) + 'px';
+  }
   async function showPdf(p, key, viewId, countId) {
-    const view = $(viewId);
-    if (view.dataset.for === p.slug + key) return;           // already showing this one
-    view.dataset.for = p.slug + key; view.innerHTML = '<p class="muted pdf-wait">Loading the paper…</p>'; $(countId).textContent = '';
+    const view = $(viewId), id = p.slug + key;
+    fitPdfView(view); requestAnimationFrame(() => fitPdfView(view));
+    if (view.dataset.for === id) return drawPdfPage(viewId);       // already loaded: just refit
+    view.dataset.for = id; pdfState[viewId] = null;
+    view.innerHTML = '<p class="muted pdf-wait">Loading the paper…</p>'; $(countId).textContent = '';
     if (!p[key]) { view.innerHTML = `<p class="muted pdf-wait">${key === 'pdf_sol_path' ? 'No solutions PDF for this paper yet.' : 'No PDF for this paper yet. Use the Practise tab.'}</p>`; return; }
     try {
       const [lib, { data, error }] = await Promise.all([loadPdfJs(), sb.storage.from('questions').createSignedUrl(p[key], 3600)]);
       if (error) throw error;
       const doc = await lib.getDocument({ url: data.signedUrl }).promise;
-      if (view.dataset.for !== p.slug + key) return;          // moved to another paper meanwhile
-      view.innerHTML = ''; $(countId).textContent = `${doc.numPages} page${doc.numPages === 1 ? '' : 's'}`;
-      const width = Math.min(view.clientWidth || 800, 900), dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const first = await doc.getPage(1), v1 = first.getViewport({ scale: 1 });
-      const pages = [];
-      for (let i = 1; i <= doc.numPages; i++) {
-        const box = mk('div', 'pdfpage'); box.style.aspectRatio = `${v1.width} / ${v1.height}`; box.dataset.n = i;
-        view.appendChild(box); pages.push(box);
-      }
-      const draw = async (box) => {
-        if (box.dataset.done) return; box.dataset.done = 1;
-        const page = await doc.getPage(+box.dataset.n), vp0 = page.getViewport({ scale: 1 });
-        const vp = page.getViewport({ scale: (width / vp0.width) * dpr });
-        const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
-        box.style.aspectRatio = `${vp0.width} / ${vp0.height}`;
-        await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
-        box.appendChild(cv);
-      };
-      const io = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); draw(e.target); } }), { rootMargin: '800px 0px' });
-      pages.forEach(b => io.observe(b));
+      if (view.dataset.for !== id) return;
+      pdfState[viewId] = { doc, i: 1, n: doc.numPages, countId, cache: new Map() };
+      view.innerHTML = '<div class="pdfstage"><button class="pdfhit prev" data-go="-1" aria-label="Previous page"></button><button class="pdfhit next" data-go="1" aria-label="Next page"></button></div>';
+      view.querySelectorAll('[data-go]').forEach(b => { b.onclick = () => flipPdf(viewId, +b.dataset.go); });
+      view.closest('.tabpane').querySelectorAll('.pdfnav [data-go]').forEach(b => { b.onclick = () => flipPdf(viewId, +b.dataset.go); });
+      // swipe on phones
+      let sx = null;
+      view.ontouchstart = (e) => { sx = e.touches[0].clientX; };
+      view.ontouchend = (e) => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if (Math.abs(dx) > 40) flipPdf(viewId, dx < 0 ? 1 : -1); };
+      await drawPdfPage(viewId);
     } catch (err) { view.innerHTML = `<p class="error">Couldn't show the PDF: ${esc(err.message || err)}</p>`; view.dataset.for = ''; }
   }
+  async function renderPdfCanvas(st, k, w, h) {
+    const ck = `${k}@${w}x${h}`;
+    if (st.cache.has(ck)) return st.cache.get(ck);
+    const job = (async () => {
+      const page = await st.doc.getPage(k), v0 = page.getViewport({ scale: 1 });
+      const dpr = Math.min(window.devicePixelRatio || 1, 2), fit = Math.min(w / v0.width, h / v0.height);
+      const vp = page.getViewport({ scale: fit * dpr });
+      const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+      cv.style.width = Math.round(v0.width * fit) + 'px'; cv.style.height = Math.round(v0.height * fit) + 'px';
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+      return cv;
+    })();
+    st.cache.set(ck, job);
+    return job;
+  }
+  async function drawPdfPage(viewId, dir = 0) {
+    const st = pdfState[viewId]; if (!st) return;
+    const view = $(viewId), stage = view.querySelector('.pdfstage'); if (!stage) return;
+    const w = stage.clientWidth - 4, h = stage.clientHeight - 4, k = st.i;
+    $(st.countId).textContent = `${k} / ${st.n}`;
+    const pane = view.closest('.tabpane');
+    pane.querySelector('.pdfnav [data-go="-1"]').disabled = k <= 1;
+    pane.querySelector('.pdfnav [data-go="1"]').disabled = k >= st.n;
+    const cv = await renderPdfCanvas(st, k, w, h);
+    if (st.i !== k) return;                                      // flipped again while drawing
+    stage.querySelectorAll('canvas').forEach(c => c.remove());
+    cv.className = dir > 0 ? 'in-next' : dir < 0 ? 'in-prev' : '';
+    stage.appendChild(cv);
+    [k + 1, k - 1, k + 2].filter(j => j >= 1 && j <= st.n).forEach(j => renderPdfCanvas(st, j, w, h));   // get the neighbours ready
+  }
+  function flipPdf(viewId, d) {
+    const st = pdfState[viewId]; if (!st) return;
+    const k = Math.min(st.n, Math.max(1, st.i + d)); if (k === st.i) return;
+    st.i = k; drawPdfPage(viewId, d);
+  }
+  document.addEventListener('keydown', (e) => {
+    if ($('view-paper').hidden || /input|textarea|select/i.test(document.activeElement?.tagName || '')) return;
+    const viewId = !$('tab-paper').hidden ? 'pdf-view' : !$('tab-sol').hidden ? 'sol-view' : null;
+    if (!viewId) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { flipPdf(viewId, 1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { flipPdf(viewId, -1); e.preventDefault(); }
+  });
+  let pdfResizeT = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(pdfResizeT);
+    pdfResizeT = setTimeout(() => ['pdf-view', 'sol-view'].forEach(id => { const v = $(id); if (!v.closest('.tabpane').hidden && !$('view-paper').hidden) { fitPdfView(v); drawPdfPage(id); } }), 150);
+  });
   async function renderPaper(slug) {
     const box = $('paper-body'); box.innerHTML = '<p class="muted">Loading…</p>';
     $('paper-title').textContent = ''; $('paper-error').hidden = true;
