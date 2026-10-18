@@ -1075,7 +1075,7 @@
       document.head.appendChild(sc);
     });
   }
-  const LONG_SIDE = 1600, MAX_PAGES = 30;
+  const LONG_SIDE = 1900, MAX_PAGES = 30;
   const toJpeg = (cv) => new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.75));
   function fitCanvas(w, h) {
     const k = Math.min(1, LONG_SIDE / Math.max(w, h));

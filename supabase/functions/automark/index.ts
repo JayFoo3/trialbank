@@ -24,7 +24,9 @@ For every question listed:
 - Find the student's response in their pages. Responses may be out of order, labelled loosely ("12b", "b)", "Q12 (b)"), or on answer sheets.
 - Mark it exactly as an HSC marker would, against the marking guideline where one is shown, otherwise against the worked solution.
   Award follow-through (CFPE: correct from previous error) where HSC practice allows it.
-- "awarded" is a whole number from 0 to the question's marks. Be fair and consistent; do not give benefit of the doubt for missing key steps.
+- "awarded" is a whole number from 0 to the question's marks. Award each mark the guideline gives for what the student actually wrote (partial marks for correct steps, even if the final answer is missing or wrong).
+- Handwriting is easy to misread. Before deducting any mark, look at that part of the page again and check your reading: a digit or sign that seems wrong but makes the student's own next line consistent was almost certainly read wrongly by you (e.g. 4 vs 1, 7 vs 1, 5 vs s, - vs =). Judge the working the student actually did, line by line.
+- Never claim a step is wrong unless you have checked it yourself. If two cases are each solved correctly but not combined properly, award the case marks and deduct only for the final combination.
 - "lost": one entry per mark NOT awarded, numbered by the marking scheme's order (mark 1 = first mark in the scheme). Reason is one of:
   concept (didn't know the idea), method (wrong approach), algebra (algebraic or arithmetic slip), careless (misread, copying error,
   units, sign), time (unfinished or blank). Also add an entry with reason "cfpe" for any mark that WAS awarded only through follow-through.
