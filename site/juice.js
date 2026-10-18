@@ -117,10 +117,7 @@
     const el = e.target.closest(PRESSABLE);
     if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
     ctx();                                                   // unlocks audio on iPhone, which needs a touch first
-    if (el.closest('.mainnav')) { sfx.nav(); lastNav = Date.now(); }
-    else if (el.matches('.primary, .pa.primary, #check-online, #next')) sfx.bloop();
-    else sfx.tick();
-    buzz(6);
+    if (el.closest('.mainnav')) lastNav = Date.now();
     if (still()) return;
     if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
     let wrap = el.querySelector(':scope > .jz-rw');
@@ -135,9 +132,9 @@
     const el = e.target.closest('.chips button, .chip, [aria-pressed], #star, .tchip, .subj-opt, input[type=checkbox]');
     if (!el) return;
     setTimeout(() => {
-      if (el.id === 'star') { if (/★/.test(el.textContent)) { sfx.sparkle(); burst(el, 12, 45); pop(el); } else sfx.off(); return; }
+      if (el.id === 'star') { if (/★/.test(el.textContent)) { burst(el, 12, 45); pop(el); } return; }
       const on = el.matches('.on, .picked, [aria-pressed="true"], :checked') || el.classList.contains('active');
-      on ? sfx.on() : sfx.off(); pop(el);
+      if (on) pop(el);
     }, 30);
   }, true);
   // ---------- full-screen transitions into a paper, a set, an exam or a result ----------
@@ -152,11 +149,10 @@
     const m = window.Mascot ? `<div class="jz-cm">${window.Mascot(mood, '')}</div>` : '';
     c.innerHTML = `<div class="jz-cin">${m}<div class="jz-ct">${title}</div>${sub ? `<div class="jz-cs">${sub}</div>` : ''}</div>`;
     document.body.appendChild(c);
-    sfx.enter();
-    const hold = still() ? 250 : 900;
+    const hold = still() ? 200 : 420;
     requestAnimationFrame(() => c.classList.add('in'));
     setTimeout(() => { c.classList.add('out'); }, hold);
-    setTimeout(() => { c.remove(); curtainOn = false; }, hold + (still() ? 200 : 520));
+    setTimeout(() => { c.remove(); curtainOn = false; }, hold + (still() ? 150 : 340));
   }
   const kind = (h) => (h || '').split('/')[0];
   window.addEventListener('hashchange', () => {
@@ -168,7 +164,6 @@
     } else if (to === '#examrun') curtain('Exam mode', 'Phone face down. You’ve got this.', 'think');
     else if (to === '#paper') curtain('Opening paper', '', 'happy');
     else if (to === '#summary') curtain('Done!', 'Let’s see how you went', 'cheer');
-    else if (Date.now() - lastNav > 400) sfx.whoosh();
   });
 
   // ---------- what the app calls ----------
@@ -199,7 +194,7 @@
     const S = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z"/></svg>';
     box.innerHTML = [0, 1, 2].map(i => `<span class="jz-star ${i < n ? 'lit' : ''}" style="--i:${i}">${S}</span>`).join('');
     box.setAttribute('aria-label', `${n} of 3 stars`);
-    for (let i = 0; i < n; i++) setTimeout(() => { sfx.star(i); if (i === n - 1 && n === 3) sfx.fanfare(); burst(box.children[i], 10, 40); }, 450 + i * 280);
+    for (let i = 0; i < n; i++) setTimeout(() => burst(box.children[i], 10, 40), 300 + i * 200);
   }
   const SOUND_NAMES = { piano: 'Piano', sine: 'Soft', off: 'Off' };
   function cycleSound() {
@@ -210,5 +205,5 @@
   }
   const soundLabel = () => SOUND_NAMES[kitName()];
 
-  window.Juice = { play: (n, ...a) => sfx[n] && sfx[n](...a), aim: (el) => { if (el) lastTap = el; }, reward, partial, miss, resetCombo, countUp, stars, burst, pop, floatText, soundOn, cycleSound, soundLabel, curtain, tap: () => lastTap };
+  window.Juice = { play: () => {}, aim: (el) => { if (el) lastTap = el; }, reward, partial, miss, resetCombo, countUp, stars, burst, pop, floatText, soundOn, cycleSound, soundLabel, curtain, tap: () => lastTap };
 })();
