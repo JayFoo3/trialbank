@@ -10,6 +10,7 @@ It uses Albert's reader (~/Documents/thsc-index/reader) but never changes or pus
 Exit codes as his reader: 0 done, 2 Claude's usage limit, 1 other.
 """
 import argparse
+import json
 import pathlib
 import re
 import shutil
@@ -65,6 +66,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Read THSC Mathematics Advanced trial papers for Trialbank.")
     parser.add_argument("--max", type=int, default=0, help="read at most this many papers")
     parser.add_argument("--list", action="store_true", help="only show which papers there are")
+    parser.add_argument("--redo-unsolved", action="store_true", help="read again, once, the papers whose reading found no solutions")
     args = parser.parse_args(argv)
     claude = shutil.which("claude") or str(pathlib.Path.home() / ".local" / "bin" / "claude")
     session = requests.Session()
@@ -75,6 +77,14 @@ def main(argv=None):
     thsc.FIRST_YEAR[SUBJECT] = FIRST_YEAR
     papers = thsc.order(found)
     done = rp.done_sources(HERE)
+    redone_file = HERE / "readings" / "_redone.txt"
+    redone = set(redone_file.read_text().split("\n")) if redone_file.exists() else set()
+    if args.redo_unsolved:            # readings with no solutionsFrom get one more try
+        for path in (HERE / "readings").glob("*.json"):
+            r = json.loads(path.read_text())
+            key = f"{r['source']['number']}|{r['source']['title']}"
+            if r.get("solutionsFrom") is None and key not in redone:
+                done.discard((r["source"]["number"], r["source"]["title"]))
     rp.log(f"{len(papers)} Advanced papers with solutions since {FIRST_YEAR} on {url}; {len(done)} read already")
     if args.list:
         for e in papers:
@@ -102,6 +112,9 @@ def main(argv=None):
             tmp.mkdir(parents=True, exist_ok=True)
             kept.clear()
             try:
+                if args.redo_unsolved:
+                    with redone_file.open("a") as f:
+                        f.write(f"{entry['number']}|{entry['title']}\n")
                 if rp.read_one(entry, HERE, claude, session, tmp):
                     (EXAMS / pdf_name(entry)).write_bytes(kept["pdf"])
                     read += 1
