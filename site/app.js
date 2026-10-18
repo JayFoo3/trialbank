@@ -54,14 +54,24 @@
       show('home'); await renderHome();
     });
   }
+  const shortName = (n) => n.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext ').replace('Standard ', 'Std ')
+    .replace('Earth and Environmental Science', 'Earth & Env').replace('Investigating Science', 'Inv Science').replace('Community and Family Studies', 'CAFS')
+    .replace('Studies of Religion', 'SOR').replace('Design and Technology', 'D&T').replace('Society and Culture', 'Society & Culture').replace(' Continuers', '');
   function drawSubject() {
     const el = $('subject-switch'); el.innerHTML = '';
     const mine = mySubjects() || Object.keys(C.subjects);
     if (!mine.includes(state.subject)) state.subject = mine[0];
-    for (const [key, label] of Object.entries(C.subjects).filter(([k]) => mine.includes(k))) {
+    const names = chosenNames() || Object.values(C.subjects);
+    names.forEach(name => {
+      const key = keyOf(name);
       const b = document.createElement('button');
-      b.textContent = C.shortSubjects?.[key] || label.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext ');
-      b.title = label; b.className = key === state.subject ? 'on' : '';
+      b.textContent = shortName(name); b.title = name;
+      if (!key) {   // ticked but no questions yet
+        b.className = 'soon';
+        b.onclick = () => comingSoon(name);
+        el.appendChild(b); return;
+      }
+      b.className = key === state.subject ? 'on' : '';
       b.setAttribute('aria-pressed', key === state.subject);
       b.onclick = () => {
         if (key === state.subject) return;
@@ -71,11 +81,20 @@
         if (h === 'paper' || h === 'set' || h === 'summary') location.hash = h === 'paper' ? '#papers' : '#practise'; else route();
       };
       el.appendChild(b);
-    }
+    });
     const add = document.createElement('button');
     add.className = 'add'; add.textContent = '+'; add.title = 'Add subjects'; add.setAttribute('aria-label', 'Add subjects');
     add.onclick = () => openSubjects(false);
     el.appendChild(add);
+  }
+  function comingSoon(name) {
+    const m = mk('div', 'modal');
+    m.innerHTML = `<div class="modal-card soon-card" role="dialog" aria-modal="true"><h2>${esc(name)}</h2><p class="muted">Coming soon.</p><button class="primary">OK</button></div>`;
+    const close = () => m.remove();
+    m.onclick = (ev) => { if (ev.target === m) close(); };
+    m.querySelector('button').onclick = close;
+    document.body.appendChild(m);
+    m.querySelector('button').focus();
   }
   // ---------- which subjects a student takes ----------
   // every HSC course a student can say they take; only the ones in C.subjects have questions yet
