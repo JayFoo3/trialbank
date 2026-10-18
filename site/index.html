@@ -174,9 +174,9 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </div>
     <p class="error" id="review-error" hidden></p>
 
-    <h2 class="sec">Recent papers</h2>
-    <p class="muted small" id="exam-history-empty">None yet.</p>
-    <table class="tbl" id="exam-history"><thead><tr><th>Date</th><th>Paper</th><th>Score</th><th>Time</th></tr></thead><tbody></tbody></table>
+    <h2 class="sec" data-feature="exam">Recent papers</h2>
+    <p class="muted small" id="exam-history-empty" data-feature="exam">None yet.</p>
+    <table class="tbl" id="exam-history" data-feature="exam"><thead><tr><th>Date</th><th>Paper</th><th>Score</th><th>Time</th></tr></thead><tbody></tbody></table>
   </section>
 
   <!-- ===== practise: build a set ===== -->
