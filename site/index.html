@@ -173,39 +173,43 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <!-- ===== practise: build a set ===== -->
   <section id="view-practise" class="view" hidden>
     <h1>Practise by topic</h1>
-    <div class="card">
-      <div class="between">
-        <h2>Topics</h2>
-        <div class="small"><button class="link" id="topics-all">Select all</button> <span class="muted">/</span> <button class="link" id="topics-none">Clear</button> <span class="muted">/</span> <button class="link" id="topics-learnt">Topics I've learnt</button></div>
+    <div class="pr-grid">
+      <div class="card pr-topics">
+        <div class="pr-tools">
+          <input id="topic-filter" type="search" placeholder="Find a topic" autocomplete="off">
+          <div class="small pr-links"><button class="link" id="topics-all">Select all</button> <span class="muted">/</span> <button class="link" id="topics-none">Clear</button> <span class="muted">/</span> <button class="link" id="topics-learnt">Topics I've learnt</button></div>
+        </div>
+        <div id="topic-chips"></div>
       </div>
-      <input id="topic-filter" type="search" placeholder="Find a topic" autocomplete="off">
-      <div class="chips" id="topic-chips"></div>
-    </div>
 
-    <div class="card options">
-      <div class="opt">
-        <span>Questions</span>
-        <div class="seg" data-opt="count"><button data-v="5">5</button><button data-v="10" class="on">10</button><button data-v="20">20</button></div>
-      </div>
-      <div class="opt">
-        <span>Type</span>
-        <div class="seg" data-opt="type"><button data-v="all" class="on">Both</button><button data-v="mcq">Multiple choice</button><button data-v="short">Written</button></div>
-      </div>
-      <div class="opt">
-        <span>Difficulty</span>
-        <div class="seg" data-opt="diff"><button data-v="all" class="on">Any</button><button data-v="Easier">Easier</button><button data-v="Medium">Medium</button><button data-v="Hard">Hard</button></div>
-      </div>
-      <div class="opt">
-        <span>Unseen first</span>
-        <div class="seg" data-opt="fresh"><button data-v="1" class="on">On</button><button data-v="0">Off</button></div>
-      </div>
+      <aside class="card pr-set">
+        <h2>Your set</h2>
+        <p class="small muted" id="pr-picked">Tap topics to add them.</p>
+        <div class="options">
+          <div class="opt">
+            <span>Questions</span>
+            <div class="seg" data-opt="count"><button data-v="5">5</button><button data-v="10" class="on">10</button><button data-v="20">20</button></div>
+          </div>
+          <div class="opt">
+            <span>Type</span>
+            <div class="seg" data-opt="type"><button data-v="all" class="on">Both</button><button data-v="mcq" title="Multiple choice">MCQ</button><button data-v="short">Written</button></div>
+          </div>
+          <div class="opt">
+            <span>Difficulty</span>
+            <div class="seg" data-opt="diff"><button data-v="all" class="on">Any</button><button data-v="Easier">Easier</button><button data-v="Medium">Medium</button><button data-v="Hard">Hard</button></div>
+          </div>
+          <div class="opt">
+            <span>Unseen first</span>
+            <div class="seg" data-opt="fresh"><button data-v="1" class="on">On</button><button data-v="0">Off</button></div>
+          </div>
+        </div>
+        <div class="startbar">
+          <span class="small" id="start-summary">No topics picked</span>
+          <button class="primary" id="start">Start</button>
+        </div>
+        <p class="error" id="home-error" hidden></p>
+      </aside>
     </div>
-
-    <div class="startbar">
-      <span class="small" id="start-summary">No topics picked</span>
-      <button class="primary" id="start">Start</button>
-    </div>
-    <p class="error" id="home-error" hidden></p>
   </section>
 
   <!-- ===== set: one question at a time ===== -->

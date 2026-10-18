@@ -260,6 +260,29 @@
     'Trig. Eqns': 'Trigonometric Equations', 'Volumes': 'Volumes of Revolution',
   };
   const topicName = t => TOPIC_NAMES[t] || t;
+  // topics shown together on the Practise page, in syllabus order; anything unlisted lands in "Other"
+  const TOPIC_GROUPS = {
+    Ext1: [
+      ['Functions', ['Graphical Relat.', 'Inequalities', 'Inverse Fns', 'Parametrics', 'Rem/Fact Th.', 'Sum/Prod. Roots']],
+      ['Trigonometry', ['Identities', 'Trig. Eqns', 'Inverse Trig Fns']],
+      ['Calculus', ['Calculus', 'Integration', 'Rates of Change', 'Related Rates', 'Exp. G + D', 'Volumes', "DE's"]],
+      ['Proof and Vectors', ['Proof Induction', 'Vectors', 'Further Operations', 'Projectiles']],
+      ['Combinatorics and Statistics', ['Combinatorics', 'Perms/Combs', 'Binom. Exp.', 'Statistical Analysis', 'Bern./Binom Dist.', 'Normal Approx.']],
+    ],
+    Adv: [
+      ['Functions', ['Working with Functions', 'Graphing Techniques']],
+      ['Trigonometry', ['Trigonometry and Measure of Angles', 'Trigonometric Identities and Equations', 'Trigonometric Functions and Graphs']],
+      ['Calculus', ['Introduction to Differentiation', 'Exponential and Logarithmic Functions', 'Differential Calculus', 'Applications of Differentiation', 'Integral Calculus']],
+      ['Financial Mathematics', ['Sequences and Series', 'Financial Mathematics']],
+      ['Statistics', ['Probability', 'Discrete Probability Distributions', 'Descriptive Statistics and Bivariate Data', 'Continuous Probability Distributions', 'The Normal Distribution']],
+    ],
+    Physics: [
+      ['Advanced Mechanics', ['Projectile Motion', 'Circular Motion', 'Motion in Gravitational Fields']],
+      ['Electromagnetism', ['Charged Particles, Conductors and Fields', 'The Motor Effect', 'Electromagnetic Induction', 'Applications of the Motor Effect']],
+      ['The Nature of Light', ['Electromagnetic Spectrum', 'Light: Wave Model', 'Light: Quantum Model', 'Light and Special Relativity']],
+      ['From the Universe to the Atom', ['Origins of the Elements', 'Structure of the Atom', 'Quantum Mechanical Nature of the Atom', 'Properties of the Nucleus', 'Deep Inside the Atom']],
+    ],
+  };
   let topicCounts = null;   // [{subject, topic, type, n}]
   async function loadTopicCounts() {
     if (topicCounts) return topicCounts;
@@ -287,14 +310,37 @@
     const wrap = $('topic-chips'); wrap.innerHTML = '';
     const skip = skipped();
     [...state.topics].forEach(t => { if (skip.has(t)) state.topics.delete(t); });
-    Object.keys(byTopic).sort((a, b) => skip.has(a) - skip.has(b) || topicName(a).localeCompare(topicName(b))).forEach(t => {
-      const b = document.createElement('button');
-      b.className = 'chip' + (state.topics.has(t) ? ' on' : '') + (skip.has(t) ? ' notlearnt' : '');
-      if (skip.has(t)) b.title = 'Marked as not learnt yet';
-      b.innerHTML = `${esc(topicName(t))}<span class="n">${byTopic[t].mcq + byTopic[t].short}</span>`;
-      b.dataset.t = (topicName(t) + ' ' + t).toLowerCase();
-      b.onclick = () => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); b.classList.toggle('on'); startSummary(); };
-      wrap.appendChild(b);
+    const all = Object.keys(byTopic);
+    const groups = (TOPIC_GROUPS[state.subject] || []).map(([name, ts]) => [name, ts.filter(t => byTopic[t] && !skip.has(t))]);
+    const placed = new Set(groups.flatMap(g => g[1]));
+    const other = all.filter(t => !placed.has(t) && !skip.has(t));
+    if (other.length) groups.push([groups.length ? 'Other' : 'Topics', other]);
+    const later = all.filter(t => skip.has(t));
+    if (later.length) groups.push(["Not learnt yet", later]);
+    groups.filter(g => g[1].length).forEach(([name, ts]) => {
+      const box = mk('div', 'tgroup' + (name === 'Not learnt yet' ? ' later' : ''));
+      const head = mk('div', 'tg-head', `<h3>${esc(name)}</h3>`);
+      const tog = mk('button', 'link small tg-all');
+      const sync = () => { tog.textContent = ts.every(t => state.topics.has(t)) ? 'Clear' : 'Select all'; };
+      tog.onclick = () => {
+        const on = !ts.every(t => state.topics.has(t));
+        ts.forEach(t => on ? state.topics.add(t) : state.topics.delete(t));
+        box.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', on));
+        sync(); startSummary();
+      };
+      head.appendChild(tog); box.appendChild(head);
+      const chips = mk('div', 'chips');
+      ts.sort((a, b) => topicName(a).localeCompare(topicName(b))).forEach(t => {
+        const b = document.createElement('button');
+        b.className = 'chip' + (state.topics.has(t) ? ' on' : '');
+        if (skip.has(t)) b.title = 'Marked as not learnt yet';
+        b.innerHTML = `${esc(topicName(t))}<span class="n">${byTopic[t].mcq + byTopic[t].short}</span>`;
+        b.dataset.t = (topicName(t) + ' ' + t + ' ' + name).toLowerCase();
+        b.onclick = () => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); b.classList.toggle('on'); sync(); startSummary(); };
+        chips.appendChild(b);
+      });
+      box.appendChild(chips); sync();
+      wrap.appendChild(box);
     });
     filterTopics(); startSummary();
     $('topics-all').onclick = () => { Object.keys(byTopic).filter(t => !skip.has(t)).forEach(t => state.topics.add(t)); renderBuild(); };
@@ -304,11 +350,14 @@
   function filterTopics() {
     const q = $('topic-filter').value.trim().toLowerCase();
     document.querySelectorAll('#topic-chips .chip').forEach(b => { b.hidden = q && !b.dataset.t.includes(q); });
+    document.querySelectorAll('#topic-chips .tgroup').forEach(g => { g.hidden = !g.querySelector('.chip:not([hidden])'); });
   }
   $('topic-filter').oninput = filterTopics;
   function startSummary() {
     const n = state.topics.size, o = state.opts;
     $('start-summary').textContent = n ? `${o.count} questions from ${n} topic${n === 1 ? '' : 's'}` : 'Pick at least one topic';
+    const names = [...state.topics].map(topicName).sort();
+    $('pr-picked').textContent = !n ? 'Tap topics to add them.' : names.length <= 4 ? names.join(', ') : `${names.slice(0, 3).join(', ')} and ${names.length - 3} more`;
     $('start').disabled = !n;
   }
   document.querySelectorAll('.seg').forEach(seg => {
