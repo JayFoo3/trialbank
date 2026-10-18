@@ -113,6 +113,10 @@
     const m = state.preview ? previewFlags.subjects : state.user?.user_metadata?.subjects;
     return Array.isArray(m) && m.length ? m.map(x => C.subjects[x] || x) : null;
   }
+  function myName() {
+    const n = state.preview ? previewFlags.name : state.user?.user_metadata?.first_name;
+    return typeof n === 'string' && n.trim() ? n.trim() : null;
+  }
   function mySubjects() {    // the ticked subjects that have questions; falls back to all live ones
     const names = chosenNames();
     if (!names) return null;
@@ -121,6 +125,9 @@
   }
   function openSubjects(first) {
     const sel = new Set(chosenNames() || []);
+    const em = (state.user?.email || '').split('@')[0];
+    $('subj-name').value = myName() || (/[._]/.test(em) ? (em.split(/[._\d]/).filter(Boolean)[0] || '').replace(/^./, c => c.toUpperCase()) : '');
+    $('subj-name').oninput = () => sync();
     const names = [...Object.values(C.subjects), ...HSC.filter(n => !Object.values(C.subjects).includes(n))];
     const grid = $('subj-grid'); grid.innerHTML = '';
     names.forEach(name => {
@@ -134,7 +141,7 @@
       grid.appendChild(b);
     });
     const sync = () => {
-      $('subj-save').disabled = !sel.size;
+      $('subj-save').disabled = !sel.size || !$('subj-name').value.trim();
       const ready = [...sel].filter(keyOf).length, soon = sel.size - ready;
       $('subj-note').textContent = soon && !ready ? 'None of these have questions yet. Maths Ext 1 and Physics are ready now.'
         : soon ? `${soon} of your subjects ${soon === 1 ? 'is' : 'are'} coming soon.` : '';
@@ -148,9 +155,10 @@
     $('subj-save').onclick = async () => {
       const list = names.filter(n => sel.has(n));
       $('subj-save').disabled = true;
-      if (state.preview) previewFlags.subjects = list;
+      const fname = $('subj-name').value.trim().slice(0, 30);
+      if (state.preview) { previewFlags.subjects = list; previewFlags.name = fname; }
       else {
-        const { data, error } = await sb.auth.updateUser({ data: { subjects: list } });
+        const { data, error } = await sb.auth.updateUser({ data: { subjects: list, first_name: fname } });
         if (!error && data?.user) state.user = data.user;
       }
       const mine = mySubjects();
@@ -353,7 +361,7 @@
     state.set = { qs, i: 0, results: [] };
     renderQuestion();
   }
-  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } }
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
   // ---------- set ----------
   function label(x) {
@@ -511,7 +519,7 @@
   function advance() {
     const s = state.set;
     if (s.i + 1 < s.qs.length) { s.i++; renderQuestion(); }
-    else { renderSummary(); location.hash = '#summary'; }
+    else { renderSummary(s.title || 'Set done'); location.hash = '#summary'; }
   }
 
   // ---------- summary ----------
@@ -941,7 +949,8 @@
     const em = state.user.email || '';
     const local = em.split('@')[0];
     const first = /[._]/.test(local) ? (local.split(/[._\d]/).filter(Boolean)[0] || '') : '';   // only when the address has a first.last shape
-    $('home-hello').textContent = first ? `Hi ${first[0].toUpperCase() + first.slice(1)}` : 'Hi';
+    const nm = myName() || (first ? first[0].toUpperCase() + first.slice(1) : '');
+    $('home-hello').textContent = nm ? `Hi ${nm}` : 'Hi';
     $('home-sub').textContent = C.subjects[state.subject];
     renderExamSetup();
     // an exam left running or unmarked
@@ -968,7 +977,7 @@
       ? `10 new questions, mostly ${state.weak.map(w => w.topic).slice(0, 2).join(' and ')}.`
       : "10 questions you haven't done.";
     renderOnboard();
-    if (!mySubjects()) { if ($('subj-modal').hidden) openSubjects(true); }
+    if (!mySubjects() || !myName()) { if ($('subj-modal').hidden) openSubjects(true); }
     else if (!flag('tour_done') && !state.tourOn) setTimeout(startTour, 350);
     // the single next step: an unfinished exam, then a first set for new students, then a quick set
     const go = $('next-go');
@@ -1265,7 +1274,10 @@
       sb.from('bookmarks').select('question_id'),
       sb.from('exams').select('started_at, seconds_used, score, out_of, work_minutes, papers!inner(school, year, subject)').eq('papers.subject', state.subject).order('started_at', { ascending: false }).limit(20),
     ]);
-    state.weak = (mine || []).filter(r => r.out_of >= 3).map(r => ({ ...r, pct: r.score / r.out_of })).sort((a, b) => a.pct - b.pct).slice(0, 3);
+    state.weak = (mine || []).filter(r => r.out_of >= 1).map(r => ({ ...r, pct: r.score / r.out_of })).filter(r => r.pct < 0.75)
+      .sort((a, b) => a.pct - b.pct || b.out_of - a.out_of).slice(0, 3);
+    $('checkup').hidden = !!state.weak.length;
+    $('checkup-go').textContent = state.attempted ? 'Retake check-up' : 'Start check-up';
     if (state.preview) { mine = []; stars = []; ex = []; }   // admin preview: show what a brand-new student sees
     state.attempted = state.preview ? !!previewFlags.attempted : (mine || []).some(r => r.out_of > 0);
     $('weak-list').textContent = state.weak.length ? state.weak.map(w => w.topic).join(', ') : 'None yet';
@@ -1364,6 +1376,24 @@
     el.textContent = x.type === 'mcq' ? 'Tap an answer. You find out straight away.' : 'Do it on paper, check the solution, then give yourself a mark.';
     el.hidden = false; flag(k, 1);
   }
+
+  // ---------- check-up: one multiple-choice question per topic to find weak spots ----------
+  $('checkup-go').onclick = async () => {
+    $('checkup-go').disabled = true; $('review-error').hidden = true;
+    try {
+      await busy(async () => {
+        const { data, error } = await sb.from('questions').select(QCOLS).eq('papers.subject', state.subject)
+          .eq('type', 'mcq').not('answer', 'is', null).not('image_path', 'is', null).not('topic', 'is', null).limit(800);
+        if (error) throw error;
+        const byTopic = {};
+        shuffle(data || []).forEach(q => { (byTopic[q.topic] = byTopic[q.topic] || []).push(q); });
+        const topics = shuffle(Object.keys(byTopic)).slice(0, 12);
+        if (!topics.length) throw new Error('No questions ready for a check-up in this subject yet.');
+        await startSet(topics.map(t => byTopic[t][0]));
+        state.set.title = 'Check-up done';
+      });
+    } catch (err) { reviewError(err.message); } finally { $('checkup-go').disabled = false; }
+  };
 
   // ---------- spotlight tour for new students: they tap each lit-up control for real ----------
   const TOUR = [

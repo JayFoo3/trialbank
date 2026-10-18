@@ -13,7 +13,7 @@
 <body>
 <header class="top" id="top">
   <div class="top-in">
-    <a class="brand" href="#home"><span class="tick" aria-hidden="true">✓</span><span id="brand">Trialbank</span></a>
+    <a class="brand" href="#home"><span id="brand">Trialbank</span></a>
     <nav id="nav" class="mainnav" hidden aria-label="Main">
       <a href="#home" data-nav="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></a>
       <a href="#practise" data-nav="practise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg><span>Practise</span></a>
@@ -37,7 +37,9 @@
 
 <div class="modal" id="subj-modal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="subj-title">
-    <h2 id="subj-title">Which subjects do you take?</h2>
+    <h2 id="subj-title">Welcome to Trialbank</h2>
+    <label>Your first name <input id="subj-name" type="text" autocomplete="given-name" maxlength="30"></label>
+    <p class="field-label">Which subjects do you take?</p>
     <input id="subj-search" type="search" placeholder="Search subjects" autocomplete="off">
     <div class="subj-grid" id="subj-grid"></div>
     <p class="muted small soon-label" id="subj-note"></p>
@@ -51,7 +53,7 @@
   <section id="view-auth" class="view" hidden>
     <div class="auth">
       <div class="auth-side">
-        <p class="auth-brand"><span class="tick">✓</span> Trialbank</p>
+        <p class="auth-brand">Trialbank</p>
         <h1 class="auth-h">Every past trial question, sorted by topic.</h1>
         <p class="muted">Practise in quick sets, sit a full paper on the clock, or upload your working and get it marked. For Smiths Hill Year 12 only.</p>
       </div>
@@ -114,7 +116,11 @@
     </div>
 
     <h2 class="sec">Weak spots</h2>
-    <div class="list">
+    <div class="checkup" id="checkup" hidden>
+      <div><strong>Find your weak spots</strong><span class="small muted">12 quick questions, one from each topic.</span></div>
+      <button class="secondary" id="checkup-go">Start check-up</button>
+    </div>
+    <div class="list" id="weak-rows">
       <button class="li" id="drill-weak"><span><strong>Weakest topics</strong><span class="small muted" id="weak-list"></span></span><span class="go" aria-hidden="true">›</span></button>
       <button class="li" id="drill-wrong"><span><strong>Got wrong</strong><span class="small muted" id="wrong-sub"></span></span><span class="go" aria-hidden="true">›</span></button>
       <button class="li" id="drill-stars"><span><strong>Starred</strong><span class="small muted" id="star-count"></span></span><span class="go" aria-hidden="true">›</span></button>
