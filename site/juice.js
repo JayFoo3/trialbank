@@ -24,6 +24,20 @@
     part() { if (!soundOn()) return; tone(587.33, 0, 0.14, 0.12, 'triangle'); tone(659.25, 0.08, 0.18, 0.1); },
     miss() { if (!soundOn()) return; tone(220, 0, 0.16, 0.12, 'sine'); tone(196, 0.09, 0.2, 0.1, 'sine'); },
     star(i) { if (!soundOn()) return; tone(SCALE[2 + i * 2], 0, 0.25, 0.14, 'triangle'); },
+    tick() { if (!soundOn()) return; const a = ctx(); if (!a) return; const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime;
+      o.type = 'sine'; o.frequency.setValueAtTime(1500, t0); o.frequency.exponentialRampToValueAtTime(700, t0 + 0.04);
+      o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.05); o.start(t0); o.stop(t0 + 0.06); },
+    bloop() { if (!soundOn()) return; const a = ctx(); if (!a) return; const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime;
+      o.type = 'sine'; o.frequency.setValueAtTime(420, t0); o.frequency.exponentialRampToValueAtTime(820, t0 + 0.07);
+      o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.14, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12); o.start(t0); o.stop(t0 + 0.13); },
+    nav() { if (!soundOn()) return; tone(660, 0, 0.07, 0.07, 'triangle'); tone(990, 0.045, 0.09, 0.06, 'triangle'); },
+    on() { if (!soundOn()) return; tone(784, 0, 0.07, 0.08, 'triangle'); tone(1175, 0.04, 0.09, 0.07, 'triangle'); },
+    off() { if (!soundOn()) return; tone(660, 0, 0.07, 0.07, 'triangle'); tone(494, 0.04, 0.09, 0.06, 'triangle'); },
+    sparkle() { if (!soundOn()) return; [1568, 2093, 2637].forEach((f, i) => tone(f, i * 0.05, 0.16, 0.06, 'sine')); },
+    whoosh() { if (!soundOn()) return; const a = ctx(); if (!a) return; const n = a.createBufferSource(), b = a.createBuffer(1, a.sampleRate * 0.25, a.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+      const f = a.createBiquadFilter(), g = a.createGain(), t0 = a.currentTime; f.type = 'bandpass'; f.frequency.setValueAtTime(600, t0); f.frequency.exponentialRampToValueAtTime(2400, t0 + 0.2); f.Q.value = 1.2;
+      g.gain.setValueAtTime(0.09, t0); n.buffer = b; n.connect(f); f.connect(g); g.connect(a.destination); n.start(t0); },
     fanfare() { if (!soundOn()) return; [0, 2, 4, 5].forEach((n, i) => tone(SCALE[n], i * 0.09, 0.3, 0.13, 'triangle')); },
   };
   const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch { /* none */ } };
@@ -65,6 +79,39 @@
     if (big && window.TBconfetti) window.TBconfetti(40);
   }
 
+  // ---------- every press: a ripple from the finger, a squish, and a click ----------
+  let lastNav = 0;
+  const PRESSABLE = 'button, .button, a.other, .mainnav a, .ol-opt, .pa, .ptile, .prow, .li';
+  document.addEventListener('pointerdown', (e) => {
+    const el = e.target.closest(PRESSABLE);
+    if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
+    ctx();                                                   // unlocks audio on iPhone, which needs a touch first
+    if (el.closest('.mainnav')) { sfx.nav(); lastNav = Date.now(); }
+    else if (el.matches('.primary, .pa.primary, #check-online, #next')) sfx.bloop();
+    else sfx.tick();
+    buzz(6);
+    if (still()) return;
+    if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+    let wrap = el.querySelector(':scope > .jz-rw');
+    if (!wrap) { wrap = document.createElement('span'); wrap.className = 'jz-rw'; el.appendChild(wrap); }
+    const r = el.getBoundingClientRect(), size = Math.max(r.width, r.height) * 2.2, dot = document.createElement('span');
+    dot.className = 'jz-rp'; dot.style.width = dot.style.height = size + 'px';
+    dot.style.left = (e.clientX - r.left - size / 2) + 'px'; dot.style.top = (e.clientY - r.top - size / 2) + 'px';
+    wrap.appendChild(dot); setTimeout(() => dot.remove(), 650);
+  }, { passive: true });
+  // chips and toggles: a rising note when switched on, a falling one when switched off; starring sparkles
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('.chips button, .chip, [aria-pressed], #star, .tchip, .subj-opt, input[type=checkbox]');
+    if (!el) return;
+    setTimeout(() => {
+      if (el.id === 'star') { if (/★/.test(el.textContent)) { sfx.sparkle(); burst(el, 12, 45); pop(el); } else sfx.off(); return; }
+      const on = el.matches('.on, .picked, [aria-pressed="true"], :checked') || el.classList.contains('active');
+      on ? sfx.on() : sfx.off(); pop(el);
+    }, 30);
+  }, true);
+  // moving between pages
+  window.addEventListener('hashchange', () => { if (Date.now() - lastNav > 400 && !/^#(set|examrun|summary)/.test(location.hash)) sfx.whoosh(); });
+
   // ---------- what the app calls ----------
   let streak = 0;
   function reward(marks = 1, el = lastTap) {
@@ -97,5 +144,5 @@
   }
   function setSound(on) { try { localStorage.setItem('tb_sound', on ? '1' : '0'); } catch { /* blocked */ } if (on) sfx.good(1); }
 
-  window.Juice = { aim: (el) => { if (el) lastTap = el; }, reward, partial, miss, resetCombo, countUp, stars, burst, pop, floatText, soundOn, setSound, tap: () => lastTap };
+  window.Juice = { play: (n, ...a) => sfx[n] && sfx[n](...a), aim: (el) => { if (el) lastTap = el; }, reward, partial, miss, resetCombo, countUp, stars, burst, pop, floatText, soundOn, setSound, tap: () => lastTap };
 })();

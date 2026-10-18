@@ -1020,3 +1020,18 @@ a, button, select, label, summary, .ol-opt { -webkit-tap-highlight-color: transp
 @media (prefers-reduced-motion: reduce) {
   .jz-pop, .jz-shake, .jz-combo, .jz-star.lit svg, .card.question.enter, #q-online.enter, .ol-opt.picked .ol-box, .choices button, .jump button.done { animation: none !important; transition: none !important; }
 }
+/* ---------- every button: ripple, squish, spring back ---------- */
+.jz-rw { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 0; }
+.jz-rp { position: absolute; border-radius: 50%; background: currentColor; opacity: .16; transform: scale(0); animation: jz-rp .6s cubic-bezier(.2,.7,.3,1) forwards; }
+.primary .jz-rp, .pa.primary .jz-rp { background: #fff; opacity: .3; }
+@keyframes jz-rp { to { transform: scale(1); opacity: 0; } }
+button, .button, a.other, .ol-opt, .pa, .ptile { transition: transform .28s cubic-bezier(.3,1.8,.5,1), box-shadow .2s, background-color .2s, border-color .2s; }
+button:active:not(:disabled), .button:active, a.other:active, .ol-opt:active:not(:disabled), .pa:active { transform: translateY(3px) scale(.97); transition-duration: .06s; }
+.ptile:active { transform: scale(.96); transition-duration: .06s; }
+.mainnav a:active svg { transform: scale(.82); }
+.mainnav a svg { transition: transform .3s cubic-bezier(.3,1.8,.5,1); }
+.mainnav a.on svg { animation: jz-pop .4s cubic-bezier(.3,1.7,.5,1); }
+/* the main call to action breathes so the eye finds it */
+.primary.wide, #next:not([hidden]), #check-online:not([hidden]) { animation: jz-breathe 2.4s ease-in-out infinite; }
+@keyframes jz-breathe { 0%,100% { box-shadow: 0 4px 0 var(--biro-dark), 0 0 0 0 color-mix(in srgb, var(--biro) 0%, transparent); } 50% { box-shadow: 0 4px 0 var(--biro-dark), 0 0 0 7px color-mix(in srgb, var(--biro) 18%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .jz-rp, .mainnav a.on svg, .primary.wide, #next, #check-online { animation: none !important; } }

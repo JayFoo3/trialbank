@@ -1831,6 +1831,7 @@
       $('exam-finish').disabled = false; return;
     }
     lsDel(saveKey());
+    window.Juice && Juice.play('fanfare');
     state.set = { qs: e.qs, i: 0, results: rs.map(r => ({ q: r.q, score: r.score, outOf: r.outOf })) };
     renderSummary('Exam done');
     $('summary-extra').textContent = `${e.paper.school} ${e.paper.year} · ${Math.round(e.secondsUsed / 60)} of ${Math.round(e.workSec / 60)} minutes used`;
@@ -2244,6 +2245,7 @@
     b.hidden = false; b.innerHTML = flame(n); b.title = `${n} day streak`; b.setAttribute('aria-label', `${n} day streak`);
     if (bumped) {
       b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
+      if (window.Juice) { Juice.play('sparkle'); Juice.burst(b, 14, 50); }
       if (n > 1) toast(`<span class="toast-flame">${flame(n)}</span><b>${n} day streak!</b> Come back tomorrow to keep it going.`, 4200);
     }
   }
