@@ -144,7 +144,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
         </div>
       </details>
       <details class="other">
-        <summary><strong>Mark a paper</strong><span class="muted small">Upload your working</span></summary>
+        <summary><strong>Mark a paper</strong><span class="muted small" id="mark-left">Upload your working</span></summary>
         <div class="other-body">
           <select id="mark-paper" aria-label="Which paper"><option value="">Pick the paper</option></select>
           <button class="secondary" id="mark-go">Upload</button>
@@ -295,7 +295,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <p class="muted" id="paper-meta"></p>
     <div class="tabs" role="tablist" id="paper-tabs">
       <button role="tab" data-tab="paper" class="on">Paper</button>
-      <button role="tab" data-tab="sol">Solutions</button>
+      <button role="tab" data-tab="sol" id="tab-sol-btn">Solutions</button>
       <button role="tab" data-tab="practise">Practise</button>
     </div>
     <p class="error" id="paper-error" hidden></p>
@@ -311,8 +311,9 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div class="paper-actions">
         <button class="pa" id="paper-practise"><strong>Practise</strong><span class="small muted">Every question, one at a time</span></button>
         <button class="pa" id="paper-exam"><strong>Sit timed</strong><span class="small muted">Full paper on the clock</span></button>
-        <button class="pa" id="paper-automark"><strong>Mark my paper</strong><span class="small muted">Upload your working</span></button>
+        <button class="pa" id="paper-automark"><strong>Mark my paper</strong><span class="small muted" id="paper-mark-left">Upload your working</span></button>
       </div>
+      <p class="muted" id="paper-noq" hidden>The questions from this paper aren't split out for practice yet. Use the Paper tab for now.</p>
       <div id="paper-body"></div>
     </div>
   </section>

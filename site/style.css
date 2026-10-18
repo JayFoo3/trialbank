@@ -748,3 +748,11 @@ svg.out text { stroke: var(--muted); }
 #view-paper h1 { margin-bottom: 0; }
 #view-paper .tabs { margin: 10px 0 12px; }
 @media (max-width: 640px) { .pgbtn { width: 40px; } #view-paper .back { display: none; } }
+
+/* HSC section and badge */
+.lvl-hsc { --lv: #b8860b; --lv-soft: #fff6d8; padding: 3px 10px; letter-spacing: .04em; }
+.lvl-hsc b { font-weight: 800; }
+.pschool.hsc h2 { font-size: 1.25rem; }
+.sec-note { font-family: var(--font); font-weight: 600; }
+.pschool.hsc .pthumb { border-color: #e9cf4f; box-shadow: 0 3px 0 #e9cf4f; }
+.used-up { color: var(--bad) !important; }

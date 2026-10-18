@@ -233,7 +233,7 @@
         const em = state.user.email || '';
         $('account-email').textContent = em;
         applyPrefs(); loadMedia().then(() => applyPrefs());
-        touchStreak();
+        touchStreak(); drawMarkLeft();
       }
       await checkAdmin();
       route();
@@ -715,14 +715,17 @@
   const qLabel = (q) => label(q);
   const diffOf = (p) => (['Easier', 'Medium', 'Hard'].includes(p.difficulty) ? p.difficulty : null);
   // four-step difficulty for display: James Ruse sits above the other hard papers
-  const LEVELS = { easy: [1, 'Easy'], medium: [2, 'Medium'], hard: [3, 'Hard'], impossible: [4, 'Impossible'] };
+  const LEVELS = { easy: [1, 'Easy'], medium: [2, 'Medium'], hard: [3, 'Hard'], impossible: [4, 'Impossible'], hsc: [0, 'HSC'] };
+  const isHsc = (p) => p.difficulty === 'HSC';
   function levelOf(p) {
+    if (isHsc(p)) return 'hsc';
     if (p.difficulty === 'Easier') return 'easy';
     if (p.difficulty === 'Hard') return /james ruse/i.test(p.school || '') ? 'impossible' : 'hard';
     return 'medium';
   }
   function levelBadge(p, withText = true) {
     const k = levelOf(p), [n, label] = LEVELS[k];
+    if (k === 'hsc') return `<span class="lvl lvl-hsc" title="Official HSC exam"><b>HSC</b></span>`;
     const bars = [1, 2, 3, 4].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('');
     return `<span class="lvl lvl-${k}" title="${label}"><span class="bars" aria-hidden="true">${bars}</span>${withText ? `<b>${label}</b>` : `<span class="sr">${label}</span>`}</span>`;
   }
@@ -897,15 +900,18 @@
     const bySchool = {};
     papers.filter(p => !q || p.school.toLowerCase().includes(q) || String(p.year).includes(q))
       .forEach(p => (bySchool[p.school] = bySchool[p.school] || []).push(p));
-    const schools = Object.keys(bySchool).sort((a, b) => (/smiths/i.test(b) - /smiths/i.test(a)) || a.localeCompare(b));
-    $('papers-count').textContent = `${papers.length} papers, ${new Set(papers.map(p => p.school)).size} schools`;
+    const rank = (sch) => (sch === 'HSC' ? 0 : /smiths/i.test(sch) ? 1 : 2);
+    const schools = Object.keys(bySchool).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+    const nH = papers.filter(isHsc).length;
+    $('papers-count').textContent = `${nH ? nH + ' HSC exams · ' : ''}${papers.length - nH} trial papers from ${new Set(papers.filter(p => !isHsc(p)).map(p => p.school)).size} schools`;
     const wrap = $('papers-list'); wrap.innerHTML = '';
     if (!schools.length) { wrap.innerHTML = '<p class="muted">Nothing matches.</p>'; return; }
     const { thumbs = {} } = papersData;
     schools.forEach(sch => {
       const list = bySchool[sch].sort((a, b) => b.year - a.year);
       const sec = mk('section', 'pschool');
-      sec.appendChild(mk('h2', '', `${esc(sch)} ${list[0] ? levelBadge(list[0]) : ''}`));
+      if (sch === 'HSC') sec.classList.add('hsc');
+      sec.appendChild(mk('h2', '', sch === 'HSC' ? `HSC exams ${levelBadge(list[0])}<span class="small muted sec-note">The real thing, from NESA</span>` : `${esc(sch)} ${list[0] ? levelBadge(list[0]) : ''}`));
       const grid = mk('div', 'pgrid');
       list.forEach(p => {
         const s = sum[p.id] || {};
@@ -1027,11 +1033,15 @@
     const pdfBase = { title: `${p.school} ${p.year} · ${C.subjects[p.subject] || p.subject}`, sub: `${qs.length} questions${total ? ' · ' + total + ' marks' : ''}`, filename: paperFile(p), qs: qs.filter(q => q.image_path) };
     $('paper-pdf').onclick = () => officialPdf($('paper-pdf'), p, 'pdf_path', pdfBase, $('paper-error'));
     $('paper-pdf-sol').onclick = () => officialPdf($('paper-pdf-sol'), p, 'pdf_sol_path', { ...pdfBase, filename: paperFile(p).replace('.pdf', '-solutions.pdf'), withSolutions: true }, $('paper-error'));
-    $('paper-title').textContent = `${p.school} ${p.year}`;
+    $('paper-title').textContent = isHsc(p) ? `${p.year} HSC exam` : `${p.school} ${p.year}`;
+    $('tab-sol-btn').textContent = isHsc(p) ? 'Marking guidelines' : 'Solutions';
+    $('paper-pdf-sol').textContent = isHsc(p) ? 'Download marking guidelines' : 'Download with solutions';
+    const hasQs = qs.some(q => q.image_path);
+    $('paper-noq').hidden = hasQs; document.querySelector('#tab-practise .paper-actions').hidden = !hasQs;
     state.paperView = { p };
     $('paper-pdf').textContent = p.pdf_path ? 'Download PDF' : 'Download';
     paperTab(p.pdf_path || !qs.length ? 'paper' : 'practise');
-    $('paper-meta').innerHTML = levelBadge(p) + ' ' + esc([C.subjects[p.subject] || p.subject, `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · '));
+    $('paper-meta').innerHTML = levelBadge(p) + ' ' + esc([C.subjects[p.subject] || p.subject, qs.length ? `${qs.length} questions` : null, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · '));
     $('paper-practise').onclick = async () => {
       const usable = qs.filter(q => q.image_path);
       if (!usable.length) return;
@@ -1101,7 +1111,7 @@
       $('resume-btn').onclick = () => busy(async () => { try { await resumeExam(saved); } catch (err) { $('resume-sub').textContent = err.message; } });
     }
     const sel = $('mark-paper'); const keep = sel.value;
-    sel.innerHTML = '<option value="">Pick the paper</option>' + homePapers.filter(p => !p.scanned)
+    sel.innerHTML = '<option value="">Pick the paper</option>' + homePapers.filter(p => !p.scanned && !isHsc(p))
       .map(p => `<option value="${p.id}">${esc(p.school)} ${p.year}</option>`).join('');
     sel.value = keep;
     $('quick-desc').textContent = state.weak && state.weak.length
@@ -1725,6 +1735,24 @@
   $('me-modal').addEventListener('click', (ev) => { if (ev.target.id === 'me-modal') closeMe(); });
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('me-modal').hidden) closeMe(); });
 
+  // ---------- auto-marking allowance: "3 of 4 left this month" ----------
+  const PER_PAPER_USD = 0.45;            // rough cost of marking one paper
+  async function drawMarkLeft() {
+    if (!state.user || state.preview) return;
+    const { data, error } = await sb.rpc('my_automark_usage');
+    const u = !error && data && data[0]; if (!u) return;
+    let text, out = false;
+    if (u.unlimited) text = 'Upload your working · unlimited (admin)';
+    else {
+      const total = Math.max(1, Math.floor(Number(u.limit_usd) / PER_PAPER_USD));
+      const left = Math.max(0, Math.min(total, Math.floor((Number(u.limit_usd) - Number(u.used_usd)) / PER_PAPER_USD)));
+      out = left === 0;
+      const next = new Date(); next.setUTCMonth(next.getUTCMonth() + 1, 1);
+      text = out ? `Used up · back on ${next.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })}` : `${left} of ${total} left this month`;
+    }
+    ['mark-left', 'paper-mark-left'].forEach(id => { const el = $(id); if (el) { el.textContent = text; el.classList.toggle('used-up', out); } });
+  }
+
   // ---------- daily streak: one tick per day you open Trialbank (Sydney time) ----------
   const dayOf = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
   const prevDay = (day) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
@@ -1989,6 +2017,7 @@
     } catch (err) {
       say(err.message || String(err), 'error');
     } finally {
+      drawMarkLeft();
       btn.disabled = false;
       if (paths.length) sb.storage.from('submissions').remove(paths).catch(() => {});
     }
