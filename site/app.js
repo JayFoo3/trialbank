@@ -580,7 +580,7 @@
     const tb = $('users-table').querySelector('tbody'); tb.innerHTML = '';
     (users || []).forEach(u => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${u.email}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? u.roster_name : '<b style="color:#c0392b">Not on list</b>') : '—'}</td><td></td>`;
+      tr.innerHTML = `<td>${u.email}</td><td>${u.given_name ? esc(u.given_name) : '-'}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? esc(u.roster_name) + (u.matched_by === 'name' ? ' <span class="muted small">(by name)</span>' : '') : '<b style="color:#c0392b">Not on list</b>') : '-'}</td><td></td>`;
       const b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
       b.onclick = async () => {
         if (u.email.toLowerCase() === state.user.email.toLowerCase()) return;
