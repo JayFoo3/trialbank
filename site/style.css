@@ -706,3 +706,26 @@ svg.out text { stroke: var(--muted); }
 .toast-flame { display: inline-block; width: 22px; height: 26px; vertical-align: middle; margin-right: 8px; }
 @media (max-width: 640px) { .streak-pop { right: 0; } }
 @media (prefers-reduced-motion: reduce) { .streak .fl, .sp-flame .fl, .streak.bump svg { animation: none; } }
+
+/* ---------- difficulty badges: signal bars, easy to impossible ---------- */
+.lvl { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 7px; border-radius: 999px; font-family: var(--display); font-size: .8rem;
+  vertical-align: middle; line-height: 1.2; background: var(--lv-soft); color: var(--lv); border: 2px solid color-mix(in srgb, var(--lv) 30%, transparent); }
+.lvl b { font-weight: 800; }
+.lvl .bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 13px; }
+.lvl .bars i { width: 4px; border-radius: 2px; background: color-mix(in srgb, var(--lv) 25%, transparent); }
+.lvl .bars i:nth-child(1) { height: 5px; } .lvl .bars i:nth-child(2) { height: 8px; } .lvl .bars i:nth-child(3) { height: 11px; } .lvl .bars i:nth-child(4) { height: 14px; }
+.lvl .bars i.on { background: var(--lv); }
+.lvl-easy { --lv: #1fa45a; --lv-soft: #e1f6e9; }
+.lvl-medium { --lv: #d98a00; --lv-soft: #fff3d6; }
+.lvl-hard { --lv: #e5484d; --lv-soft: #fdeaea; }
+.lvl-impossible { --lv: #8b2fd6; --lv-soft: #f1e6fc; }
+.lvl-impossible .bars i.on { animation: lvl-throb 1.6s ease-in-out infinite; }
+.lvl-impossible .bars i.on:nth-child(2) { animation-delay: .1s; } .lvl-impossible .bars i.on:nth-child(3) { animation-delay: .2s; } .lvl-impossible .bars i.on:nth-child(4) { animation-delay: .3s; }
+@keyframes lvl-throb { 50% { transform: scaleY(.6); } }
+:root[data-theme="dark"] .lvl { --lv-soft: color-mix(in srgb, var(--lv) 18%, var(--paper)); }
+.pschool h2 { display: flex; align-items: center; gap: 10px; }
+.pname { align-items: center; }
+.pname .lvl { padding: 3px 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+#paper-meta .lvl { margin-right: 6px; }
+@media (prefers-reduced-motion: reduce) { .lvl-impossible .bars i.on { animation: none; } }

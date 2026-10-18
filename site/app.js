@@ -714,6 +714,18 @@
   // ======================================================================
   const qLabel = (q) => label(q);
   const diffOf = (p) => (['Easier', 'Medium', 'Hard'].includes(p.difficulty) ? p.difficulty : null);
+  // four-step difficulty for display: James Ruse sits above the other hard papers
+  const LEVELS = { easy: [1, 'Easy'], medium: [2, 'Medium'], hard: [3, 'Hard'], impossible: [4, 'Impossible'] };
+  function levelOf(p) {
+    if (p.difficulty === 'Easier') return 'easy';
+    if (p.difficulty === 'Hard') return /james ruse/i.test(p.school || '') ? 'impossible' : 'hard';
+    return 'medium';
+  }
+  function levelBadge(p, withText = true) {
+    const k = levelOf(p), [n, label] = LEVELS[k];
+    const bars = [1, 2, 3, 4].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('');
+    return `<span class="lvl lvl-${k}" title="${label}"><span class="bars" aria-hidden="true">${bars}</span>${withText ? `<b>${label}</b>` : `<span class="sr">${label}</span>`}</span>`;
+  }
 
   // ---------- image trimming and PDF export ----------
   // Question crops come with blank bands above and below. Trim them in the browser (top and bottom only,
@@ -893,7 +905,7 @@
     schools.forEach(sch => {
       const list = bySchool[sch].sort((a, b) => b.year - a.year);
       const sec = mk('section', 'pschool');
-      sec.appendChild(mk('h2', '', esc(sch)));
+      sec.appendChild(mk('h2', '', `${esc(sch)} ${list[0] ? levelBadge(list[0]) : ''}`));
       const grid = mk('div', 'pgrid');
       list.forEach(p => {
         const s = sum[p.id] || {};
@@ -902,7 +914,7 @@
         a.title = `${p.school} ${p.year}`;
         const url = thumbs[`${p.slug}/thumb.webp`];
         a.innerHTML = `<div class="pthumb">${url ? `<img loading="lazy" alt="" src="${url}">` : `<span>${esc(p.school)}<br>${p.year}</span>`}${best[p.id] != null ? `<span class="tag">${best[p.id]}%</span>` : ''}</div>
-          <div class="pname"><strong>${p.year}</strong><span class="muted small">${s.total_marks ? s.total_marks + ' marks' : ''}</span></div>`;
+          <div class="pname"><strong>${p.year}</strong>${levelBadge(p, false)}</div>`;
         const im = a.querySelector('img');
         if (im) im.onerror = () => { im.replaceWith(Object.assign(mk('span', '', `${esc(p.school)}<br>${p.year}`))); };
         grid.appendChild(a);
@@ -974,7 +986,7 @@
     state.paperView = { p };
     $('paper-pdf').textContent = p.pdf_path ? 'Download PDF' : 'Download';
     paperTab(p.pdf_path || !qs.length ? 'paper' : 'practise');
-    $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, diffOf(p), `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · ');
+    $('paper-meta').innerHTML = levelBadge(p) + ' ' + esc([C.subjects[p.subject] || p.subject, `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · '));
     $('paper-practise').onclick = async () => {
       const usable = qs.filter(q => q.image_path);
       if (!usable.length) return;
