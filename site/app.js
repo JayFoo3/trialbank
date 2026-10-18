@@ -1634,7 +1634,7 @@
       document.body.appendChild(d); setTimeout(() => d.remove(), 3400);
     }
   }
-  $('auth-mascot').innerHTML = Mascot('wave');
+  $('auth-mascot').innerHTML = Mascot('proud');
 
   // ---------- spotlight tour for new students: they tap each lit-up control for real ----------
   const TOUR = [
