@@ -65,10 +65,12 @@
     const btn = mk('button', 'subj-btn', `${esc(shortName(C.subjects[state.subject]))}<span class="caret" aria-hidden="true"></span>`);
     btn.title = C.subjects[state.subject]; btn.setAttribute('aria-haspopup', 'true'); btn.setAttribute('aria-expanded', 'false');
     const menu = mk('div', 'menu subj-menu'); menu.hidden = true;
-    names.forEach(name => {
+    const ready = names.filter(keyOf), later = names.filter(n => !keyOf(n));
+    [...ready, ...later].forEach((name, idx) => {
       const key = keyOf(name);
+      if (!key && idx === ready.length) menu.appendChild(mk('div', 'group', 'Coming soon'));
       const it = mk('button', 'menu-item' + (key === state.subject ? ' on' : '') + (key ? '' : ' soon'),
-        `<span>${esc(name)}</span>${key ? (key === state.subject ? '<span class="cur">Current</span>' : '') : '<span class="soon-tag">Soon</span>'}`);
+        `<span>${esc(name)}</span>${key === state.subject ? '<span class="cur">Current</span>' : ''}`);
       it.onclick = () => {
         menu.hidden = true;
         if (!key) return comingSoon(name);
