@@ -20,6 +20,7 @@
   // ---------- routing ----------
   const NAV = { home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers' };
   function show(name) {
+    $('preview-bar').hidden = !(state.preview && state.user);
     views.forEach(v => $('view-' + v).hidden = v !== name);
     $('nav').hidden = !state.user; $('top-right').hidden = !state.user;
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === NAV[name]));
@@ -144,6 +145,8 @@
     state.admin = false;
     if (state.user) { const { data } = await sb.rpc('is_admin'); state.admin = !!data; }
     $('nav-admin').hidden = !state.admin;
+    $('preview-new').hidden = !state.admin || state.preview;
+    if (!state.admin) state.preview = false;
   }
 
   // ---------- home ----------
@@ -313,6 +316,7 @@
   };
   function verdict(text, cls) { $('verdict').textContent = text; $('verdict').className = 'verdict ' + cls; $('verdict').hidden = false; }
   async function record(score, outOf, chosen, group, btn) {
+    if (state.preview) previewFlags.attempted = 1;
     const s = state.set, x = s.qs[s.i];
     if (group) { group.querySelectorAll('button').forEach(o => { o.disabled = true; }); btn.classList.add('picked'); }
     s.results[s.i] = { q: x, score, outOf };
@@ -853,7 +857,7 @@
     $('home-sub').textContent = C.subjects[state.subject];
     renderExamSetup();
     // an exam left running or unmarked
-    const saved = lsGet(saveKey());
+    const saved = state.preview ? null : lsGet(saveKey());
     $('resume-banner').hidden = true;
     const [, { data: papers }] = await Promise.all([
       renderReview(),
@@ -1166,13 +1170,14 @@
   // ---------- review ----------
   async function renderReview() {
     $('review-error').hidden = true;
-    const [{ data: mine }, { data: stars }, { data: ex }] = await Promise.all([
+    let [{ data: mine }, { data: stars }, { data: ex }] = await Promise.all([
       sb.from('my_topic_stats').select('*').eq('subject', state.subject),
       sb.from('bookmarks').select('question_id'),
       sb.from('exams').select('started_at, seconds_used, score, out_of, work_minutes, papers!inner(school, year, subject)').eq('papers.subject', state.subject).order('started_at', { ascending: false }).limit(20),
     ]);
     state.weak = (mine || []).filter(r => r.out_of >= 3).map(r => ({ ...r, pct: r.score / r.out_of })).sort((a, b) => a.pct - b.pct).slice(0, 3);
-    state.attempted = (mine || []).some(r => r.out_of > 0);
+    if (state.preview) { mine = []; stars = []; ex = []; }   // admin preview: show what a brand-new student sees
+    state.attempted = state.preview ? !!previewFlags.attempted : (mine || []).some(r => r.out_of > 0);
     $('weak-list').textContent = state.weak.length ? state.weak.map(w => w.topic).join(', ') : 'None yet';
     $('wrong-sub').textContent = state.attempted ? '' : 'None yet';
     $('drill-weak').disabled = !state.weak.length;
@@ -1222,7 +1227,20 @@
   };
 
   // ---------- start-here guide (new users) ----------
-  const flag = (k, v) => { try { if (v === undefined) return localStorage.getItem('tb_' + k) === '1'; localStorage.setItem('tb_' + k, '1'); } catch { return false; } };
+  // ---------- admin: test as a new user (session only, real progress untouched) ----------
+  let previewFlags = {};
+  try { state.preview = sessionStorage.getItem('tb_preview') === '1'; } catch {}
+  $('preview-new').onclick = () => {
+    try { sessionStorage.setItem('tb_preview', '1'); } catch {}
+    state.preview = true; previewFlags = {}; $('account-menu').hidden = true; $('preview-new').hidden = true;
+    if (location.hash === '#home') route(); else location.hash = '#home';
+  };
+  $('preview-exit').onclick = () => {
+    try { sessionStorage.removeItem('tb_preview'); } catch {}
+    state.preview = false; previewFlags = {}; $('preview-new').hidden = !state.admin;
+    if (location.hash === '#home') route(); else location.hash = '#home';
+  };
+  const flag = (k, v) => { if (state.preview) { if (v === undefined) return !!previewFlags[k]; previewFlags[k] = 1; return; } try { if (v === undefined) return localStorage.getItem('tb_' + k) === '1'; localStorage.setItem('tb_' + k, '1'); } catch { return false; } };
   function renderOnboard() {
     const box = $('onboard');
     const done = { subject: flag('picked_subject'), first: !!state.attempted, papers: flag('seen_papers') };

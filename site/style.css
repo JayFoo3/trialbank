@@ -314,3 +314,5 @@ h2.sec { color: var(--muted); font-size: .95rem; font-weight: 600; margin-top: 3
   .others { grid-template-columns: 1fr; }
   .other + .other { border-left: 0; border-top: 1px solid var(--rule); }
 }
+.preview-bar { background: var(--ink); color: #fff; text-align: center; font-size: .88rem; padding: 7px 12px; }
+.preview-bar .link { color: var(--hl); margin-left: 10px; }
