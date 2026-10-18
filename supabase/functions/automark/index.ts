@@ -90,6 +90,9 @@ Deno.serve(async (req) => {
   const { data: ures, error: uerr } = await admin.auth.getUser(token);
   const user = ures?.user;
   if (uerr || !user) return json({ error: 'Please sign in again.' }, 401);
+  // release dial: auto-marking opens at 75 (see supabase/release.sql)
+  const { data: dial } = await admin.rpc('release_for', { uid: user.id });
+  if (dial !== null && Number(dial) < 75) return json({ error: 'Auto-marking is not open yet.' }, 403);
 
   let body: { paper_id?: number; pages?: string[]; question_ids?: string[]; chunks?: Record<string, string[]> };
   try { body = await req.json(); } catch { return json({ error: 'Bad request' }, 400); }

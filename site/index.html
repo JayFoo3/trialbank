@@ -23,7 +23,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <a href="#home" data-nav="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></a>
       <a href="#practise" data-nav="practise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg><span>Practise</span></a>
       <a href="#papers" data-nav="papers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/></svg><span>Papers</span></a>
-      <a href="#progress" data-nav="progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Progress</span></a>
+      <a href="#progress" data-nav="progress" data-feature="progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Progress</span></a>
     </nav>
     <div class="top-right" id="top-right" hidden>
       <div class="subject" id="subject-switch" role="group" aria-label="Subject"></div>
@@ -120,6 +120,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <section id="view-home" class="view" hidden>
     <h1 class="hello" id="home-hello">Hi</h1>
     <p class="muted small" id="home-sub"></p>
+    <p class="small muted release-note" id="release-note" hidden></p>
 
     <!-- the one thing to do next: resume an exam, a first set for new students, or a quick set -->
     <section class="next" aria-labelledby="next-title">
@@ -139,7 +140,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </section>
 
     <div class="others">
-      <details class="other">
+      <details class="other" data-feature="exam">
         <summary><strong>Timed paper</strong><span class="muted small">Full paper, on the clock</span></summary>
         <div class="other-body">
           <p class="small muted">Time: <span id="exam-times"></span></p>
@@ -151,7 +152,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
           <p class="error small" id="exam-error" hidden></p>
         </div>
       </details>
-      <details class="other">
+      <details class="other" data-feature="automark">
         <summary><strong>Mark a paper</strong><span class="muted small" id="mark-left">Upload your working</span></summary>
         <div class="other-body">
           <select id="mark-paper" aria-label="Which paper"><option value="">Pick the paper</option></select>
@@ -161,12 +162,12 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <a class="other" href="#practise"><strong>Pick topics</strong><span class="muted small">Build your own set</span></a>
     </div>
 
-    <h2 class="sec">Weak spots</h2>
-    <div class="checkup" id="checkup" hidden>
+    <h2 class="sec" data-feature="weak">Weak spots</h2>
+    <div class="checkup" id="checkup" hidden data-feature="weak">
       <div><strong>Find your weak spots</strong><span class="small muted">12 quick questions, one from each topic.</span></div>
       <button class="secondary" id="checkup-go">Start check-up</button>
     </div>
-    <div class="list" id="weak-rows">
+    <div class="list" id="weak-rows" data-feature="weak">
       <button class="li" id="drill-weak"><span><strong>Weakest topics</strong><span class="small muted" id="weak-list"></span></span><span class="go" aria-hidden="true">›</span></button>
       <button class="li" id="drill-wrong"><span><strong>Got wrong</strong><span class="small muted" id="wrong-sub"></span></span><span class="go" aria-hidden="true">›</span></button>
       <button class="li" id="drill-stars"><span><strong>Starred</strong><span class="small muted" id="star-count"></span></span><span class="go" aria-hidden="true">›</span></button>
@@ -270,7 +271,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <div class="row">
       <a class="primary button" href="#practise">Another set</a>
       <a class="button" href="#home">Home</a>
-      <a class="button ghost" href="#progress">See progress</a>
+      <a class="button ghost" href="#progress" data-feature="progress">See progress</a>
     </div>
   </section>
 
@@ -326,8 +327,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <div class="tabpane" id="tab-practise" hidden>
       <div class="paper-actions">
         <button class="pa" id="paper-practise"><strong>Practise</strong><span class="small muted">Every question, one at a time</span></button>
-        <button class="pa" id="paper-exam"><strong>Sit timed</strong><span class="small muted">Full paper on the clock</span></button>
-        <button class="pa" id="paper-automark"><strong>Mark my paper</strong><span class="small muted" id="paper-mark-left">Upload your working</span></button>
+        <button class="pa" id="paper-exam" data-feature="exam"><strong>Sit timed</strong><span class="small muted">Full paper on the clock</span></button>
+        <button class="pa" id="paper-automark" data-feature="automark"><strong>Mark my paper</strong><span class="small muted" id="paper-mark-left">Upload your working</span></button>
       </div>
       <p class="muted" id="paper-noq" hidden>The questions from this paper aren't split out for practice yet. Use the Paper tab for now.</p>
       <div id="paper-body"></div>
@@ -364,11 +365,22 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div class="row stats-foot"><label class="small"><input type="checkbox" id="st-admins"> Include admin accounts</label><button class="link small" id="st-csv">Download daily CSV</button><span class="muted small" id="st-since"></span></div>
     </div>
 
+    <div class="card release" id="release-card">
+      <h2>Release dial</h2>
+      <p class="small muted">How much of Trialbank each group gets. Admins always get everything. HSC papers are always visible; trial papers open oldest and easiest first, Smiths Hill's last.</p>
+      <div class="rel-row"><div class="rel-head"><strong>Your cohort</strong><span class="small muted">class list and roster</span><b id="rel-cohort-v"></b></div>
+        <input type="range" id="rel-cohort" min="0" max="100" step="5"><p class="small muted rel-what" id="rel-cohort-what"></p></div>
+      <div class="rel-row"><div class="rel-head"><strong>Everyone else</strong><span class="small muted">public sign-ups</span><b id="rel-public-v"></b></div>
+        <input type="range" id="rel-public" min="0" max="100" step="5"><p class="small muted rel-what" id="rel-public-what"></p></div>
+      <div class="row"><button class="primary" id="rel-save">Save dial</button><span class="muted small" id="rel-saved"></span></div>
+      <p class="small muted">To let anyone sign up, set Who can sign up to Anyone below.</p>
+    </div>
+
     <div class="card">
       <h2>Who can sign up</h2>
       <div class="opt">
         <span>Mode</span>
-        <div class="seg" id="admin-mode"><button data-v="whitelist">Class list only</button><button data-v="domain">Any school email</button></div>
+        <div class="seg" id="admin-mode"><button data-v="whitelist">Class list only</button><button data-v="domain">Any school email</button><button data-v="open">Anyone</button></div>
       </div>
       <label>Invite code (blank = none needed) <input id="admin-code" type="text" autocomplete="off"></label>
       <label>Admin emails (comma-separated) <input id="admin-admins" type="text" autocomplete="off"></label>

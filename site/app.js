@@ -40,7 +40,7 @@
     if (!state.preview) sb.rpc('log_visit', { v: h || 'home' }).then(() => {}, () => {});   // engagement stats for the Admin page
     return busy(async () => {
       if (h === 'practise') { show('practise'); await renderBuild(); return; }
-      if (h === 'progress') { show('progress'); await renderProgress(); return; }
+      if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
       if (h === 'admin' && state.admin) { show('admin'); await renderAdmin(); return; }
       if (h === 'set' && state.set) return show('set');
       if (h === 'summary' && state.set) return show('summary');
@@ -240,9 +240,21 @@
       route();
     }, 0);
   });
+  // ---------- release dial: what this student gets (papers are limited in the database; features here) ----------
+  const FEATURE_AT = { weak: 25, exam: 25, progress: 40, lost: 50, automark: 75 };
+  const FEATURE_NAMES = [['weak', 'weak spots and got-wrong drills'], ['exam', 'timed papers'], ['progress', 'the Progress page'], ['lost', 'lost-mark tagging'], ['automark', 'auto-marking']];
+  state.release = { dial: 100, tier: 'admin' };
+  const can = (f) => state.admin || (state.release?.dial ?? 100) >= (FEATURE_AT[f] ?? 0);
+  function applyRelease() {
+    document.querySelectorAll('[data-feature]').forEach(el => el.classList.toggle('feature-off', !can(el.dataset.feature)));
+    const d = state.release?.dial ?? 100, note = $('release-note');
+    if (note) { note.hidden = state.admin || d >= 100; note.textContent = 'Trialbank is opening up in stages: more papers and features are on the way.'; }
+  }
   async function checkAdmin() {
     state.admin = false;
     if (state.user) { const { data } = await sb.rpc('is_admin'); state.admin = !!data; }
+    if (state.user && !state.preview) { const { data: rel } = await sb.rpc('my_release'); if (rel) state.release = rel; }
+    applyRelease();
     $('nav-admin').hidden = !state.admin;
     $('preview-new').hidden = !state.admin || state.preview;
     if (!state.admin) state.preview = false;
@@ -562,6 +574,7 @@
   const reasonName = Object.fromEntries(REASONS);
   // builds the "which marks did you lose, and why" tagger; res = { outOf, lost: [...] }
   function lostTagger(res, nLost, onChange) {
+    if (!can('lost')) return mk('div');
     res.lost = res.lost || [];
     const outOf = res.outOf;
     const root = mk('div', 'lost');
@@ -765,6 +778,24 @@
     a.href = URL.createObjectURL(new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' }));
     a.download = `trialbank-engagement-${statsDays}d.csv`; a.click();
   };
+  function releaseWhat(d) {
+    const on = FEATURE_NAMES.filter(([f]) => d >= FEATURE_AT[f]).map(x => x[1]);
+    const off = FEATURE_NAMES.filter(([f]) => d < FEATURE_AT[f]);
+    return `${d >= 100 ? 'Every trial paper' : d === 0 ? 'HSC papers only' : `About ${d}% of trial papers`}, plus practise and papers` +
+      (on.length ? `, ${on.join(', ')}` : '') + '.' + (off.length ? ` Next: ${off[0][1]} at ${FEATURE_AT[off[0][0]]}.` : '');
+  }
+  function drawRelease(s) {
+    [['cohort', s.release_cohort ?? '100'], ['public', s.release_public ?? '10']].forEach(([k, v]) => {
+      const r = $('rel-' + k); r.value = v;
+      const sync = () => { $(`rel-${k}-v`).textContent = r.value; $(`rel-${k}-what`).textContent = releaseWhat(+r.value); };
+      r.oninput = sync; sync();
+    });
+    $('rel-save').onclick = async () => {
+      $('rel-save').disabled = true; $('rel-saved').textContent = '';
+      const { error } = await sb.from('settings').upsert([{ key: 'release_cohort', value: $('rel-cohort').value }, { key: 'release_public', value: $('rel-public').value }]);
+      $('rel-save').disabled = false; $('rel-saved').textContent = error ? error.message : 'Saved. Students see the change next time they load the site.';
+    };
+  }
   async function renderAdmin() {
     renderStats();
     const [{ data: settings }, { data: emails }, { data: users }, { data: roster }] = await Promise.all([
@@ -778,6 +809,7 @@
     renderAutomarkAdmin(s0 => s0, settings);
     $('ntfy-topic').textContent = (settings || []).find(r => r.key === 'ntfy_topic')?.value || 'not set';
     const s = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
+    drawRelease(s);
     document.querySelectorAll('#admin-mode button').forEach(b => b.classList.toggle('on', b.dataset.v === (s.signup_mode || 'domain')));
     $('admin-code').value = s.invite_code || '';
     $('admin-admins').value = s.admin_emails || '';
