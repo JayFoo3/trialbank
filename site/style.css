@@ -290,3 +290,5 @@ body.focus .top-in { justify-content: flex-start; }
 
 @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .pgrid { grid-template-columns: repeat(3, 1fr); gap: 10px; } .pname .small { display: none; } }
+.steps li.done .primary, .steps li.done .button { display: none; }
+.hint { margin-top: 4px; }
