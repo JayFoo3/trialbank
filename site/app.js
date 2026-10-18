@@ -126,7 +126,7 @@
   function openSubjects(first) {
     const sel = new Set(chosenNames() || []);
     const em = (state.user?.email || '').split('@')[0];
-    $('subj-name').value = myName() || (/[._]/.test(em) ? (em.split(/[._\d]/).filter(Boolean)[0] || '').replace(/^./, c => c.toUpperCase()) : '');
+    $('subj-name').value = myName() || (/[._]/.test(em) ? em.split(/[._\d]/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase() + w.slice(1)).join(' ') : '');
     $('subj-name').oninput = () => sync();
     const names = [...Object.values(C.subjects), ...HSC.filter(n => !Object.values(C.subjects).includes(n))];
     const grid = $('subj-grid'); grid.innerHTML = '';
@@ -155,7 +155,7 @@
     $('subj-save').onclick = async () => {
       const list = names.filter(n => sel.has(n));
       $('subj-save').disabled = true;
-      const fname = $('subj-name').value.trim().slice(0, 30);
+      const fname = $('subj-name').value.trim().slice(0, 40);
       if (state.preview) { previewFlags.subjects = list; previewFlags.name = fname; }
       else {
         const { data, error } = await sb.auth.updateUser({ data: { subjects: list, first_name: fname } });
