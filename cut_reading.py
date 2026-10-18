@@ -437,6 +437,8 @@ def main():
     pdf = os.path.abspath(a.pdf)
     digest = sha256(pdf)
     rpath = os.path.join(os.path.expanduser(a.readings), digest + '.json')
+    if not os.path.exists(rpath):    # Trialbank's own readings (read_advanced.py)
+        rpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'readings', digest + '.json')
     if not os.path.exists(rpath):
         print(f'NO READING: {os.path.basename(pdf)} ({digest[:12]})', file=sys.stderr)
         sys.exit(3)

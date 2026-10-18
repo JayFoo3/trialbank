@@ -143,7 +143,7 @@
     const sync = () => {
       $('subj-save').disabled = !sel.size || !$('subj-name').value.trim();
       const ready = [...sel].filter(keyOf).length, soon = sel.size - ready;
-      $('subj-note').textContent = soon && !ready ? 'None of these have questions yet. Maths Ext 1 and Physics are ready now.'
+      $('subj-note').textContent = soon && !ready ? `None of these have questions yet. ${Object.values(C.subjects).map(shortName).join(', ').replace(/, ([^,]*)$/, ' and $1')} are ready now.`
         : soon ? `${soon} of your subjects ${soon === 1 ? 'is' : 'are'} coming soon.` : '';
     };
     $('subj-search').value = '';
