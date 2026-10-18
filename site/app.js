@@ -995,11 +995,27 @@
     papersData = { papers: papers || [], sum: Object.fromEntries((sums || []).map(s => [s.paper_id, s])), best, thumbs };
     drawPapers();
   }
+  let paperLevel = 'all';            // the level chip that's on: all, a LEVELS key, or 'todo' (not done yet)
+  function drawLevelChips(papers, best) {
+    const el = $('papers-levels'); el.innerHTML = '';
+    const count = (k) => papers.filter(p => k === 'all' || (k === 'todo' ? best[p.id] == null : levelOf(p) === k)).length;
+    const keys = ['all', 'hsc', 'easy', 'medium', 'hard', 'impossible', 'todo'].filter(k => k === 'all' || count(k));
+    if (!keys.includes(paperLevel)) paperLevel = 'all';
+    keys.forEach(k => {
+      const b = mk('button', 'chip' + (k === paperLevel ? ' on' : ''),
+        `${k === 'all' ? 'All' : k === 'todo' ? 'Not done yet' : LEVELS[k][1]}<span class="n">${count(k)}</span>`);
+      b.setAttribute('aria-pressed', k === paperLevel);
+      b.onclick = () => { paperLevel = k; drawPapers(); };
+      el.appendChild(b);
+    });
+  }
   function drawPapers() {
     const { papers, sum, best } = papersData;
     const q = $('papers-filter').value.trim().toLowerCase();
+    drawLevelChips(papers, best);
     const bySchool = {};
     papers.filter(p => !q || p.school.toLowerCase().includes(q) || String(p.year).includes(q))
+      .filter(p => paperLevel === 'all' || (paperLevel === 'todo' ? best[p.id] == null : levelOf(p) === paperLevel))
       .forEach(p => (bySchool[p.school] = bySchool[p.school] || []).push(p));
     const rank = (sch) => (sch === 'HSC' ? 0 : /smiths/i.test(sch) ? 1 : 2);
     const schools = Object.keys(bySchool).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
@@ -1201,7 +1217,7 @@
     const local = em.split('@')[0];
     const first = /[._]/.test(local) ? (local.split(/[._\d]/).filter(Boolean)[0] || '') : '';   // only when the address has a first.last shape
     const nm = myName() || (first ? first[0].toUpperCase() + first.slice(1) : '');
-    $('home-hello').textContent = nm ? `Hi ${nm}` : 'Hi';
+    $('home-hello').textContent = nm ? `Hi ${nm.split(/\s+/)[0]}` : 'Hi';
     $('home-sub').textContent = C.subjects[state.subject];
     renderExamSetup();
     // an exam left running or unmarked

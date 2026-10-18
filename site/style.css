@@ -759,3 +759,6 @@ svg.out text { stroke: var(--muted); }
 .cb-sub { display: block; margin-top: 8px; font-family: var(--font); font-size: .95rem; font-weight: 600; color: var(--muted); line-height: 1.4; }
 .confirm-row .link { margin-right: auto; color: var(--muted); }
 .soon-card:has(.confirm-row .link) { width: min(440px, 100%); }
+
+/* papers: difficulty filter */
+.papers-levels { margin: 12px 0 4px; }

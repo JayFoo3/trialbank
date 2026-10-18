@@ -284,7 +284,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <section id="view-papers" class="view" hidden>
     <h1>Papers</h1>
     <p class="muted small" id="papers-count"></p>
-    <input id="papers-filter" type="search" placeholder="Search" autocomplete="off">
+    <input id="papers-filter" type="search" placeholder="Search a school or year" autocomplete="off">
+    <div id="papers-levels" class="chips papers-levels" aria-label="Filter by difficulty"></div>
     <div id="papers-list"></div>
   </section>
 
