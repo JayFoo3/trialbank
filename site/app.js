@@ -42,7 +42,7 @@
       if (h === 'admin' && state.admin) { show('admin'); await renderAdmin(); return; }
       if (h === 'set' && state.set) return show('set');
       if (h === 'summary' && state.set) return show('summary');
-      if (h === 'papers') { show('papers'); await renderPapers(); return; }
+      if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
       if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
       if (h === 'examrun' || h === 'exam') {
         if (state.exam) return show('examrun');
@@ -62,7 +62,7 @@
       b.setAttribute('aria-pressed', key === state.subject);
       b.onclick = () => {
         if (key === state.subject) return;
-        state.subject = key; state.topics.clear();
+        state.subject = key; state.topics.clear(); flag('picked_subject', 1);
         try { localStorage.setItem('tb_subject', key); } catch {}
         const h = (location.hash || '#home').slice(1).split('/')[0];
         if (h === 'paper' || h === 'set' || h === 'summary') location.hash = h === 'paper' ? '#papers' : '#practise'; else route();
@@ -270,13 +270,14 @@
   }
   function renderQuestion() {
     const s = state.set, x = s.qs[s.i];
-    $('set-pos').textContent = `${s.i + 1} of ${s.qs.length} · ${x.topic}`;
-    $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
+    $('set-pos').textContent = `Question ${s.i + 1} of ${s.qs.length}`;
+    $('set-meta').textContent = `${x.topic || 'Mixed'}. ${x.papers.school} ${x.papers.year} ${label(x)}, ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
+    firstHint(x);
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
     const qi = $('q-img'); qi.dataset.trimmed = ''; qi.crossOrigin = 'anonymous'; qi.onload = () => trimImg(qi); qi.src = x.imageUrl;
     $('q-coarse').hidden = !x.coarse;
-    $('star').textContent = '☆ Star';
-    loadStars().then(s => { $('star').textContent = s.has(x.id) ? '★ Starred' : '☆ Star'; });
+    $('star').innerHTML = '<i class="ph ph-star" aria-hidden="true"></i> Star';
+    loadStars().then(s => { $('star').innerHTML = s.has(x.id) ? '<i class="ph-fill ph-star" aria-hidden="true"></i> Starred' : '<i class="ph ph-star" aria-hidden="true"></i> Star'; });
     $('star').onclick = () => toggleStar(x.id, $('star'));
     $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true;
     $('next').hidden = true; $('skip').hidden = false;
@@ -341,7 +342,7 @@
       marks.innerHTML = '';
       for (let m = 1; m <= outOf; m++) {
         const t = res.lost.find(l => l.mark === m);
-        const b = mk('button', (t ? 'tagged' : '') + (cur === m ? ' on' : ''), t ? `Mark ${m} · ${reasonName[t.reason]}` : `Mark ${m}`);
+        const b = mk('button', (t ? 'tagged' : '') + (cur === m ? ' on' : ''), t ? `Mark ${m}: ${reasonName[t.reason]}` : `Mark ${m}`);
         b.onclick = () => { cur = cur === m ? null : m; draw(); drawReasons(); };
         marks.appendChild(b);
       }
@@ -397,14 +398,14 @@
     if (!total && !cfpe) { el.innerHTML = '<p class="muted small">Nothing tagged yet. After checking a solution, tap which marks you lost and why.</p>'; return; }
     if (cfpe) {
       const top = Object.entries(cfpe.topics).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t} (${n})`).join(', ');
-      const p = mk('p', 'small', `<b>${cfpe.n} mark${cfpe.n === 1 ? '' : 's'} still earned CFPE</b> <span class="muted">· your method held up after an earlier slip · mostly ${top}</span>`);
+      const p = mk('p', 'small', `<b>${cfpe.n} mark${cfpe.n === 1 ? '' : 's'} still earned CFPE</b> <span class="muted">Your method held up after an earlier slip, mostly in ${top}.</span>`);
       el.appendChild(p);
     }
     Object.entries(by).sort((a, b) => b[1].n - a[1].n).forEach(([k, r]) => {
       const pct = Math.round(100 * r.n / total);
       const top = Object.entries(r.topics).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t} (${n})`).join(', ');
       const d = mk('div', 'bar clickable ' + (pct >= 40 ? 'low' : pct >= 20 ? 'mid' : 'high'));
-      d.innerHTML = `<div class="lbl"><span>${reasonName[k] || k}</span><span class="muted">${r.n} mark${r.n === 1 ? '' : 's'} · mostly ${top}</span></div>
+      d.innerHTML = `<div class="lbl"><span>${reasonName[k] || k}</span><span class="muted">${r.n} mark${r.n === 1 ? '' : 's'}, mostly ${top}</span></div>
                      <div class="track"><div class="fill" style="width:${pct}%"></div></div>`;
       d.onclick = async () => {
         try { if (!(await setFromIds([...r.ids], 15))) throw new Error('Those questions are not available any more.'); }
@@ -426,7 +427,8 @@
     $('summary-title').textContent = title; $('summary-extra').textContent = '';
     const rs = state.set.results.filter(Boolean);
     const score = rs.reduce((a, r) => a + r.score, 0), outOf = rs.reduce((a, r) => a + r.outOf, 0);
-    $('summary-score').textContent = outOf ? `${score} / ${outOf}  (${Math.round(100 * score / outOf)}%)` : 'Nothing marked';
+    $('summary-score').textContent = outOf ? `${score}/${outOf}` : 'Nothing marked';
+    if (outOf) $('summary-extra').textContent = `${Math.round(100 * score / outOf)}% of the marks.`;
     const byTopic = {};
     rs.forEach(r => { const t = byTopic[r.q.topic] = byTopic[r.q.topic] || { score: 0, out_of: 0 }; t.score += r.score; t.out_of += r.outOf; });
     bars($('summary-topics'), Object.entries(byTopic).map(([topic, v]) => ({ topic, ...v })));
@@ -450,7 +452,7 @@
       .forEach(r => {
         const d = document.createElement('div');
         d.className = 'bar ' + (r.pct < 50 ? 'low' : r.pct < 75 ? 'mid' : 'high');
-        d.innerHTML = `<div class="lbl"><span>${r.topic}</span><span class="muted">${r.pct}% · ${r.score}/${r.out_of}${r.extra ? ' · ' + r.extra : ''}</span></div>
+        d.innerHTML = `<div class="lbl"><span>${r.topic}</span><span class="muted">${r.pct}%, ${r.score} of ${r.out_of} marks${r.extra ? ', ' + r.extra : ''}</span></div>
                        <div class="track"><div class="fill" style="width:${r.pct}%"></div></div>`;
         el.appendChild(d);
       });
@@ -467,7 +469,7 @@
       sb.from('roster').select('name'),
     ]);
     rosterN = (roster || []).length;
-    $('roster-count').textContent = `· ${rosterN}`;
+    $('roster-count').textContent = `(${rosterN})`;
     renderAutomarkAdmin(s0 => s0, settings);
     $('ntfy-topic').textContent = (settings || []).find(r => r.key === 'ntfy_topic')?.value || 'not set';
     const s = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
@@ -479,7 +481,7 @@
     const tb = $('users-table').querySelector('tbody'); tb.innerHTML = '';
     (users || []).forEach(u => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${u.email}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? u.roster_name : '<b style="color:#c0392b">Not on list</b>') : '—'}</td><td></td>`;
+      tr.innerHTML = `<td>${u.email}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? u.roster_name : '<b style="color:#c0392b">Not on list</b>') : '-'}</td><td></td>`;
       const b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
       b.onclick = async () => {
         if (u.email.toLowerCase() === state.user.email.toLowerCase()) return;
@@ -490,9 +492,9 @@
       };
       tr.lastElementChild.appendChild(b); tb.appendChild(tr);
     });
-    $('users-count').textContent = `· ${(users || []).length}`;
+    $('users-count').textContent = `(${(users || []).length})`;
   }
-  function day(ts) { return ts ? new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '—'; }
+  function day(ts) { return ts ? new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '-'; }
   function drawAllowed() {
     const f = $('allowed-filter').value.trim().toLowerCase();
     const ul = $('allowed-list'); ul.innerHTML = '';
@@ -506,7 +508,7 @@
       };
       li.appendChild(b); ul.appendChild(li);
     });
-    $('allowed-count').textContent = `· ${allowed.length}`;
+    $('allowed-count').textContent = `(${allowed.length})`;
   }
   $('allowed-filter').oninput = drawAllowed;
   $('allowed-add-btn').onclick = async () => {
@@ -663,7 +665,7 @@
     const n = pdf.getNumberOfPages();
     for (let p = 1; p <= n; p++) {
       pdf.setPage(p); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(130);
-      pdf.text(`Trialbank  ·  for study within our school only  ·  page ${p} of ${n}`, W / 2, H - 7, { align: 'center' });
+      pdf.text(`Trialbank, for study within our school only. Page ${p} of ${n}`, W / 2, H - 7, { align: 'center' });
     }
     pdf.save(filename);
   }
@@ -717,11 +719,11 @@
       stars.add(id);
       await sb.from('bookmarks').insert({ user_id: state.user.id, question_id: id });
     }
-    btn.textContent = stars.has(id) ? '★ Starred' : '☆ Star';
+    btn.innerHTML = stars.has(id) ? '<i class="ph-fill ph-star" aria-hidden="true"></i> Starred' : '<i class="ph ph-star" aria-hidden="true"></i> Star';
   }
   function starButton(q) {
-    const b = mk('button', 'link', '☆ Star');
-    loadStars().then(s => { b.textContent = s.has(q.id) ? '★ Starred' : '☆ Star'; });
+    const b = mk('button', 'link', '<i class="ph ph-star" aria-hidden="true"></i> Star');
+    loadStars().then(s => { b.innerHTML = s.has(q.id) ? '<i class="ph-fill ph-star" aria-hidden="true"></i> Starred' : '<i class="ph ph-star" aria-hidden="true"></i> Star'; });
     b.onclick = () => toggleStar(q.id, b);
     return b;
   }
@@ -759,8 +761,8 @@
         const s = sum[p.id] || {};
         const a = mk('a', 'prow');
         a.href = '#paper/' + encodeURIComponent(p.slug);
-        const bits = [diffOf(p), s.n_questions ? s.n_questions + ' questions' : null, s.total_marks ? s.total_marks + ' marks' : null, p.scanned ? 'scanned' : null].filter(Boolean).join(' · ');
-        a.innerHTML = `<span class="yr">${p.year}</span><span class="muted small">${bits}</span>${best[p.id] != null ? `<span class="tag">Sat · ${best[p.id]}%</span>` : ''}`;
+        const bits = [diffOf(p), s.n_questions ? s.n_questions + ' questions' : null, s.total_marks ? s.total_marks + ' marks' : null, p.scanned ? 'scanned' : null].filter(Boolean).join(', ');
+        a.innerHTML = `<span class="yr">${p.year}</span><span class="muted small">${bits}</span>${best[p.id] != null ? `<span class="tag">Best ${best[p.id]}%</span>` : '<span></span>'}`;
         d.appendChild(a);
       });
       wrap.appendChild(d);
@@ -784,7 +786,7 @@
     $('paper-pdf').onclick = () => officialPdf($('paper-pdf'), p, 'pdf_path', pdfBase, $('paper-error'));
     $('paper-pdf-sol').onclick = () => officialPdf($('paper-pdf-sol'), p, 'pdf_sol_path', { ...pdfBase, filename: paperFile(p).replace('.pdf', '-solutions.pdf'), withSolutions: true }, $('paper-error'));
     $('paper-title').textContent = `${p.school} ${p.year}`;
-    $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, diffOf(p), `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · ');
+    $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, diffOf(p), `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper, whole pages shown' : null].filter(Boolean).join(', ');
     $('paper-practise').onclick = async () => {
       const usable = qs.filter(q => q.image_path);
       if (!usable.length) return;
@@ -804,7 +806,7 @@
     box.innerHTML = '';
     qs.forEach(q => {
       const c = mk('div', 'card qcard');
-      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)} · ${q.topic || 'Untagged'}</span></div>`;
+      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${q.topic || 'Untagged'}, ${marksText(q.marks)}</span></div>`;
       if (q.image_path) { const im = qImg(urls[q.image_path], qLabel(q)); im.loading = 'lazy'; c.appendChild(im); }
       else c.appendChild(mk('p', 'muted small', 'No image for this question.'));
       const row = mk('div', 'row');
@@ -832,9 +834,8 @@
     const em = state.user.email || '';
     const local = em.split('@')[0];
     const first = /[._]/.test(local) ? (local.split(/[._\d]/).filter(Boolean)[0] || '') : '';   // only when the address has a first.last shape
-    const hr = new Date().getHours();
-    $('home-hello').textContent = `${hr < 12 ? 'Morning' : hr < 18 ? 'Afternoon' : 'Evening'}${first ? ', ' + first[0].toUpperCase() + first.slice(1) : ''}`;
-    $('home-sub').textContent = `${C.subjects[state.subject]}. Pick up where you need it most.`;
+    $('home-hello').textContent = first ? `Welcome back, ${first[0].toUpperCase() + first.slice(1)}` : 'Welcome back';
+    $('home-sub').textContent = `You're studying ${C.subjects[state.subject]}. Change subject at the top right.`;
     renderExamSetup();
     // an exam left running or unmarked
     const saved = lsGet(saveKey());
@@ -848,7 +849,7 @@
       const p = homePapers.find(x => x.id === saved.paperId) || null;
       const left = saved.finishedAt ? null : Math.round((saved.startedAt + (saved.readingSec + saved.workSec) * 1000 - Date.now()) / 60000);
       $('resume-title').textContent = saved.uploaded ? 'A paper is waiting to be marked' : saved.finishedAt || left <= 0 ? 'You have an exam to mark' : 'Exam in progress';
-      $('resume-sub').textContent = (p ? `${p.school} ${p.year}` : 'Your paper') + (left > 0 ? ` · about ${left} min left on the clock` : '');
+      $('resume-sub').textContent = (p ? `${p.school} ${p.year}` : 'Your paper') + (left > 0 ? `, about ${left} min left` : '');
       $('resume-banner').hidden = !p;
       $('resume-btn').textContent = left > 0 ? 'Back to the exam' : 'Continue marking';
       $('resume-btn').onclick = () => busy(async () => { try { await resumeExam(saved); } catch (err) { $('resume-sub').textContent = err.message; } });
@@ -858,8 +859,9 @@
       .map(p => `<option value="${p.id}">${esc(p.school)} ${p.year}</option>`).join('');
     sel.value = keep;
     $('quick-desc').textContent = state.weak && state.weak.length
-      ? `Ten questions you haven't seen, leaning on ${state.weak.map(w => w.topic).slice(0, 2).join(' and ')}.`
-      : "Ten questions you haven't seen, from every topic.";
+      ? `Ten questions you haven't tried yet, focused on ${state.weak.map(w => w.topic).slice(0, 2).join(' and ')}.`
+      : "Ten questions you haven't tried yet, from every topic.";
+    renderOnboard();
   }
   $('mark-go').onclick = async () => {
     const id = Number($('mark-paper').value);
@@ -980,7 +982,7 @@
     $('exam-phase').textContent = { reading: 'Reading time', working: 'Working time', marking: 'Marking' }[e.phase] || '';
     $('exam-skip').hidden = e.phase !== 'reading';
     $('exam-finish').textContent = e.phase === 'marking' ? 'Save result' : 'Finish exam';
-    $('exam-title').textContent = `${e.paper.school} ${e.paper.year} · ${C.subjects[e.paper.subject] || e.paper.subject}`;
+    $('exam-title').textContent = `${e.paper.school} ${e.paper.year}, ${C.subjects[e.paper.subject] || e.paper.subject}`;
   }
   $('exam-skip').onclick = () => {
     const e = state.exam; if (!e) return;
@@ -1067,7 +1069,7 @@
           ch.appendChild(b);
         });
         c.appendChild(ch);
-        if (marking) c.appendChild(mk('p', 'muted small', q.answer ? `You: ${e.answers[q.id] || 'blank'} · Answer: ${q.answer}` : 'No answer key for this one (not counted).'));
+        if (marking) c.appendChild(mk('p', 'muted small', q.answer ? `You: ${e.answers[q.id] || 'blank'}. Answer: ${q.answer}.` : 'No answer key for this one (not counted).'));
       } else if (!marking) {
         c.appendChild(mk('p', 'muted small', 'Write your working on paper.'));
       } else {
@@ -1123,7 +1125,7 @@
     lsDel(saveKey());
     state.set = { qs: e.qs, i: 0, results: rs.map(r => ({ q: r.q, score: r.score, outOf: r.outOf })) };
     renderSummary('Exam done');
-    $('summary-extra').textContent = `${e.paper.school} ${e.paper.year} · ${Math.round(e.secondsUsed / 60)} of ${Math.round(e.workSec / 60)} minutes used`;
+    $('summary-extra').textContent = e.workSec ? `${e.paper.school} ${e.paper.year}. ${Math.round(e.secondsUsed / 60)} of ${Math.round(e.workSec / 60)} minutes used.` : `${e.paper.school} ${e.paper.year}.`;
     state.exam = null; $('exam-finish').disabled = false;
     location.hash = '#summary';
   }
@@ -1136,10 +1138,11 @@
       sb.from('bookmarks').select('question_id'),
       sb.from('exams').select('started_at, seconds_used, score, out_of, work_minutes, papers!inner(school, year, subject)').eq('papers.subject', state.subject).order('started_at', { ascending: false }).limit(20),
     ]);
+    state.attempted = (mine || []).some(r => r.out_of > 0);
     state.weak = (mine || []).filter(r => r.out_of >= 3).map(r => ({ ...r, pct: r.score / r.out_of })).sort((a, b) => a.pct - b.pct).slice(0, 3);
-    $('weak-list').textContent = state.weak.length ? 'Weakest right now: ' + state.weak.map(w => `${w.topic} (${Math.round(100 * w.pct)}%)`).join(', ') : 'Attempt a few questions first and this will find your weak topics.';
+    $('weak-list').textContent = state.weak.length ? state.weak.map(w => `${w.topic} ${Math.round(100 * w.pct)}%`).join(', ') : 'Answer a few questions first and your weakest topics show up here.';
     $('drill-weak').disabled = !state.weak.length;
-    $('star-count').textContent = `${(stars || []).length} starred question${(stars || []).length === 1 ? '' : 's'}`;
+    $('star-count').textContent = (stars || []).length ? `${(stars || []).length} starred` : 'Star a question while practising to save it here';
     const tb = $('exam-history').querySelector('tbody'); tb.innerHTML = '';
     (ex || []).forEach(r => {
       const tr = mk('tr');
@@ -1183,6 +1186,46 @@
       if (!(await setFromIds((data || []).map(r => r.question_id), 20))) reviewError('No starred questions in this subject yet. Tap the star on any question.');
     } catch (err) { reviewError(err.message); }
   };
+
+  // ---------- first-run guide ----------
+  const flag = (k, v) => { try { if (v === undefined) return localStorage.getItem('tb_' + k) === '1'; localStorage.setItem('tb_' + k, '1'); } catch { return false; } };
+  function renderOnboard() {
+    const box = $('onboard');
+    const done = { subject: flag('picked_subject'), first: !!state.attempted, papers: flag('seen_papers') };
+    if (flag('onboard_hidden') || (done.subject && done.first && done.papers)) { box.hidden = true; return; }
+    box.hidden = false;
+    for (const k of ['subject', 'first', 'papers']) {
+      const li = $('ob-' + k); li.classList.toggle('done', done[k]);
+      li.querySelector('.chk').className = (done[k] ? 'ph-fill ph-check-circle' : 'ph ph-circle') + ' chk';
+    }
+    const subs = $('ob-subjects'); subs.innerHTML = '';
+    for (const [key, label] of Object.entries(C.subjects)) {
+      const b = mk('button', key === state.subject && done.subject ? 'primary' : '', label.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext '));
+      b.onclick = () => { flag('picked_subject', 1); if (key !== state.subject) $('subject-switch').querySelectorAll('button')[Object.keys(C.subjects).indexOf(key)].click(); else renderOnboard(); };
+      subs.appendChild(b);
+    }
+  }
+  $('onboard-hide').onclick = () => { flag('onboard_hidden', 1); $('onboard').hidden = true; };
+  $('ob-first-go').onclick = async () => {
+    $('ob-first-go').disabled = true;
+    try {
+      const counts = await loadTopicCounts();
+      state.topics = new Set(counts.filter(r => r.subject === state.subject).map(r => r.topic));
+      await busy(() => buildSet({ count: 5, type: 'mcq', diff: 'all', fresh: 1 }));
+      location.hash = '#set';
+    } catch (err) { reviewError(err.message); } finally { $('ob-first-go').disabled = false; }
+  };
+  // one-time tips the first time someone meets each kind of question
+  function firstHint(x) {
+    const k = x.type === 'mcq' ? 'hint_mcq' : 'hint_short';
+    const el = $('set-hint');
+    if (flag(k)) { el.hidden = true; return; }
+    el.textContent = x.type === 'mcq'
+      ? 'Tap the answer you think is right (or press A to D). You will see straight away if it is correct.'
+      : 'Work it out on paper, then tap Show solution. Give yourself the marks you would have got, and say where you lost any.';
+    el.hidden = false;
+    flag(k, 1);
+  }
 
   // ---------- automarker ----------
   const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
