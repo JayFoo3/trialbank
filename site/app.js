@@ -1459,6 +1459,12 @@
     const { data: ps } = await sb.from('papers').select('*').eq('slug', slug);
     const p = ps && ps[0];
     if (!p) { box.innerHTML = '<p class="error">Paper not found.</p>'; return; }
+    // looking at a paper puts you in its subject, so the header switch and Practise match what's on screen
+    if (p.subject !== state.subject && (mySubjects() || Object.keys(C.subjects)).includes(p.subject)) {
+      state.subject = p.subject; state.topics.clear();
+      try { localStorage.setItem('tb_subject', p.subject); } catch { /* blocked */ }
+      drawSubject();
+    }
     const { data: qs, error } = await sb.from('questions').select(QCOLS).eq('paper_id', p.id).limit(300);
     if (error) { box.innerHTML = `<p class="error">${error.message}</p>`; return; }
     qs.sort(byOrder);
