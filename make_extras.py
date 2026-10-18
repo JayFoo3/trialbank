@@ -20,7 +20,9 @@ for man in sorted(glob.glob(os.path.join(HERE, 'output', '*', 'manifest.json')))
         print('missing source', m['slug'], src); continue
     if need_pdf:
         end = paper_end(m)
-        subprocess.run(['qpdf', src, '--pages', '.', f'1-{end}', '--', os.path.join(d, 'paper.pdf')], check=True)
+        r = subprocess.run(['qpdf', src, '--pages', '.', f'1-{end}', '--', os.path.join(d, 'paper.pdf')])
+        if r.returncode not in (0, 3):           # 3 = finished with warnings, the file is fine
+            raise SystemExit(f'qpdf failed on {m["slug"]}')
     if need_thumb:
         with tempfile.TemporaryDirectory() as t:
             subprocess.run(['pdftoppm', '-f', '1', '-l', '1', '-r', '72', '-png', src, os.path.join(t, 'p')], check=True)

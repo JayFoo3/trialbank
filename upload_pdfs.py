@@ -45,6 +45,7 @@ def main():
     ap.add_argument('--root', default=os.path.expanduser('~/Documents'))
     ap.add_argument('--only')
     ap.add_argument('--thumbs', action='store_true', help='only upload the first-page thumbnails')
+    ap.add_argument('--all', action='store_true', help='re-upload PDFs for papers that already have them')
     a = ap.parse_args()
     if not URL or not KEY:
         sys.exit('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
@@ -56,10 +57,14 @@ def main():
                 continue
             put(f'{slug}/thumb.webp', open(t, 'rb').read(), ctype='image/webp'); n += 1
         print(f'{n} thumbnails uploaded'); return
+    have = set()
+    if not a.all:                                   # skip papers whose PDFs are already up
+        r = requests.get(f'{URL}/rest/v1/papers?select=slug&pdf_path=not.is.null', headers=H, timeout=60)
+        if r.status_code < 300: have = {x['slug'] for x in r.json()}
     want = {}
     for f in glob.glob(os.path.join(HERE, 'output', '*', 'manifest.json')):
         m = json.load(open(f))
-        if not a.only or m['slug'] == a.only:
+        if (not a.only or m['slug'] == a.only) and (a.only or m['slug'] not in have):
             want[m['sha256']] = m
     found = {}
     for dp, dn, fn in os.walk(a.root):
