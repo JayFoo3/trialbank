@@ -26,5 +26,9 @@ for slug in sys.argv[1:]:
     for part, name in (('paper', 'paper.pdf'), ('full', 'full.pdf')):
         with open(os.path.join(HERE, 'online', f'{slug}-{part}.pdf'), 'rb') as f:
             ok(requests.post(f'{URL}/storage/v1/object/questions/{slug}/{name}', headers={**H, 'Content-Type': 'application/pdf', 'x-upsert': 'true'}, data=f.read(), timeout=120), name)
+    th = os.path.join(HERE, 'online', f'{slug}-thumb.webp')
+    if os.path.exists(th):
+        with open(th, 'rb') as f:
+            ok(requests.post(f'{URL}/storage/v1/object/questions/{slug}/thumb.webp', headers={**H, 'Content-Type': 'image/webp', 'x-upsert': 'true'}, data=f.read(), timeout=60), 'thumb')
     ok(requests.patch(f'{URL}/rest/v1/papers?id=eq.{pid}', headers=H, json={'pdf_path': f'{slug}/paper.pdf', 'pdf_sol_path': f'{slug}/full.pdf'}, timeout=60), 'pdf paths')
     print(f'{slug}: PDFs uploaded')

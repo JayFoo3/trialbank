@@ -103,6 +103,9 @@ def main():
         r = requests.patch(f'{URL}/rest/v1/papers?slug=eq.{slug}', headers={**H, 'Content-Type': 'application/json'}, data=json.dumps(patch))
         if r.status_code >= 300:
             sys.exit(f'PATCH {slug} -> {r.status_code}: {r.text[:300]}')
+        th = os.path.join(HERE, 'output', slug, 'thumb.webp')       # the Papers grid picture, sent with the PDFs
+        if os.path.exists(th):
+            put(f'{slug}/thumb.webp', open(th, 'rb').read(), ctype='image/webp')
         print(f'{slug}: paper pages 1-{paper_end(m)} of {n}')
     print('done')
 

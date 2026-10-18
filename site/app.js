@@ -41,7 +41,22 @@
 
   // ---------- routing ----------
   const NAV = { home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers' };
+  // page transitions: iOS-style push going deeper, pop going back, a quick fade between tabs
+  const DEPTH = { auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, paper: 1, set: 2, examrun: 2, summary: 3 };
+  const canVT = !!document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (canVT) document.documentElement.classList.add('has-vt');
+  let shown = null;
   function show(name) {
+    if (!canVT || !shown || shown === name) { shown = name; return showNow(name); }
+    const d = DEPTH[name] ?? 0, p = DEPTH[shown] ?? 0;
+    document.documentElement.dataset.vt = d > p ? 'forward' : d < p ? 'back' : 'fade';
+    shown = name;
+    try {
+      const t = document.startViewTransition(() => showNow(name));
+      t.finished.finally(() => { delete document.documentElement.dataset.vt; });
+    } catch { showNow(name); delete document.documentElement.dataset.vt; }
+  }
+  function showNow(name) {
     $('preview-bar').hidden = !(state.preview && state.user);
     views.forEach(v => $('view-' + v).hidden = v !== name);
     $('nav').hidden = !state.user; $('top-right').hidden = !state.user;

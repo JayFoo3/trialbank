@@ -1052,7 +1052,20 @@ button:active:not(:disabled), .button:active, a.other:active, .ol-opt:active:not
   .jz-curtain { clip-path: none; opacity: 0; transition: opacity .15s; }
   .jz-curtain.in { opacity: 1; } .jz-curtain.out { transform: none; opacity: 0; }
 }
-/* ---------- zoom transition ---------- */
-.jz-zoom { position: fixed; z-index: 3000; pointer-events: none; background: var(--paper); box-shadow: 0 10px 40px rgba(20,24,34,.18);
-  transition: left .28s cubic-bezier(.2,.85,.25,1), top .28s cubic-bezier(.2,.85,.25,1), width .28s cubic-bezier(.2,.85,.25,1), height .28s cubic-bezier(.2,.85,.25,1), border-radius .28s, opacity .22s ease-out; }
-.jz-zoom.fade { opacity: 0; }
+/* ---------- page transitions (View Transitions API: Safari 18+, Chrome) ----------
+   Going deeper (home -> paper -> set) pushes in from the right like an iPhone app; going back slides the other way.
+   Switching tabs is a quick cross-fade. The header and tab bar stay put. */
+.has-vt .view:not([hidden]) { animation: none; }
+.top { view-transition-name: tb-top; }
+@media (max-width: 640px) { .mainnav { view-transition-name: tb-tabs; } }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .32s; animation-timing-function: cubic-bezier(.22,.8,.24,1); animation-fill-mode: both; }
+html[data-vt="forward"]::view-transition-old(root) { animation-name: vt-push-out; }
+html[data-vt="forward"]::view-transition-new(root) { animation-name: vt-push-in; }
+html[data-vt="back"]::view-transition-old(root) { animation-name: vt-pop-out; z-index: 2; }
+html[data-vt="back"]::view-transition-new(root) { animation-name: vt-pop-in; }
+html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-transition-new(root) { animation-duration: .16s; animation-timing-function: ease-out; }
+@keyframes vt-push-in { from { transform: translateX(100%); box-shadow: -12px 0 30px rgba(0,0,0,.12); } to { transform: none; box-shadow: -12px 0 30px rgba(0,0,0,0); } }
+@keyframes vt-push-out { to { transform: translateX(-28%); filter: brightness(.94); } }
+@keyframes vt-pop-in { from { transform: translateX(-28%); filter: brightness(.94); } to { transform: none; filter: none; } }
+@keyframes vt-pop-out { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; } }

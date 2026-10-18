@@ -154,25 +154,7 @@
     setTimeout(() => { c.classList.add('out'); }, hold);
     setTimeout(() => { c.remove(); curtainOn = false; }, hold + (still() ? 150 : 340));
   }
-  // ---------- zoom transition: the card you tapped grows into the new page (like opening an app on iPhone) ----------
-  const kind = (h) => (h || '').split('/')[0];
-  const DEEPER = new Set(['#paper', '#set', '#examrun', '#summary']);
-  window.addEventListener('hashchange', () => {
-    const h = location.hash, from = kind(lastHash), to = kind(h); lastHash = h;
-    if (!booted || from === to || !DEEPER.has(to) || still()) return;
-    const src = lastTap && lastTap.isConnected ? lastTap : null;
-    const r = src ? src.getBoundingClientRect() : { left: innerWidth / 2 - 40, top: innerHeight / 2 - 40, width: 80, height: 80 };
-    const z = document.createElement('div'); z.className = 'jz-zoom';
-    const radius = src ? getComputedStyle(src).borderRadius : '16px';
-    Object.assign(z.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: radius });
-    document.body.appendChild(z);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      z.classList.add('grow');
-      Object.assign(z.style, { left: '0px', top: '0px', width: innerWidth + 'px', height: innerHeight + 'px', borderRadius: '0px' });
-    }));
-    setTimeout(() => z.classList.add('fade'), 260);
-    setTimeout(() => z.remove(), 520);
-  });
+  // page transitions live in app.js show(): native View Transitions, iOS-style push and pop
 
   // ---------- what the app calls ----------
   let streak = 0;
