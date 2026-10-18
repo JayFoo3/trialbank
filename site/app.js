@@ -244,8 +244,8 @@
     return msg;
   }
   $('signout').onclick = () => sb.auth.signOut();
-  const drawSound = () => { if (window.Juice) $('sound-toggle').textContent = `Sounds: ${Juice.soundOn() ? 'On' : 'Off'}`; };
-  $('sound-toggle').onclick = () => { if (window.Juice) { Juice.setSound(!Juice.soundOn()); drawSound(); } };
+  const drawSound = () => { if (window.Juice) $('sound-toggle').textContent = `Sounds: ${Juice.soundLabel()}`; };
+  $('sound-toggle').onclick = () => { if (window.Juice) { Juice.cycleSound(); drawSound(); } };
   drawSound();
   sb.auth.onAuthStateChange((_evt, session) => {
     // profile edits and token refreshes only change the user object; don't re-route mid-question

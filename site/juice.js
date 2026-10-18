@@ -7,39 +7,70 @@
   document.addEventListener('pointerdown', (e) => { lastTap = e.target.closest('button, .ol-opt, label, select') || null; }, true);
 
   // ---------- sound ----------
-  const soundOn = () => { try { return localStorage.getItem('tb_sound') !== '0'; } catch { return true; } };
-  let ac = null;
-  const ctx = () => { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); return ac; } catch { return null; } };
-  function tone(freq, at, dur, vol = 0.18, type = 'sine') {
+  // Real UI sounds from SND (snd.dev): "piano" by Ayako Taniguchi and "sine" by Yasuhiro Tsuchiya.
+  // Each kit is one audio sprite; every sound is a slice of it. A synth fallback covers a failed load.
+  const KITS = { piano: 'sounds/snd02/', sine: 'sounds/snd01/' };
+  const kitName = () => { try { const k = localStorage.getItem('tb_sound'); return k === '0' ? 'off' : KITS[k] ? k : 'piano'; } catch { return 'piano'; } };
+  const soundOn = () => kitName() !== 'off';
+  let ac = null, master = null;
+  const ctx = () => {
+    try {
+      if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = 0.8; master.connect(ac.destination); }
+      if (ac.state === 'suspended') ac.resume();
+      return ac;
+    } catch { return null; }
+  };
+  const loaded = {};                       // kit -> Promise<{ buf, map }>
+  function loadKit(k) {
+    if (!KITS[k]) return Promise.resolve(null);
+    if (loaded[k]) return loaded[k];
+    const a = ctx(); if (!a) return Promise.resolve(null);
+    const get = (ext) => fetch(KITS[k] + 'audioSprite.' + ext).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(b => new Promise((res, rej) => a.decodeAudioData(b, res, rej)));
+    loaded[k] = Promise.all([fetch(KITS[k] + 'sprite.json').then(r => r.json()), get('m4a').catch(() => get('ogg'))])
+      .then(([map, buf]) => ({ map, buf })).catch(() => { delete loaded[k]; return null; });
+    return loaded[k];
+  }
+  function tone(freq, at, dur, vol = 0.18, type = 'sine') {          // fallback only
     const a = ctx(); if (!a) return;
     const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime + at;
-    o.type = type; o.frequency.setValueAtTime(freq, t0);
-    o.connect(g); g.connect(a.destination);
+    o.type = type; o.frequency.setValueAtTime(freq, t0); o.connect(g); g.connect(master);
     g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     o.start(t0); o.stop(t0 + dur + 0.02);
   }
-  const SCALE = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51];   // C major, climbing with the combo
+  // play(name, { rate, vol, at }) - rate shifts the pitch (2 = an octave up)
+  function play(name, o = {}) {
+    if (!soundOn()) return;
+    const a = ctx(); if (!a) return;
+    const k = kitName();
+    loadKit(k).then(kit => {
+      if (!kit || !kit.map[name]) { tone(660 * (o.rate || 1), 0, 0.12, 0.08, 'triangle'); return; }
+      const [start, dur] = kit.map[name], src = a.createBufferSource(), g = a.createGain();
+      src.buffer = kit.buf; src.playbackRate.value = o.rate || 1; g.gain.value = o.vol ?? 1;
+      src.connect(g); g.connect(master);
+      src.start(a.currentTime + (o.at || 0), start, dur);
+    });
+  }
+  const pick = (base, n = 5) => `${base}_0${1 + Math.floor(Math.random() * n)}`;
+  const semis = (n) => Math.pow(2, n / 12);
   const sfx = {
-    good(combo = 1) { if (!soundOn()) return; const b = SCALE[Math.min(combo - 1, SCALE.length - 2)]; tone(b, 0, 0.16, 0.16, 'triangle'); tone(b * 1.5, 0.07, 0.22, 0.12, 'sine'); },
-    part() { if (!soundOn()) return; tone(587.33, 0, 0.14, 0.12, 'triangle'); tone(659.25, 0.08, 0.18, 0.1); },
-    miss() { if (!soundOn()) return; tone(220, 0, 0.16, 0.12, 'sine'); tone(196, 0.09, 0.2, 0.1, 'sine'); },
-    star(i) { if (!soundOn()) return; tone(SCALE[2 + i * 2], 0, 0.25, 0.14, 'triangle'); },
-    tick() { if (!soundOn()) return; const a = ctx(); if (!a) return; const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime;
-      o.type = 'sine'; o.frequency.setValueAtTime(1500, t0); o.frequency.exponentialRampToValueAtTime(700, t0 + 0.04);
-      o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.07, t0 + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.05); o.start(t0); o.stop(t0 + 0.06); },
-    bloop() { if (!soundOn()) return; const a = ctx(); if (!a) return; const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime;
-      o.type = 'sine'; o.frequency.setValueAtTime(420, t0); o.frequency.exponentialRampToValueAtTime(820, t0 + 0.07);
-      o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.14, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12); o.start(t0); o.stop(t0 + 0.13); },
-    nav() { if (!soundOn()) return; tone(660, 0, 0.07, 0.07, 'triangle'); tone(990, 0.045, 0.09, 0.06, 'triangle'); },
-    on() { if (!soundOn()) return; tone(784, 0, 0.07, 0.08, 'triangle'); tone(1175, 0.04, 0.09, 0.07, 'triangle'); },
-    off() { if (!soundOn()) return; tone(660, 0, 0.07, 0.07, 'triangle'); tone(494, 0.04, 0.09, 0.06, 'triangle'); },
-    sparkle() { if (!soundOn()) return; [1568, 2093, 2637].forEach((f, i) => tone(f, i * 0.05, 0.16, 0.06, 'sine')); },
-    whoosh() { if (!soundOn()) return; const a = ctx(); if (!a) return; const n = a.createBufferSource(), b = a.createBuffer(1, a.sampleRate * 0.25, a.sampleRate), d = b.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-      const f = a.createBiquadFilter(), g = a.createGain(), t0 = a.currentTime; f.type = 'bandpass'; f.frequency.setValueAtTime(600, t0); f.frequency.exponentialRampToValueAtTime(2400, t0 + 0.2); f.Q.value = 1.2;
-      g.gain.setValueAtTime(0.09, t0); n.buffer = b; n.connect(f); f.connect(g); g.connect(a.destination); n.start(t0); },
-    fanfare() { if (!soundOn()) return; [0, 2, 4, 5].forEach((n, i) => tone(SCALE[n], i * 0.09, 0.3, 0.13, 'triangle')); },
+    good(combo = 1) { play('notification', { rate: semis(Math.min(combo - 1, 9) * 2) }); },      // climbs a whole tone per answer in a streak
+    part() { play('select', { rate: semis(4) }); },
+    miss() { play('caution', { vol: 0.8 }); },
+    star(i) { play('select', { rate: semis(i * 4), vol: 1 }); },
+    fanfare() { play('celebration'); },
+    tick() { play(pick('tap'), { vol: 0.9 }); },
+    bloop() { play('button'); },
+    nav() { play(pick('swipe'), { vol: 0.9 }); },
+    on() { play('toggle_on'); },
+    off() { play('toggle_off'); },
+    sparkle() { play('notification', { rate: semis(7), vol: 0.8 }); },
+    whoosh() { play('transition_up', { vol: 0.8 }); },
+    enter() { play('transition_up'); },
+    leave() { play('transition_down'); },
   };
+  // preload the kit on the first touch so the first sound isn't late
+  document.addEventListener('pointerdown', () => { if (soundOn()) loadKit(kitName()); }, { once: true, capture: true });
   const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch { /* none */ } };
 
   // ---------- visuals ----------
@@ -109,8 +140,36 @@
       on ? sfx.on() : sfx.off(); pop(el);
     }, 30);
   }, true);
-  // moving between pages
-  window.addEventListener('hashchange', () => { if (Date.now() - lastNav > 400 && !/^#(set|examrun|summary)/.test(location.hash)) sfx.whoosh(); });
+  // ---------- full-screen transitions into a paper, a set, an exam or a result ----------
+  // A brand-coloured circle grows out of the button you tapped, says where you're going, then lifts away.
+  let curtainOn = false, lastHash = location.hash, booted = false;
+  setTimeout(() => { booted = true; }, 1500);              // never on the first page load
+  function curtain(title, sub = '', mood = 'happy') {
+    if (curtainOn) return;
+    curtainOn = true;
+    const { x, y } = centre(lastTap), c = document.createElement('div');
+    c.className = 'jz-curtain'; c.style.setProperty('--x', x + 'px'); c.style.setProperty('--y', y + 'px');
+    const m = window.Mascot ? `<div class="jz-cm">${window.Mascot(mood, '')}</div>` : '';
+    c.innerHTML = `<div class="jz-cin">${m}<div class="jz-ct">${title}</div>${sub ? `<div class="jz-cs">${sub}</div>` : ''}</div>`;
+    document.body.appendChild(c);
+    sfx.enter();
+    const hold = still() ? 250 : 900;
+    requestAnimationFrame(() => c.classList.add('in'));
+    setTimeout(() => { c.classList.add('out'); }, hold);
+    setTimeout(() => { c.remove(); curtainOn = false; }, hold + (still() ? 200 : 520));
+  }
+  const kind = (h) => (h || '').split('/')[0];
+  window.addEventListener('hashchange', () => {
+    const h = location.hash, from = kind(lastHash), to = kind(h); lastHash = h;
+    if (!booted || from === to) return;
+    if (to === '#set') {
+      const m = /of (\d+)/.exec(document.getElementById('set-pos')?.textContent || '');
+      curtain('Let’s go', m ? `${m[1]} question${m[1] === '1' ? '' : 's'}` : '', 'wave');
+    } else if (to === '#examrun') curtain('Exam mode', 'Phone face down. You’ve got this.', 'think');
+    else if (to === '#paper') curtain('Opening paper', '', 'happy');
+    else if (to === '#summary') curtain('Done!', 'Let’s see how you went', 'cheer');
+    else if (Date.now() - lastNav > 400) sfx.whoosh();
+  });
 
   // ---------- what the app calls ----------
   let streak = 0;
@@ -142,7 +201,14 @@
     box.setAttribute('aria-label', `${n} of 3 stars`);
     for (let i = 0; i < n; i++) setTimeout(() => { sfx.star(i); if (i === n - 1 && n === 3) sfx.fanfare(); burst(box.children[i], 10, 40); }, 450 + i * 280);
   }
-  function setSound(on) { try { localStorage.setItem('tb_sound', on ? '1' : '0'); } catch { /* blocked */ } if (on) sfx.good(1); }
+  const SOUND_NAMES = { piano: 'Piano', sine: 'Soft', off: 'Off' };
+  function cycleSound() {
+    const order = ['piano', 'sine', 'off'], next = order[(order.indexOf(kitName()) + 1) % order.length];
+    try { localStorage.setItem('tb_sound', next === 'off' ? '0' : next); } catch { /* blocked */ }
+    if (next !== 'off') loadKit(next).then(() => sfx.good(1));
+    return SOUND_NAMES[next];
+  }
+  const soundLabel = () => SOUND_NAMES[kitName()];
 
-  window.Juice = { play: (n, ...a) => sfx[n] && sfx[n](...a), aim: (el) => { if (el) lastTap = el; }, reward, partial, miss, resetCombo, countUp, stars, burst, pop, floatText, soundOn, setSound, tap: () => lastTap };
+  window.Juice = { play: (n, ...a) => sfx[n] && sfx[n](...a), aim: (el) => { if (el) lastTap = el; }, reward, partial, miss, resetCombo, countUp, stars, burst, pop, floatText, soundOn, cycleSound, soundLabel, curtain, tap: () => lastTap };
 })();
