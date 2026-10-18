@@ -795,61 +795,83 @@
       const [L, { data, error }] = await Promise.all([loadPdfLib(), sb.storage.from('questions').createSignedUrl(p.pdf_path, 300)]);
       if (error) throw error;
       const doc = await L.PDFDocument.load(await (await fetch(data.signedUrl)).arrayBuffer());
-      // laid out like NESA's own HSC writing booklet: yellow-bar cover, then framed ruled pages
-      const f = await doc.embedFont(L.StandardFonts.TimesRoman), fb = await doc.embedFont(L.StandardFonts.TimesRomanBold);
-      const W = 595.28, H = 841.89, K = L.rgb(0, 0, 0), G = L.rgb(0.6, 0.6, 0.6), Y = L.rgb(0.98, 0.72, 0.08);
+      // laid out like NESA's current (2025) HSC writing booklet
+      const hv = await doc.embedFont(L.StandardFonts.Helvetica), hb = await doc.embedFont(L.StandardFonts.HelveticaBold);
+      const tm = await doc.embedFont(L.StandardFonts.TimesRoman), tb = await doc.embedFont(L.StandardFonts.TimesRomanBold);
+      const W = 595.28, H = 841.89, K = L.rgb(0, 0, 0), G = L.rgb(0.45, 0.45, 0.45), RULE = L.rgb(0.55, 0.55, 0.55), STRIP = L.rgb(0.84, 0.84, 0.85);
       const course = C.subjects[p.subject] || p.subject;
-      const t = (pg, s, x, y, size, font = f, color = K) => pg.drawText(s, { x, y, size, font, color });
-      const tr = (pg, s, xr, y, size, font = f) => t(pg, s, xr - font.widthOfTextAtSize(s, size), y, size, font);
-      const tc = (pg, s, xc, y, size, font = f) => t(pg, s, xc - font.widthOfTextAtSize(s, size) / 2, y, size, font);
-      const spaced = (pg, s, xc, y, size) => tc(pg, s.split('').join(' '), xc, y, size, fb);   // letter-spaced caps
-      const box = (pg, x, y, w, h, bw = 0.9) => pg.drawRectangle({ x, y, width: w, height: h, borderColor: K, borderWidth: bw });
-      const line = (pg, x1, y1, x2, y2, th = 0.8, color = K) => pg.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness: th, color });
-      const corner = (pg, x, y, dx, dy) => { line(pg, x, y, x + dx, y, 2); line(pg, x, y, x, y + dy, 2); };
-      const arrow = (pg, x, y, w) => { box(pg, x, y - 3, w, 6, 0.8); line(pg, x + w, y + 7, x + w + 9, y); line(pg, x + w, y - 7, x + w + 9, y); line(pg, x + w, y + 7, x + w, y - 7); };
-      const office = (pg) => { line(pg, 80, 86, W - 40, 86, 0.8); tc(pg, 'Office Use Only – Do NOT write anything, or make any marks below this line.', (80 + W - 40) / 2, 74, 8.5); corner(pg, W - 40, 60, -16, 0); line(pg, W - 40, 60, W - 40, 76, 2); };
-      const heading = isHsc(p) ? ['HIGHER SCHOOL CERTIFICATE', 'EXAMINATION'] : ['TRIAL HIGHER SCHOOL', 'CERTIFICATE EXAMINATION'];
+      const t = (pg, s, x, y, size, font = hv, color = K, rotate) => pg.drawText(s, { x, y, size, font, color, ...(rotate != null ? { rotate: L.degrees(rotate) } : {}) });
+      const tr = (pg, s, xr, y, size, font = hv) => t(pg, s, xr - font.widthOfTextAtSize(s, size), y, size, font);
+      const tc = (pg, s, xc, y, size, font = hv) => t(pg, s, xc - font.widthOfTextAtSize(s, size) / 2, y, size, font);
+      const box = (pg, x, y, w, h, bw = 0.8) => pg.drawRectangle({ x, y, width: w, height: h, borderColor: K, borderWidth: bw });
+      const line = (pg, x1, y1, x2, y2, th = 0.8, color = K, dash) => pg.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness: th, color, ...(dash ? { dashArray: dash } : {}) });
+      const BL = 42, BR = W - 42;                                   // frame edges
+      const corners = (pg, top, bot) => {                           // registration marks
+        for (const [x, dx] of [[BL, 1], [BR, -1]]) {
+          line(pg, x, top, x + 17 * dx, top, 2); line(pg, x, top, x, top - 17, 2);
+          line(pg, x, bot, x + 17 * dx, bot, 2); line(pg, x, bot, x, bot + 17, 2);
+        }
+      };
+      const strip = (pg, left) => {                                // the tear-off binding strip
+        const x0 = left ? 0 : W - 31, xe = left ? 31 : W - 31;
+        pg.drawRectangle({ x: x0, y: 0, width: 31, height: H, color: STRIP });
+        line(pg, xe, 0, xe, H, 0.7, G, [3, 3]);
+        const sy = H * 0.62;                                        // little scissors on the cut line
+        pg.drawCircle({ x: xe - 3, y: sy - 5, size: 2.2, borderColor: K, borderWidth: 0.7 }); pg.drawCircle({ x: xe + 3, y: sy - 5, size: 2.2, borderColor: K, borderWidth: 0.7 });
+        line(pg, xe - 2, sy - 3, xe + 3, sy + 7, 0.7); line(pg, xe + 2, sy - 3, xe - 3, sy + 7, 0.7);
+        const msg = 'Do NOT write in this area.', size = 11;
+        if (left) t(pg, msg, 21, H * 0.18, size, hb, G, 90); else t(pg, msg, W - 21, H * 0.82, size, hb, G, -90);
+      };
+      const office = (pg, y) => { tc(pg, 'Office Use Only – Do NOT write anything, or make any marks below this line.', W / 2, y, 8); };
+      const heading = isHsc(p) ? 'HIGHER SCHOOL CERTIFICATE EXAMINATION' : 'TRIAL HIGHER SCHOOL CERTIFICATE EXAMINATION';
       function cover(q) {
-        const c = doc.addPage([W, H]);
-        c.drawRectangle({ x: 26, y: 100, width: 17, height: H - 160, color: Y });
-        corner(c, W - 40, H - 40, -16, 0); line(c, W - 40, H - 40, W - 40, H - 56, 2);
-        for (let i = 0; i < 5; i++) box(c, W - 56 - (5 - i) * 21, H - 92, 21, 27);
-        tr(c, 'Centre Number', W - 56, H - 106, 11);
-        for (let i = 0; i < 8; i++) box(c, W - 56 - (8 - i) * 21, H - 146, 21, 27);
-        tr(c, 'Student Number', W - 56, H - 160, 11);
-        tc(c, String(p.year), 170, H - 150, 22, fb);
-        spaced(c, heading[0], 170, H - 172, 8); spaced(c, heading[1], 170, H - 185, 8);
-        if (!isHsc(p)) tc(c, p.school, 170, H - 200, 9);
-        t(c, 'Examination', 90, H - 262, 12);
-        box(c, 90, H - 345, 278, 72);
-        for (const yy of [H - 298, H - 326]) for (let x = 100; x < 358; x += 4) c.drawCircle({ x, y: yy, size: 0.45, color: K });
-        t(c, course, 104, H - 294, 13);
-        t(c, 'Instructions', 90, H - 400, 12, fb);
-        const bullet = (y, lines) => { c.drawRectangle({ x: 92, y: y + 2, width: 4.5, height: 4.5, color: K }); lines.forEach((s, i) => t(c, s, 106, y - i * 14, 11.5)); };
-        bullet(H - 432, ['Write the question number you are answering in this box.']);
-        arrow(c, W - 220, H - 428, 46); box(c, W - 156, H - 452, 58, 42); if (q) tc(c, String(q), W - 127, H - 438, 20, fb);
-        bullet(H - 474, ['Write the number of this booklet and the total', 'number of booklets that you have used for this', 'question (eg: 1 of 3).']);
-        arrow(c, W - 226, H - 474, 22); box(c, W - 192, H - 490, 34, 34); t(c, 'of', W - 150, H - 476, 11); box(c, W - 130, H - 490, 34, 34);
-        tc(c, 'this', W - 175, H - 502, 8); tc(c, 'booklet', W - 175, H - 511, 8); tc(c, 'number of', W - 113, H - 502, 8); tc(c, 'booklets for', W - 113, H - 511, 8); tc(c, 'this question', W - 113, H - 520, 8);
-        const rest = [['Write your Centre Number and Student Number at the top of', 'this page.'], ['Write in black pen.'], ['You may ask for an extra writing booklet if you need more space.'],
-          ['If you have not attempted the question(s), you must still hand in the writing', "booklet, with 'NOT ATTEMPTED' written clearly on the front cover."], ['You may NOT take any writing booklets, used or unused, from the examination room.']];
-        let y = H - 552; rest.forEach(r => { bullet(y, r); y -= 14 * r.length + 10; });
-        office(c);
-        t(c, 'Practice copy made by Trialbank. Not official NESA stationery.', 80, 40, 7, f, G);
+        const c = doc.addPage([W, H]); strip(c, true);
+        corners(c, H - 52, 48);
+        for (let i = 0; i < 5; i++) box(c, BR - 16 - (5 - i) * 20, H - 104, 20, 26);
+        tr(c, 'Centre Number', BR - 16, H - 118, 10);
+        for (let i = 0; i < 8; i++) box(c, BR - 16 - (8 - i) * 20, H - 162, 20, 26);
+        tr(c, 'Student Number', BR - 16, H - 176, 10);
+        t(c, 'Name', 300, H - 214, 10, hv, G); line(c, 332, H - 216, BR - 16, H - 216, 0.6, G);
+        box(c, 70, H - 294, 44, 17, 0.9); tc(c, String(p.year), 92, H - 289, 10, hb);
+        t(c, heading, 120, H - 289, 10, hb);
+        if (!isHsc(p)) t(c, p.school, 70, H - 312, 11, hv, G);
+        t(c, course, 70, H - 352, 30);
+        t(c, q ? `Section II — Question ${q}` : 'Section II — Extra writing', 70, H - 400, 21);
+        t(c, 'Writing Booklet', 70, H - 446, 21);
+        line(c, 70, H - 512, 155, H - 512, 0.8, G);
+        t(c, 'Instructions', 70, H - 527, 11, hb);
+        const ins = (y, lines) => { t(c, '•', 162, y, 11); lines.forEach((s, i) => t(c, s, 172, y - i * 15, 11)); };
+        ins(H - 527, [q ? `Use this writing booklet for Question ${q} ONLY` : 'Use this writing booklet for any question you need more room for']);
+        ins(H - 552, [q ? 'Write your answer in the ruled area on pages 2–8' : 'Write the question number at the top of every page you use']);
+        ins(H - 577, ['Write the number of this booklet and the', 'total number of booklets that you have', `used for this ${q ? 'question' : 'section'} (eg: 1 of 3)`]);
+        const ay = H - 592;                                         // arrow and booklet boxes
+        box(c, 382, ay - 3, 22, 6, 0.8); line(c, 404, ay + 6, 412, ay); line(c, 404, ay - 6, 412, ay); line(c, 404, ay + 6, 404, ay - 6);
+        box(c, 420, ay - 14, 36, 28); t(c, 'of', 462, ay - 4, 11); box(c, 478, ay - 14, 36, 28);
+        tc(c, 'this', 438, ay - 26, 8); tc(c, 'booklet', 438, ay - 35, 8); tc(c, 'number of', 496, ay - 26, 8); tc(c, 'booklets for', 496, ay - 35, 8); tc(c, `this ${q ? 'question' : 'section'}`, 496, ay - 44, 8);
+        line(c, BL, 92, BR, 92, 0.8); office(c, 80);
+        t(c, 'Practice copy made by Trialbank, laid out like the HSC writing booklet. Not official NESA stationery.', 70, 58, 7, hv, G);
       }
-      function ruledPage(n, first) {
-        const pg = doc.addPage([W, H]);
-        tc(pg, `– ${n} –`, W / 2, H - 46, 11);
-        const top = H - 60, bot = 96;
-        box(pg, 80, bot, W - 120, top - bot, 0.9);
-        for (let y = top - 28; y > bot + 4; y -= 28) line(pg, 80, y, W - 40, y, 0.5, G);
-        if (first) { corner(pg, 80, top, 16, 0); line(pg, 80, top, 80, top - 16, 2); t(pg, 'Start here.', 86, top - 19, 11.5); }
-        office(pg);
+      function inner(n, q) {
+        const pg = doc.addPage([W, H]); strip(pg, n % 2 === 1);
+        corners(pg, H - 52, 48);
+        let top = H - 70;
+        if (n === 2) {
+          t(pg, q ? `Answer Question ${q} on pages 2–8.` : 'Write the number of the question you are answering.', BL + 8, H - 82, 13, tb);
+          const digits = q ? String(q).padStart(2, ' ').split('') : [' ', ' '];
+          digits.forEach((d, i) => { box(pg, BR - 66 + i * 22, H - 100, 22, 28); if (d.trim()) tc(pg, d, BR - 55 + i * 22, H - 92, 18, tm); });
+          tr(pg, 'Question Number', BR - 22, H - 114, 10, tm);
+          top = H - 130;
+        }
+        const bot = 74;
+        box(pg, BL, bot, BR - BL, top - bot, 0.8);
+        for (let y = top - 28; y > bot + 16; y -= 28) line(pg, BL + 2, y, BR - 2, y, 0.5, RULE);
+        tc(pg, `– ${n} –`, W / 2, bot + 5, 10, tm);
+        office(pg, 62);
       }
       if (p.subject === 'Ext1') {
-        for (const q of [11, 12, 13, 14]) { cover(q); for (let n = 1; n <= 7; n++) ruledPage(n, n === 1); }
+        for (const q of [11, 12, 13, 14]) { cover(q); for (let n = 2; n <= 8; n++) inner(n, q); }
       } else {
-        cover(null); for (let n = 1; n <= 7; n++) ruledPage(n, n === 1);
+        cover(null); for (let n = 2; n <= 8; n++) inner(n, null);
       }
       const blob = new Blob([await doc.save()], { type: 'application/pdf' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
