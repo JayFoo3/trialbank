@@ -2,7 +2,7 @@
 // The strips hold the original drawings plus generated in-betweens (breathing, arm swing, jump arc).
 // Moods: happy (idle), wave, cheer (right answer), sad (oops), think, proud (static, sign-in page).
 (function () {
-  const V = 5;                                    // bump when the art changes
+  const V = 6;                                    // bump when the art changes
   const rand = (a, b) => a + Math.random() * (b - a);
   const run = (from, to, ms) => Array.from({ length: to - from + 1 }, (_, k) => [from + k, ms]);
   // seq(pass) returns the steps for this pass: [frame, ms]. Infinity holds the frame.
