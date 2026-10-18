@@ -335,6 +335,10 @@
       ['Financial Mathematics', ['Sequences and Series', 'Financial Mathematics']],
       ['Statistics', ['Probability', 'Discrete Probability Distributions', 'Descriptive Statistics and Bivariate Data', 'Continuous Probability Distributions', 'The Normal Distribution']],
     ],
+    Eng: [
+      ['Year 12 modules', ['Civil Structures', 'Personal and Public Transport', 'Aeronautical Engineering', 'Telecommunications Engineering']],
+      ['Year 11 modules', ['Engineering Fundamentals', 'Engineered Products', 'Braking Systems', 'Biomedical Engineering']],
+    ],
     Physics: [
       ['Advanced Mechanics', ['Projectile Motion', 'Circular Motion', 'Motion in Gravitational Fields']],
       ['Electromagnetism', ['Charged Particles, Conductors and Fields', 'The Motor Effect', 'Electromagnetic Induction', 'Applications of the Motor Effect']],
@@ -360,6 +364,7 @@
     }
   }
   async function renderBuild() {
+    $('open-syllabus').hidden = !SYLLABUS[state.subject];
     const counts = await loadTopicCounts();
     const byTopic = {};
     counts.filter(r => r.subject === state.subject).forEach(r => {
