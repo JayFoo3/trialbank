@@ -1,5 +1,5 @@
 // Trialbank: start a Stripe Checkout for a pack of auto-marks. Returns the Stripe payment page URL.
-// Secrets: STRIPE_SECRET_KEY, STRIPE_PRICES = {"10":"price_...","25":"price_...","60":"price_..."}
+// Secrets: STRIPE_SECRET_KEY, STRIPE_PRICES = {"10":"prod_...","25":"prod_...","60":"prod_..."} (product or price ids)
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 
 const SITE = 'https://jayfoo3.github.io/trialbank/';
@@ -37,9 +37,15 @@ Deno.serve(async (req) => {
   let body: { pack?: string };
   try { body = await req.json(); } catch { return json({ error: 'Bad request' }, 400); }
   const pack = String(body.pack ?? '');
-  const price = prices[pack];
+  let price = prices[pack];
   const marks = Number(pack);
   if (!price || !Number.isInteger(marks) || marks <= 0) return json({ error: 'Unknown pack' }, 400);
+  if (price.startsWith('prod_')) {      // a product id: use its default price
+    const pr = await fetch(`https://api.stripe.com/v1/products/${encodeURIComponent(price)}`, { headers: { Authorization: `Bearer ${stripeKey}` } });
+    const p = await pr.json();
+    price = typeof p.default_price === 'string' ? p.default_price : p.default_price?.id;
+    if (!pr.ok || !price) return json({ error: 'That pack is not set up properly yet.' }, 503);
+  }
 
   const origin = req.headers.get('origin') ?? '';
   const base = ORIGINS.includes(origin) ? (origin === 'https://jayfoo3.github.io' ? SITE : origin + '/') : SITE;
