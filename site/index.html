@@ -27,6 +27,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </nav>
     <div class="top-right" id="top-right" hidden>
       <div class="subject" id="subject-switch" role="group" aria-label="Subject"></div>
+      <button class="timer-btn" id="timer-btn" aria-haspopup="dialog" title="Exam timer"></button>
+      <div class="timer-pop" id="timer-pop" hidden role="dialog" aria-label="Exam timer"></div>
       <button class="streak" id="streak" hidden aria-haspopup="dialog" title="Daily streak"></button>
       <div class="streak-pop" id="streak-pop" hidden role="dialog" aria-label="Daily streak"></div>
       <div class="account">

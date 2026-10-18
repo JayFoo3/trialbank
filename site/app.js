@@ -2132,6 +2132,89 @@
   document.addEventListener('click', (ev) => { if (!ev.target.closest('#streak-pop')) $('streak-pop').hidden = true; });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && state.user) touchStreak(); });   // a tab left open past midnight
 
+  // ---------- exam timer: reading time, then writing time, counted down in the top bar ----------
+  const TKEY = 'tb_timer';
+  const clockIcon = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  let timer = (() => { try { return JSON.parse(localStorage.getItem(TKEY)) || null; } catch { return null; } })();
+  let timerTick = null, timerPhase = null, timerWarned = false;
+  const saveTimer = () => { try { timer ? localStorage.setItem(TKEY, JSON.stringify(timer)) : localStorage.removeItem(TKEY); } catch { /* private mode */ } };
+  function timerNow() {                         // { phase: 'reading' | 'writing' | 'done', left (ms), total (ms of this phase) }
+    if (!timer) return null;
+    const el = (timer.pausedAt || Date.now()) - timer.startAt - (timer.pausedTotal || 0);
+    if (el < timer.readMs) return { phase: 'reading', left: timer.readMs - el, total: timer.readMs };
+    if (el < timer.readMs + timer.workMs) return { phase: 'writing', left: timer.readMs + timer.workMs - el, total: timer.workMs };
+    return { phase: 'done', left: 0, total: timer.workMs };
+  }
+  const hms = (ms) => { const t = Math.ceil(ms / 1000), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), sec = t % 60;
+    return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0'); };
+  function beep(times = 1) {
+    try {
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      for (let i = 0; i < times; i++) {
+        const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + i * 0.35;
+        o.frequency.value = 880; o.connect(g); g.connect(ac.destination);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.3, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.28);
+        o.start(t0); o.stop(t0 + 0.3);
+      }
+    } catch { /* no audio */ }
+    try { navigator.vibrate && navigator.vibrate(times > 1 ? [200, 120, 200, 120, 200] : 200); } catch { /* none */ }
+  }
+  function drawTimer() {
+    const b = $('timer-btn'), t = timerNow();
+    if (!t) { b.className = 'timer-btn'; b.innerHTML = clockIcon; b.title = 'Exam timer'; }
+    else {
+      b.className = 'timer-btn on ' + t.phase + (timer.pausedAt ? ' paused' : '');
+      b.innerHTML = t.phase === 'done' ? `${clockIcon}<b>Done</b>` : `${clockIcon}<b>${t.phase === 'reading' ? 'R ' : ''}${hms(t.left)}</b>`;
+      b.title = t.phase === 'done' ? 'Exam timer: time is up' : `Exam timer: ${t.phase} time${timer.pausedAt ? ' (paused)' : ''}`;
+      // moments worth announcing, once each
+      if (timerPhase && timerPhase !== t.phase && !timer.pausedAt) {
+        if (t.phase === 'writing') { beep(1); toast('<b>Reading time is over.</b> You may now begin writing.', 7000); }
+        if (t.phase === 'done') { beep(3); toast('<b>Pencils down.</b> Time is up.', 10000); }
+      }
+      if (t.phase === 'writing' && t.left <= 5 * 60000 && t.total > 10 * 60000 && !timerWarned && !timer.pausedAt) { timerWarned = true; beep(1); toast('<b>5 minutes</b> of writing time left.', 6000); }
+      timerPhase = t.phase;
+    }
+    if (!$('timer-pop').hidden) drawTimerPop();
+  }
+  function runTimerTick() { clearInterval(timerTick); if (timer) timerTick = setInterval(drawTimer, 1000); drawTimer(); }
+  function drawTimerPop() {
+    const pop = $('timer-pop'), t = timerNow();
+    if (!t) {
+      const presets = Object.keys(C.subjects).map(k => { const d = examDefaults(k); return `<button class="chip" data-r="${d.reading}" data-w="${d.working}">${esc(shortName(C.subjects[k]))} <span class="n">${d.reading} + ${d.working}</span></button>`; }).join('');
+      const last = (() => { try { return JSON.parse(localStorage.getItem(TKEY + '_last')) || {}; } catch { return {}; } })();
+      const d0 = examDefaults(state.subject);
+      pop.innerHTML = `<h3>Exam timer</h3>
+        <div class="chips tp-presets">${presets}</div>
+        <div class="tp-fields"><label>Reading time <span class="tp-in"><input id="tp-read" type="number" min="0" max="60" inputmode="numeric" value="${last.r ?? d0.reading}"> min</span></label>
+        <label>Writing time <span class="tp-in"><input id="tp-work" type="number" min="1" max="300" inputmode="numeric" value="${last.w ?? d0.working}"> min</span></label></div>
+        <button class="primary tp-go" id="tp-start">Start timer</button>`;
+      pop.querySelectorAll('.tp-presets .chip').forEach(c => { c.onclick = () => { $('tp-read').value = c.dataset.r; $('tp-work').value = c.dataset.w; }; });
+      $('tp-start').onclick = () => {
+        const r = Math.max(0, Math.min(60, +$('tp-read').value || 0)), w = Math.max(1, Math.min(300, +$('tp-work').value || 0));
+        try { localStorage.setItem(TKEY + '_last', JSON.stringify({ r, w })); } catch { /* fine */ }
+        timer = { readMs: r * 60000, workMs: w * 60000, startAt: Date.now(), pausedAt: null, pausedTotal: 0 };
+        timerPhase = null; timerWarned = false; saveTimer(); beep(1); runTimerTick();
+      };
+      return;
+    }
+    const pct = t.phase === 'done' ? 100 : Math.round(100 * (1 - t.left / t.total));
+    pop.innerHTML = `<h3>${t.phase === 'reading' ? 'Reading time' : t.phase === 'writing' ? 'Writing time' : 'Time is up'}${timer.pausedAt ? ' <span class="muted small">paused</span>' : ''}</h3>
+      <div class="tp-big ${t.phase}">${t.phase === 'done' ? 'Pencils down' : hms(t.left)}</div>
+      <div class="tp-bar"><i style="width:${pct}%"></i></div>
+      <p class="small muted">${Math.round(timer.readMs / 60000)} min reading · ${Math.round(timer.workMs / 60000)} min writing</p>
+      <div class="row tp-actions">${t.phase === 'done' ? '' : `<button class="secondary" id="tp-pause">${timer.pausedAt ? 'Resume' : 'Pause'}</button>`}<button class="link" id="tp-stop">${t.phase === 'done' ? 'Clear' : 'Stop timer'}</button></div>`;
+    const pz = $('tp-pause');
+    if (pz) pz.onclick = () => {
+      if (timer.pausedAt) { timer.pausedTotal += Date.now() - timer.pausedAt; timer.pausedAt = null; } else timer.pausedAt = Date.now();
+      saveTimer(); drawTimer();
+    };
+    $('tp-stop').onclick = () => { timer = null; timerPhase = null; saveTimer(); runTimerTick(); };
+  }
+  $('timer-btn').onclick = (ev) => { ev.stopPropagation(); const pop = $('timer-pop'); if (pop.hidden) { pop.hidden = false; drawTimerPop(); } else pop.hidden = true; };
+  document.addEventListener('click', (ev) => { if (!ev.target.closest('#timer-pop') && !ev.target.closest('#timer-btn')) $('timer-pop').hidden = true; });
+  if (timer) { timerPhase = timerNow()?.phase; timerWarned = true; }
+  runTimerTick();
+
   // a burst of confetti for good results
   function confetti(n = 70) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
