@@ -1,7 +1,29 @@
 /* Trialbank - plain JS, one file. Views: auth, home, set, summary, progress. */
 (() => {
   const C = window.APP_CONFIG;
-  const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey);
+  // The sign-in is kept in localStorage AND IndexedDB. iPhone Home Screen apps can lose a localStorage write
+  // if the app is closed soon after it (WebKit saves it lazily), which signed students out on every launch;
+  // IndexedDB commits straight to disk, so it is the backup copy read when localStorage comes back empty.
+  const idb = (() => {
+    let db = null;
+    const open = () => db || (db = new Promise((res, rej) => {
+      const r = indexedDB.open('trialbank', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    }));
+    const run = (mode, fn) => open().then(d => new Promise((res, rej) => {
+      const t = d.transaction('kv', mode), q = fn(t.objectStore('kv'));
+      t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error);
+    })).catch(() => null);
+    return { get: k => run('readonly', s => s.get(k)), set: (k, v) => run('readwrite', s => s.put(v, k)), del: k => run('readwrite', s => s.delete(k)) };
+  })();
+  const durable = {
+    async getItem(k) { let v = null; try { v = localStorage.getItem(k); } catch { /* blocked */ } if (v != null) return v; v = await idb.get(k); if (v != null) { try { localStorage.setItem(k, v); } catch { /* blocked */ } } return v ?? null; },
+    async setItem(k, v) { try { localStorage.setItem(k, v); } catch { /* blocked */ } await idb.set(k, v); },
+    async removeItem(k) { try { localStorage.removeItem(k); } catch { /* blocked */ } await idb.del(k); },
+  };
+  const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { storage: durable, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
   const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty)';
