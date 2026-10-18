@@ -2,147 +2,51 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trialbank</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <link rel="stylesheet" href="style.css?v=dev">
 </head>
 <body>
-<header class="top" id="top">
-  <div class="top-in">
-    <a class="brand" href="#home"><span class="mark" aria-hidden="true">T</span><span id="brand">Trialbank</span></a>
-    <nav id="nav" class="mainnav" hidden aria-label="Main">
-      <a href="#home" data-nav="home"><i class="ph ph-house" aria-hidden="true"></i><span>Home</span></a>
-      <a href="#practise" data-nav="practise"><i class="ph ph-list-checks" aria-hidden="true"></i><span>Practise</span></a>
-      <a href="#papers" data-nav="papers"><i class="ph ph-files" aria-hidden="true"></i><span>Papers</span></a>
-      <a href="#progress" data-nav="progress"><i class="ph ph-chart-bar" aria-hidden="true"></i><span>Progress</span></a>
-    </nav>
-    <div class="top-right" id="top-right" hidden>
-      <div class="subject" id="subject-switch" role="group" aria-label="Subject"></div>
-      <div class="account">
-        <button class="avatar" id="account-btn" aria-haspopup="true" aria-expanded="false" title="Account">?</button>
-        <div class="menu" id="account-menu" hidden>
-          <p class="menu-email small muted" id="account-email"></p>
-          <a href="#admin" id="nav-admin" hidden>Admin</a>
-          <button class="menu-item" id="signout">Sign out</button>
-        </div>
-      </div>
-    </div>
-  </div>
+<header class="top">
+  <a class="brand" href="#home" id="brand">Trialbank</a>
+  <nav id="nav" hidden>
+    <a href="#home">Practise</a>
+    <a href="#papers">Papers</a>
+    <a href="#exam">Exam</a>
+    <a href="#review">Review</a>
+    <a href="#progress">Progress</a>
+    <a href="#admin" id="nav-admin" hidden>Admin</a>
+    <button class="link" id="signout">Sign out</button>
+  </nav>
 </header>
 
 <main id="app">
   <!-- ===== auth ===== -->
   <section id="view-auth" class="view" hidden>
-    <div class="auth">
-      <div class="auth-side">
-        <p class="auth-brand"><span class="mark" aria-hidden="true">T</span> Trialbank</p>
-        <h1 class="auth-h">Past trial papers, sorted by topic.</h1>
-        <p class="muted">Practise by topic, sit full papers on the clock, and get your written work marked. For Smiths Hill Year 12.</p>
-      </div>
-      <div class="card auth-card">
-        <h2 id="auth-title">Sign in</h2>
-        <form id="auth-form">
-          <label>School email <input type="email" name="email" required autocomplete="email" placeholder="first.last@education.nsw.gov.au"></label>
-          <label>Password <input type="password" name="password" required minlength="6" autocomplete="current-password"></label>
-          <label id="invite-row" hidden>Invite code <input type="text" name="invite" autocomplete="off" placeholder="from the Classroom post"></label>
-          <p class="error" id="auth-error" hidden></p>
-          <button class="primary wide" type="submit" id="auth-submit">Sign in</button>
-        </form>
-        <p class="small center"><button class="link" id="auth-toggle">New here? Create an account</button></p>
-      </div>
+    <div class="card narrow">
+      <h1 id="auth-title">Sign in</h1>
+      <p class="muted">Past trial questions for our year, by topic. School email only.</p>
+      <form id="auth-form">
+        <label>School email <input type="email" name="email" required autocomplete="email" placeholder="first.last@education.nsw.gov.au"></label>
+        <label>Password <input type="password" name="password" required minlength="6" autocomplete="current-password"></label>
+        <label id="invite-row" hidden>Invite code <input type="text" name="invite" autocomplete="off" placeholder="from the Classroom post"></label>
+        <p class="error" id="auth-error" hidden></p>
+        <button class="primary" type="submit" id="auth-submit">Sign in</button>
+      </form>
+      <p class="muted small"><button class="link" id="auth-toggle">New here? Create an account</button></p>
     </div>
   </section>
 
-  <!-- ===== home: dashboard ===== -->
+  <!-- ===== home: build a set ===== -->
   <section id="view-home" class="view" hidden>
-    <h1 id="home-hello">Welcome back</h1>
-    <p class="muted lead" id="home-sub"></p>
+    <h1>Build a set</h1>
+    <div class="row" id="subject-tabs"></div>
 
-    <div class="onboard" id="onboard" hidden>
-      <div class="between">
-        <h2>Get started</h2>
-        <button class="link small" id="onboard-hide">Hide</button>
-      </div>
-      <p class="muted small">Three things to try first. Each one takes a minute or two.</p>
-      <ol class="checklist">
-        <li id="ob-subject"><i class="ph ph-circle chk" aria-hidden="true"></i>
-          <span><strong>Choose your subject</strong><span class="small muted">Switch between Maths Ext 1 and Physics at the top of any page.</span></span>
-          <span class="ob-subjects" id="ob-subjects"></span></li>
-        <li id="ob-first"><i class="ph ph-circle chk" aria-hidden="true"></i>
-          <span><strong>Answer five questions</strong><span class="small muted">A short mixed set. You see if you're right straight away.</span></span>
-          <button class="primary" id="ob-first-go">Start</button></li>
-        <li id="ob-papers"><i class="ph ph-circle chk" aria-hidden="true"></i>
-          <span><strong>Look through the papers</strong><span class="small muted">Every school and year, with solutions and downloads.</span></span>
-          <a class="button" href="#papers">Open papers</a></li>
-      </ol>
-    </div>
-
-    <div class="resume" id="resume-banner" hidden>
-      <i class="ph ph-timer" aria-hidden="true"></i>
-      <div><strong id="resume-title">Exam in progress</strong><p class="small muted" id="resume-sub"></p></div>
-      <button class="primary" id="resume-btn">Continue</button>
-    </div>
-
-    <div class="home-grid">
-      <div class="panel feature">
-        <span class="feature-icon"><i class="ph ph-lightning" aria-hidden="true"></i></span>
-        <h2>Quick set</h2>
-        <p class="muted" id="quick-desc">Ten questions you haven't tried yet.</p>
-        <div class="row"><button class="primary" id="quick-set">Start quick set</button><a class="button ghost" href="#practise">Choose topics</a></div>
-        <p class="error small" id="quick-error" hidden></p>
-      </div>
-      <div class="panel stack">
-        <div class="stack-item">
-          <div class="stack-head"><i class="ph ph-timer" aria-hidden="true"></i><h2>Timed paper</h2></div>
-          <p class="muted small">A full paper you haven't sat, with reading time and a countdown.</p>
-          <details class="times"><summary class="small">Time: <span id="exam-times"></span></summary>
-            <div class="options">
-              <div class="opt"><label for="exam-reading">Reading (min)</label><input type="number" id="exam-reading" min="0" max="30"></div>
-              <div class="opt"><label for="exam-working">Working (min)</label><input type="number" id="exam-working" min="5" max="240"></div>
-            </div>
-          </details>
-          <button class="secondary" id="exam-random">Start paper</button>
-          <p class="error small" id="exam-error" hidden></p>
-        </div>
-        <div class="stack-item">
-          <div class="stack-head"><i class="ph ph-upload-simple" aria-hidden="true"></i><h2>Mark a paper</h2></div>
-          <p class="muted small">Upload your written answers and get suggested marks with feedback.</p>
-          <label class="sr" for="mark-paper">Paper</label>
-          <div class="row tight"><select id="mark-paper"><option value="">Pick the paper</option></select><button class="secondary" id="mark-go">Upload</button></div>
-        </div>
-      </div>
-    </div>
-
-    <h2 class="sec">Work on weak spots</h2>
-    <div class="list">
-      <button class="li" id="drill-weak"><i class="ph ph-target" aria-hidden="true"></i><span><strong>Weakest topics</strong><span class="small muted" id="weak-list"></span></span><i class="ph ph-caret-right go" aria-hidden="true"></i></button>
-      <button class="li" id="drill-wrong"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i><span><strong>Questions you got wrong</strong><span class="small muted">Your latest attempt lost marks</span></span><i class="ph ph-caret-right go" aria-hidden="true"></i></button>
-      <button class="li" id="drill-stars"><i class="ph ph-star" aria-hidden="true"></i><span><strong>Starred questions</strong><span class="small muted" id="star-count"></span></span><i class="ph ph-caret-right go" aria-hidden="true"></i></button>
-    </div>
-    <p class="error" id="review-error" hidden></p>
-
-    <h2 class="sec">Recent papers</h2>
-    <p class="muted small empty" id="exam-history-empty">Papers you sit or upload will appear here.</p>
-    <div class="tbl-wrap"><table class="tbl" id="exam-history"><thead><tr><th>Date</th><th>Paper</th><th>Score</th><th>Time</th></tr></thead><tbody></tbody></table></div>
-  </section>
-
-  <!-- ===== practise: build a set ===== -->
-  <section id="view-practise" class="view" hidden>
-    <h1>Practise by topic</h1>
-    <p class="muted lead">Pick the topics you want, then start. Each question is checked as you go.</p>
     <div class="card">
       <div class="between">
         <h2>Topics</h2>
-        <div class="small row tight"><button class="link" id="topics-all">Select all</button><button class="link" id="topics-none">Clear</button></div>
+        <div><button class="link" id="topics-all">All</button> · <button class="link" id="topics-none">None</button></div>
       </div>
-      <input id="topic-filter" type="search" placeholder="Find a topic" autocomplete="off">
       <div class="chips" id="topic-chips"></div>
     </div>
 
@@ -160,27 +64,23 @@
         <div class="seg" data-opt="diff"><button data-v="all" class="on">Any</button><button data-v="Easier">Easier</button><button data-v="Medium">Medium</button><button data-v="Hard">Hard</button></div>
       </div>
       <div class="opt">
-        <span>Questions I haven't seen first</span>
+        <span>Unseen first</span>
         <div class="seg" data-opt="fresh"><button data-v="1" class="on">On</button><button data-v="0">Off</button></div>
       </div>
     </div>
 
-    <div class="startbar">
-      <span class="small" id="start-summary">Pick at least one topic</span>
-      <button class="primary" id="start">Start</button>
-    </div>
     <p class="error" id="home-error" hidden></p>
+    <button class="primary big" id="start">Start</button>
   </section>
 
   <!-- ===== set: one question at a time ===== -->
   <section id="view-set" class="view" hidden>
-    <div class="setbar">
-      <button class="link" id="set-exit"><i class="ph ph-x" aria-hidden="true"></i> Exit</button>
-      <span class="small" id="set-pos"></span>
-      <button class="link" id="star"><i class="ph ph-star" aria-hidden="true"></i> Star</button>
+    <div class="between">
+      <span class="muted" id="set-pos"></span>
+      <span class="muted" id="set-meta"></span>
+      <button class="link" id="star">☆ Star</button>
     </div>
     <div class="progress"><div id="set-bar"></div></div>
-    <p class="small muted" id="set-meta"></p>
 
     <div class="card question">
       <img id="q-img" alt="Question">
@@ -192,11 +92,11 @@
     </div>
 
     <div id="short-controls" hidden>
-      <button class="secondary wide" id="show-sol">Show solution</button>
+      <button class="secondary" id="show-sol">Show solution</button>
       <div id="sol-wrap" hidden>
-        <p class="muted small">The solution for the whole question. Scroll to your part.</p>
+        <p class="muted small">The whole question's solution; scroll to your part.</p>
         <div class="card scroll"><img id="sol-img" alt="Solution"></div>
-        <p><strong>How many marks would you have got?</strong></p>
+        <p>How many marks would you have got?</p>
         <div class="choices" id="self-mark"></div>
       </div>
     </div>
@@ -207,83 +107,107 @@
       <button class="link" id="skip">Skip</button>
       <button class="primary" id="next" hidden>Next</button>
     </div>
-    <p class="keys small muted">Shortcuts: A to D to answer, S for the solution, Enter for the next question</p>
-    <p class="hint small" id="set-hint" hidden></p>
   </section>
 
   <!-- ===== summary ===== -->
   <section id="view-summary" class="view" hidden>
     <h1 id="summary-title">Set done</h1>
-    <p class="score" id="summary-score"></p>
+    <p class="big-number" id="summary-score"></p>
     <p class="muted" id="summary-extra"></p>
     <div id="summary-topics" class="bars"></div>
     <div class="row">
-      <a class="primary button" href="#practise">Another set</a>
-      <a class="button" href="#home">Home</a>
-      <a class="button ghost" href="#progress">See progress</a>
+      <a class="primary button" href="#home">Another set</a>
+      <a class="secondary button" href="#progress">See progress</a>
     </div>
   </section>
 
   <!-- ===== progress ===== -->
   <section id="view-progress" class="view" hidden>
     <h1>Progress</h1>
-    <p class="muted lead">Where your marks are going, weakest first.</p>
+    <div class="row" id="progress-tabs"></div>
     <div class="card">
-      <h2>By topic</h2>
+      <h2>You</h2>
+      <p class="muted small">Accuracy by topic across everything you've attempted. Weakest first.</p>
       <div class="bars" id="my-bars"></div>
     </div>
     <div class="card">
       <h2>Why you lose marks</h2>
-      <p class="muted small">From the marks you tag after checking a solution. Tap a reason to drill those questions.</p>
+      <p class="muted small">From the marks you tagged after checking solutions. Tap one to drill those questions.</p>
       <div class="bars" id="lost-bars"></div>
       <p class="error" id="lost-error" hidden></p>
     </div>
     <div class="card">
-      <h2>The whole year</h2>
-      <p class="muted small">Anonymous totals across everyone. Where the cohort is losing marks.</p>
+      <h2>Whole cohort</h2>
+      <p class="muted small">Anonymous. Where the year as a whole is bleeding marks.</p>
       <div class="bars" id="cohort-bars"></div>
     </div>
   </section>
-
   <!-- ===== papers library ===== -->
   <section id="view-papers" class="view" hidden>
-    <h1>Papers</h1>
-    <p class="muted lead" id="papers-count"></p>
-    <input id="papers-filter" type="search" placeholder="Search by school or year" autocomplete="off">
+    <h1>Papers <span class="muted small" id="papers-count"></span></h1>
+    <div class="row" id="papers-tabs"></div>
+    <input id="papers-filter" type="search" placeholder="Filter by school or year" autocomplete="off">
     <div id="papers-list"></div>
   </section>
 
   <!-- ===== one paper ===== -->
   <section id="view-paper" class="view" hidden>
-    <a class="back small" href="#papers"><i class="ph ph-arrow-left" aria-hidden="true"></i> All papers</a>
+    <p class="small"><a href="#papers">&larr; All papers</a></p>
     <h1 id="paper-title"></h1>
     <p class="muted" id="paper-meta"></p>
-    <div class="paper-actions">
-      <button class="primary" id="paper-practise"><i class="ph ph-list-checks" aria-hidden="true"></i> Practise</button>
-      <button class="secondary" id="paper-exam"><i class="ph ph-timer" aria-hidden="true"></i> Sit timed</button>
-      <button class="secondary" id="paper-automark"><i class="ph ph-upload-simple" aria-hidden="true"></i> Mark my paper</button>
+    <div class="row">
+      <button class="primary" id="paper-practise">Practise this paper</button>
+      <button class="secondary" id="paper-exam">Sit it as an exam</button>
+      <button class="secondary" id="paper-automark">Auto-mark a paper I've done</button>
+      <button class="secondary" id="paper-pdf">Download PDF</button>
+      <button class="link" id="paper-pdf-sol">PDF with solutions</button>
     </div>
-    <p class="small downloads"><i class="ph ph-download-simple" aria-hidden="true"></i> <button class="link" id="paper-pdf">Download paper</button> <button class="link" id="paper-pdf-sol">Download with solutions</button></p>
     <p class="error" id="paper-error" hidden></p>
     <div id="paper-body"></div>
+  </section>
+
+  <!-- ===== exam setup ===== -->
+  <section id="view-exam" class="view" hidden>
+    <h1>Exam mode</h1>
+    <p class="muted">A random past paper under test conditions: reading time, then a countdown. Answer multiple choice on screen, write the rest on paper, then mark yourself against the solutions.</p>
+    <div class="row" id="exam-tabs"></div>
+    <div class="card options">
+      <div class="opt"><span>Reading time (minutes)</span><input type="number" id="exam-reading" min="0" max="30"></div>
+      <div class="opt"><span>Working time (minutes)</span><input type="number" id="exam-working" min="5" max="240"></div>
+    </div>
+    <p class="muted small">Picks a paper you have not sat yet when it can. Scanned papers are left out. The clock keeps running if you close the tab.</p>
+    <p class="error" id="exam-error" hidden></p>
+    <button class="primary big" id="exam-random">Start a random paper</button>
   </section>
 
   <!-- ===== exam running / marking ===== -->
   <section id="view-examrun" class="view" hidden>
     <div class="exambar">
-      <div><span class="small muted" id="exam-phase"></span><div class="clock" id="exam-clock">--:--</div></div>
-      <span class="small muted examtitle" id="exam-title"></span>
-      <div class="row"><button class="link" id="exam-pdf">Download PDF</button><button class="link" id="exam-skip" hidden>Skip reading</button><button class="primary" id="exam-finish">Finish exam</button></div>
+      <div><span class="muted small" id="exam-phase"></span><div class="clock" id="exam-clock">--:--</div></div>
+      <span class="muted small" id="exam-title"></span>
+      <div class="row"><button class="link" id="exam-pdf">Download PDF</button><button class="link" id="exam-skip" hidden>Skip reading</button><button class="secondary" id="exam-finish">Finish exam</button></div>
     </div>
-    <p class="small muted" id="exam-note"></p>
+    <p class="muted small" id="exam-note"></p>
     <div class="jump" id="exam-jump"></div>
     <div id="exam-body"></div>
-    <p class="small"><a href="#home" id="exam-leave"><i class="ph ph-arrow-left" aria-hidden="true"></i> Leave for now. Your progress is kept.</a></p>
+  </section>
+
+  <!-- ===== review tools ===== -->
+  <section id="view-review" class="view" hidden>
+    <h1>Review</h1>
+    <div class="row" id="review-tabs"></div>
+    <div class="card"><h2>Drill my weak spots</h2><p class="muted small" id="weak-list"></p><button class="primary" id="drill-weak">Drill 10 questions</button></div>
+    <div class="card"><h2>Redo what I got wrong</h2><p class="muted small">Questions where your latest attempt lost marks.</p><button class="primary" id="drill-wrong">Redo up to 15</button></div>
+    <div class="card"><h2>Starred</h2><p class="muted small" id="star-count"></p><button class="primary" id="drill-stars">Practise starred</button></div>
+    <p class="error" id="review-error" hidden></p>
+    <div class="card"><h2>Exam history</h2>
+      <p class="muted small" id="exam-history-empty">No exams sat yet in this subject.</p>
+      <table class="tbl" id="exam-history"><thead><tr><th>Date</th><th>Paper</th><th>Score</th><th>Time</th></tr></thead><tbody></tbody></table>
+    </div>
   </section>
 
   <!-- ===== admin ===== -->
   <section id="view-admin" class="view" hidden>
-    <a class="back small" href="#home"><i class="ph ph-arrow-left" aria-hidden="true"></i> Home</a>
     <h1>Admin</h1>
 
     <div class="card">
@@ -318,9 +242,9 @@
       <p class="muted small">Uploaded papers are marked by Claude (Sonnet 5.5) on your Anthropic API credit. It stops for everyone once this month's spend reaches the cap.</p>
       <p id="am-spend" class="small">…</p>
       <div class="row">
-        <label class="small inline">Monthly cap (US$) <input id="am-cap" type="number" min="0" step="1"></label>
-        <label class="small inline">Requests per student per day <input id="am-daily" type="number" min="0" step="1"></label>
-        <label class="small inline check"><input id="am-on" type="checkbox"> On</label>
+        <label class="small">Monthly cap (US$) <input id="am-cap" type="number" min="0" step="1" style="width:90px"></label>
+        <label class="small">Requests per student per day <input id="am-daily" type="number" min="0" step="1" style="width:70px"></label>
+        <label class="small"><input id="am-on" type="checkbox"> On</label>
         <button class="primary" id="am-save">Save</button><span class="muted small" id="am-msg"></span>
       </div>
     </div>
@@ -334,13 +258,12 @@
 
     <div class="card">
       <h2>Accounts <span class="muted small" id="users-count"></span></h2>
-      <div class="tbl-wrap"><table class="tbl" id="users-table"><thead><tr><th>Email</th><th>Joined</th><th>Last seen</th><th>Attempts</th><th>Class list</th><th></th></tr></thead><tbody></tbody></table></div>
+      <table class="tbl" id="users-table"><thead><tr><th>Email</th><th>Joined</th><th>Last seen</th><th>Attempts</th><th>Class list</th><th></th></tr></thead><tbody></tbody></table>
     </div>
   </section>
-  <div class="loading" id="loading" hidden></div>
 </main>
 
-<footer class="small muted">Questions from past trial papers, used for study within our school only.</footer>
+<footer class="muted small">Questions from past trial papers, used for study within our school only.</footer>
 
 <script src="config.js?v=dev"></script>
 <script>

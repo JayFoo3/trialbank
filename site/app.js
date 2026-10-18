@@ -3,7 +3,7 @@
   const C = window.APP_CONFIG;
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey);
   const $ = (id) => document.getElementById(id);
-  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun'];
+  const views = ['auth', 'home', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'exam', 'examrun', 'review'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, papers!inner(subject, school, year, difficulty)';
 
   document.title = C.name;
@@ -11,70 +11,38 @@
 
   const state = {
     user: null,
-    subject: (() => { try { const k = localStorage.getItem('tb_subject'); return k && C.subjects[k] ? k : Object.keys(C.subjects)[0]; } catch { return Object.keys(C.subjects)[0]; } })(),
+    subject: Object.keys(C.subjects)[0],
     topics: new Set(),          // selected topic names
     opts: { count: 10, type: 'all', diff: 'all', fresh: 1 },
     set: null,                  // { qs: [...], i, results: [] }
   };
 
   // ---------- routing ----------
-  const NAV = { home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers' };
   function show(name) {
     views.forEach(v => $('view-' + v).hidden = v !== name);
-    $('nav').hidden = !state.user; $('top-right').hidden = !state.user;
-    document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === NAV[name]));
-    document.body.classList.toggle('focus', name === 'set' || (name === 'examrun' && state.exam && state.exam.phase !== 'marking'));
-    $('account-menu').hidden = true;
+    $('nav').hidden = !state.user;
     window.scrollTo(0, 0);
-  }
-  let loadingN = 0;
-  async function busy(fn) {
-    loadingN++; $('loading').hidden = false;
-    try { return await fn(); } finally { if (--loadingN <= 0) { loadingN = 0; $('loading').hidden = true; } }
   }
   async function route() {
     const [h, arg] = (location.hash || '#home').slice(1).split('/');
     if (!state.user) return show('auth');
-    drawSubject();
-    return busy(async () => {
-      if (h === 'practise') { show('practise'); await renderBuild(); return; }
-      if (h === 'progress') { show('progress'); await renderProgress(); return; }
-      if (h === 'admin' && state.admin) { show('admin'); await renderAdmin(); return; }
-      if (h === 'set' && state.set) return show('set');
-      if (h === 'summary' && state.set) return show('summary');
-      if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
-      if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
-      if (h === 'examrun' || h === 'exam') {
-        if (state.exam) return show('examrun');
-        const saved = lsGet(saveKey());
-        if (saved) { try { await resumeExam(saved); return show('examrun'); } catch { /* fall through */ } }
-      }
-      if (h !== 'home' && h !== '') { history.replaceState(null, '', '#home'); }
-      show('home'); await renderHome();
-    });
-  }
-  function drawSubject() {
-    const el = $('subject-switch'); el.innerHTML = '';
-    for (const [key, label] of Object.entries(C.subjects)) {
-      const b = document.createElement('button');
-      b.textContent = C.shortSubjects?.[key] || label.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext ');
-      b.title = label; b.className = key === state.subject ? 'on' : '';
-      b.setAttribute('aria-pressed', key === state.subject);
-      b.onclick = () => {
-        if (key === state.subject) return;
-        state.subject = key; state.topics.clear(); flag('picked_subject', 1);
-        try { localStorage.setItem('tb_subject', key); } catch {}
-        const h = (location.hash || '#home').slice(1).split('/')[0];
-        if (h === 'paper' || h === 'set' || h === 'summary') location.hash = h === 'paper' ? '#papers' : '#practise'; else route();
-      };
-      el.appendChild(b);
+    if (h === 'progress') { await renderProgress(); return show('progress'); }
+    if (h === 'admin' && state.admin) { await renderAdmin(); return show('admin'); }
+    if (h === 'set' && state.set) return show('set');
+    if (h === 'summary' && state.set) return show('summary');
+    if (h === 'papers') { show('papers'); await renderPapers(); return; }
+    if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
+    if (h === 'review') { show('review'); await renderReview(); return; }
+    if (h === 'examrun') { if (state.exam) return show('examrun'); location.hash = '#exam'; return; }
+    if (h === 'exam') {
+      if (state.exam) { location.hash = '#examrun'; return; }
+      show('exam');
+      const saved = lsGet(saveKey());
+      if (saved) { try { await resumeExam(saved); } catch (err) { renderExamSetup(); } } else renderExamSetup();
+      return;
     }
+    await renderHome(); show('home');
   }
-  function tabs() { drawSubject(); }   // older views called this per page; the switch now lives in the header
-  // account menu
-  $('account-btn').onclick = (ev) => { ev.stopPropagation(); const m = $('account-menu'); m.hidden = !m.hidden; $('account-btn').setAttribute('aria-expanded', !m.hidden); };
-  document.addEventListener('click', (ev) => { if (!ev.target.closest('.account')) $('account-menu').hidden = true; });
-  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') $('account-menu').hidden = true; });
   window.addEventListener('hashchange', route);
 
   // ---------- auth ----------
@@ -130,12 +98,6 @@
     setTimeout(async () => {
       state.user = session?.user || null;
       if (!state.user) { state.set = null; state.stars = null; state.exam = null; clearInterval(examTimer); }
-      if (state.user) {
-        const em = state.user.email || '';
-        $('account-email').textContent = em;
-        const nm = em.split('@')[0].split(/[._\d]/).filter(Boolean);
-        $('account-btn').textContent = ((nm[0] || '?')[0] + (nm[1] ? nm[1][0] : '')).toUpperCase();
-      }
       await checkAdmin();
       route();
     }, 0);
@@ -164,7 +126,8 @@
       el.appendChild(b);
     }
   }
-  async function renderBuild() {
+  async function renderHome() {
+    tabs('subject-tabs', renderHome);
     const counts = await loadTopicCounts();
     const byTopic = {};
     counts.filter(r => r.subject === state.subject).forEach(r => {
@@ -176,23 +139,11 @@
       const b = document.createElement('button');
       b.className = 'chip' + (state.topics.has(t) ? ' on' : '');
       b.innerHTML = `${t}<span class="n">${byTopic[t].mcq + byTopic[t].short}</span>`;
-      b.dataset.t = t.toLowerCase();
-      b.onclick = () => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); b.classList.toggle('on'); startSummary(); };
+      b.onclick = () => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); b.classList.toggle('on'); };
       wrap.appendChild(b);
     });
-    filterTopics(); startSummary();
-    $('topics-all').onclick = () => { Object.keys(byTopic).forEach(t => state.topics.add(t)); renderBuild(); };
-    $('topics-none').onclick = () => { state.topics.clear(); renderBuild(); };
-  }
-  function filterTopics() {
-    const q = $('topic-filter').value.trim().toLowerCase();
-    document.querySelectorAll('#topic-chips .chip').forEach(b => { b.hidden = q && !b.dataset.t.includes(q); });
-  }
-  $('topic-filter').oninput = filterTopics;
-  function startSummary() {
-    const n = state.topics.size, o = state.opts;
-    $('start-summary').textContent = n ? `${o.count} questions from ${n} topic${n === 1 ? '' : 's'}` : 'Pick at least one topic';
-    $('start').disabled = !n;
+    $('topics-all').onclick = () => { Object.keys(byTopic).forEach(t => state.topics.add(t)); renderHome(); };
+    $('topics-none').onclick = () => { state.topics.clear(); renderHome(); };
   }
   document.querySelectorAll('.seg').forEach(seg => {
     seg.querySelectorAll('button').forEach(b => b.onclick = () => {
@@ -200,7 +151,6 @@
       b.classList.add('on');
       const v = b.dataset.v;
       state.opts[seg.dataset.opt] = isNaN(v) ? v : Number(v);
-      if (seg.dataset.opt) startSummary();
     });
   });
 
@@ -270,14 +220,13 @@
   }
   function renderQuestion() {
     const s = state.set, x = s.qs[s.i];
-    $('set-pos').textContent = `Question ${s.i + 1} of ${s.qs.length}`;
-    $('set-meta').textContent = `${x.topic || 'Mixed'}. ${x.papers.school} ${x.papers.year} ${label(x)}, ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
-    firstHint(x);
+    $('set-pos').textContent = `${s.i + 1} of ${s.qs.length} · ${x.topic}`;
+    $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
     const qi = $('q-img'); qi.dataset.trimmed = ''; qi.crossOrigin = 'anonymous'; qi.onload = () => trimImg(qi); qi.src = x.imageUrl;
     $('q-coarse').hidden = !x.coarse;
-    $('star').innerHTML = '<i class="ph ph-star" aria-hidden="true"></i> Star';
-    loadStars().then(s => { $('star').innerHTML = s.has(x.id) ? '<i class="ph-fill ph-star" aria-hidden="true"></i> Starred' : '<i class="ph ph-star" aria-hidden="true"></i> Star'; });
+    $('star').textContent = '☆ Star';
+    loadStars().then(s => { $('star').textContent = s.has(x.id) ? '★ Starred' : '☆ Star'; });
     $('star').onclick = () => toggleStar(x.id, $('star'));
     $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true;
     $('next').hidden = true; $('skip').hidden = false;
@@ -342,7 +291,7 @@
       marks.innerHTML = '';
       for (let m = 1; m <= outOf; m++) {
         const t = res.lost.find(l => l.mark === m);
-        const b = mk('button', (t ? 'tagged' : '') + (cur === m ? ' on' : ''), t ? `Mark ${m}: ${reasonName[t.reason]}` : `Mark ${m}`);
+        const b = mk('button', (t ? 'tagged' : '') + (cur === m ? ' on' : ''), t ? `Mark ${m} · ${reasonName[t.reason]}` : `Mark ${m}`);
         b.onclick = () => { cur = cur === m ? null : m; draw(); drawReasons(); };
         marks.appendChild(b);
       }
@@ -398,14 +347,14 @@
     if (!total && !cfpe) { el.innerHTML = '<p class="muted small">Nothing tagged yet. After checking a solution, tap which marks you lost and why.</p>'; return; }
     if (cfpe) {
       const top = Object.entries(cfpe.topics).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t} (${n})`).join(', ');
-      const p = mk('p', 'small', `<b>${cfpe.n} mark${cfpe.n === 1 ? '' : 's'} still earned CFPE</b> <span class="muted">Your method held up after an earlier slip, mostly in ${top}.</span>`);
+      const p = mk('p', 'small', `<b>${cfpe.n} mark${cfpe.n === 1 ? '' : 's'} still earned CFPE</b> <span class="muted">· your method held up after an earlier slip · mostly ${top}</span>`);
       el.appendChild(p);
     }
     Object.entries(by).sort((a, b) => b[1].n - a[1].n).forEach(([k, r]) => {
       const pct = Math.round(100 * r.n / total);
       const top = Object.entries(r.topics).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t} (${n})`).join(', ');
       const d = mk('div', 'bar clickable ' + (pct >= 40 ? 'low' : pct >= 20 ? 'mid' : 'high'));
-      d.innerHTML = `<div class="lbl"><span>${reasonName[k] || k}</span><span class="muted">${r.n} mark${r.n === 1 ? '' : 's'}, mostly ${top}</span></div>
+      d.innerHTML = `<div class="lbl"><span>${reasonName[k] || k}</span><span class="muted">${r.n} mark${r.n === 1 ? '' : 's'} · mostly ${top}</span></div>
                      <div class="track"><div class="fill" style="width:${pct}%"></div></div>`;
       d.onclick = async () => {
         try { if (!(await setFromIds([...r.ids], 15))) throw new Error('Those questions are not available any more.'); }
@@ -427,8 +376,7 @@
     $('summary-title').textContent = title; $('summary-extra').textContent = '';
     const rs = state.set.results.filter(Boolean);
     const score = rs.reduce((a, r) => a + r.score, 0), outOf = rs.reduce((a, r) => a + r.outOf, 0);
-    $('summary-score').textContent = outOf ? `${score}/${outOf}` : 'Nothing marked';
-    if (outOf) $('summary-extra').textContent = `${Math.round(100 * score / outOf)}% of the marks.`;
+    $('summary-score').textContent = outOf ? `${score} / ${outOf}  (${Math.round(100 * score / outOf)}%)` : 'Nothing marked';
     const byTopic = {};
     rs.forEach(r => { const t = byTopic[r.q.topic] = byTopic[r.q.topic] || { score: 0, out_of: 0 }; t.score += r.score; t.out_of += r.outOf; });
     bars($('summary-topics'), Object.entries(byTopic).map(([topic, v]) => ({ topic, ...v })));
@@ -436,6 +384,7 @@
 
   // ---------- progress ----------
   async function renderProgress() {
+    tabs('progress-tabs', renderProgress);
     const [{ data: mine }, { data: cohort }] = await Promise.all([
       sb.from('my_topic_stats').select('*').eq('subject', state.subject),
       sb.rpc('cohort_topic_stats', { subj: state.subject }),
@@ -452,7 +401,7 @@
       .forEach(r => {
         const d = document.createElement('div');
         d.className = 'bar ' + (r.pct < 50 ? 'low' : r.pct < 75 ? 'mid' : 'high');
-        d.innerHTML = `<div class="lbl"><span>${r.topic}</span><span class="muted">${r.pct}%, ${r.score} of ${r.out_of} marks${r.extra ? ', ' + r.extra : ''}</span></div>
+        d.innerHTML = `<div class="lbl"><span>${r.topic}</span><span class="muted">${r.pct}% · ${r.score}/${r.out_of}${r.extra ? ' · ' + r.extra : ''}</span></div>
                        <div class="track"><div class="fill" style="width:${r.pct}%"></div></div>`;
         el.appendChild(d);
       });
@@ -469,7 +418,7 @@
       sb.from('roster').select('name'),
     ]);
     rosterN = (roster || []).length;
-    $('roster-count').textContent = `(${rosterN})`;
+    $('roster-count').textContent = `· ${rosterN}`;
     renderAutomarkAdmin(s0 => s0, settings);
     $('ntfy-topic').textContent = (settings || []).find(r => r.key === 'ntfy_topic')?.value || 'not set';
     const s = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
@@ -481,7 +430,7 @@
     const tb = $('users-table').querySelector('tbody'); tb.innerHTML = '';
     (users || []).forEach(u => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${u.email}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? u.roster_name : '<b style="color:#c0392b">Not on list</b>') : '-'}</td><td></td>`;
+      tr.innerHTML = `<td>${u.email}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? u.roster_name : '<b style="color:#c0392b">Not on list</b>') : '—'}</td><td></td>`;
       const b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
       b.onclick = async () => {
         if (u.email.toLowerCase() === state.user.email.toLowerCase()) return;
@@ -492,9 +441,9 @@
       };
       tr.lastElementChild.appendChild(b); tb.appendChild(tr);
     });
-    $('users-count').textContent = `(${(users || []).length})`;
+    $('users-count').textContent = `· ${(users || []).length}`;
   }
-  function day(ts) { return ts ? new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '-'; }
+  function day(ts) { return ts ? new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '—'; }
   function drawAllowed() {
     const f = $('allowed-filter').value.trim().toLowerCase();
     const ul = $('allowed-list'); ul.innerHTML = '';
@@ -508,7 +457,7 @@
       };
       li.appendChild(b); ul.appendChild(li);
     });
-    $('allowed-count').textContent = `(${allowed.length})`;
+    $('allowed-count').textContent = `· ${allowed.length}`;
   }
   $('allowed-filter').oninput = drawAllowed;
   $('allowed-add-btn').onclick = async () => {
@@ -665,7 +614,7 @@
     const n = pdf.getNumberOfPages();
     for (let p = 1; p <= n; p++) {
       pdf.setPage(p); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(130);
-      pdf.text(`Trialbank, for study within our school only. Page ${p} of ${n}`, W / 2, H - 7, { align: 'center' });
+      pdf.text(`Trialbank  ·  for study within our school only  ·  page ${p} of ${n}`, W / 2, H - 7, { align: 'center' });
     }
     pdf.save(filename);
   }
@@ -719,11 +668,11 @@
       stars.add(id);
       await sb.from('bookmarks').insert({ user_id: state.user.id, question_id: id });
     }
-    btn.innerHTML = stars.has(id) ? '<i class="ph-fill ph-star" aria-hidden="true"></i> Starred' : '<i class="ph ph-star" aria-hidden="true"></i> Star';
+    btn.textContent = stars.has(id) ? '★ Starred' : '☆ Star';
   }
   function starButton(q) {
-    const b = mk('button', 'link', '<i class="ph ph-star" aria-hidden="true"></i> Star');
-    loadStars().then(s => { b.innerHTML = s.has(q.id) ? '<i class="ph-fill ph-star" aria-hidden="true"></i> Starred' : '<i class="ph ph-star" aria-hidden="true"></i> Star'; });
+    const b = mk('button', 'link', '☆ Star');
+    loadStars().then(s => { b.textContent = s.has(q.id) ? '★ Starred' : '☆ Star'; });
     b.onclick = () => toggleStar(q.id, b);
     return b;
   }
@@ -731,6 +680,7 @@
   // ---------- papers library ----------
   let papersData = { papers: [], sum: {}, best: {} };
   async function renderPapers() {
+    tabs('papers-tabs', renderPapers);
     $('papers-list').innerHTML = '<p class="muted">Loading…</p>';
     const [{ data: papers }, { data: sums }, { data: exams }] = await Promise.all([
       sb.from('papers').select('id, slug, subject, school, year, difficulty, scanned').eq('subject', state.subject),
@@ -749,7 +699,7 @@
     papers.filter(p => !q || p.school.toLowerCase().includes(q) || String(p.year).includes(q))
       .forEach(p => (bySchool[p.school] = bySchool[p.school] || []).push(p));
     const schools = Object.keys(bySchool).sort((a, b) => (/smiths/i.test(b) - /smiths/i.test(a)) || a.localeCompare(b));
-    $('papers-count').textContent = `${papers.length} ${C.subjects[state.subject]} papers from ${new Set(papers.map(p => p.school)).size} schools. Tap one to practise it, sit it on the clock or download it.`;
+    $('papers-count').textContent = `· ${papers.length} papers, ${new Set(papers.map(p => p.school)).size} schools`;
     const wrap = $('papers-list'); wrap.innerHTML = '';
     if (!schools.length) { wrap.innerHTML = '<p class="muted">Nothing matches.</p>'; return; }
     schools.forEach(sch => {
@@ -761,8 +711,8 @@
         const s = sum[p.id] || {};
         const a = mk('a', 'prow');
         a.href = '#paper/' + encodeURIComponent(p.slug);
-        const bits = [diffOf(p), s.n_questions ? s.n_questions + ' questions' : null, s.total_marks ? s.total_marks + ' marks' : null, p.scanned ? 'scanned' : null].filter(Boolean).join(', ');
-        a.innerHTML = `<span class="yr">${p.year}</span><span class="muted small">${bits}</span>${best[p.id] != null ? `<span class="tag">Best ${best[p.id]}%</span>` : '<span></span>'}`;
+        const bits = [diffOf(p), s.n_questions ? s.n_questions + ' questions' : null, s.total_marks ? s.total_marks + ' marks' : null, p.scanned ? 'scanned' : null].filter(Boolean).join(' · ');
+        a.innerHTML = `<span class="yr">${p.year}</span><span class="muted small">${bits}</span>${best[p.id] != null ? `<span class="tag">Sat · ${best[p.id]}%</span>` : ''}`;
         d.appendChild(a);
       });
       wrap.appendChild(d);
@@ -786,7 +736,7 @@
     $('paper-pdf').onclick = () => officialPdf($('paper-pdf'), p, 'pdf_path', pdfBase, $('paper-error'));
     $('paper-pdf-sol').onclick = () => officialPdf($('paper-pdf-sol'), p, 'pdf_sol_path', { ...pdfBase, filename: paperFile(p).replace('.pdf', '-solutions.pdf'), withSolutions: true }, $('paper-error'));
     $('paper-title').textContent = `${p.school} ${p.year}`;
-    $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, diffOf(p), `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper, whole pages shown' : null].filter(Boolean).join(', ');
+    $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, diffOf(p), `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · ');
     $('paper-practise').onclick = async () => {
       const usable = qs.filter(q => q.image_path);
       if (!usable.length) return;
@@ -800,13 +750,19 @@
     };
     $('paper-automark').onclick = async (ev) => {
       const b = ev.currentTarget; b.disabled = true;
-      try { await startMarking(p); } catch (err) { $('paper-error').textContent = err.message; $('paper-error').hidden = false; }
+      try {
+        state.subject = p.subject;
+        const now = Date.now();
+        await prepareExam(p, { startedAt: now, readingSec: 0, workSec: 0, finishedAt: now, uploaded: true });
+        saveExam(); location.hash = '#examrun'; await finishExam(false);
+        $('exam-note').textContent = 'Upload your written paper below and it will be marked for you.';
+      } catch (err) { $('paper-error').textContent = err.message; $('paper-error').hidden = false; }
       finally { b.disabled = false; }
     };
     box.innerHTML = '';
     qs.forEach(q => {
       const c = mk('div', 'card qcard');
-      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${q.topic || 'Untagged'}, ${marksText(q.marks)}</span></div>`;
+      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)} · ${q.topic || 'Untagged'}</span></div>`;
       if (q.image_path) { const im = qImg(urls[q.image_path], qLabel(q)); im.loading = 'lazy'; c.appendChild(im); }
       else c.appendChild(mk('p', 'muted small', 'No image for this question.'));
       const row = mk('div', 'row');
@@ -821,85 +777,6 @@
     });
   }
 
-  // ---------- home dashboard ----------
-  async function startMarking(p) {
-    state.subject = p.subject;
-    const now = Date.now();
-    await prepareExam(p, { startedAt: now, readingSec: 0, workSec: 0, finishedAt: now, uploaded: true });
-    saveExam(); location.hash = '#examrun'; await finishExam(false);
-    $('exam-note').textContent = 'Upload your written paper below and it will be marked for you.';
-  }
-  let homePapers = [];
-  async function renderHome() {
-    const em = state.user.email || '';
-    const local = em.split('@')[0];
-    const first = /[._]/.test(local) ? (local.split(/[._\d]/).filter(Boolean)[0] || '') : '';   // only when the address has a first.last shape
-    $('home-hello').textContent = first ? `Welcome back, ${first[0].toUpperCase() + first.slice(1)}` : 'Welcome back';
-    $('home-sub').textContent = `You're studying ${C.subjects[state.subject]}. Change subject at the top right.`;
-    renderExamSetup();
-    // an exam left running or unmarked
-    const saved = lsGet(saveKey());
-    $('resume-banner').hidden = true;
-    const [, { data: papers }] = await Promise.all([
-      renderReview(),
-      sb.from('papers').select('*').eq('subject', state.subject).order('school').order('year', { ascending: false }),
-    ]);
-    homePapers = papers || [];
-    if (saved) {
-      const p = homePapers.find(x => x.id === saved.paperId) || null;
-      const left = saved.finishedAt ? null : Math.round((saved.startedAt + (saved.readingSec + saved.workSec) * 1000 - Date.now()) / 60000);
-      $('resume-title').textContent = saved.uploaded ? 'A paper is waiting to be marked' : saved.finishedAt || left <= 0 ? 'You have an exam to mark' : 'Exam in progress';
-      $('resume-sub').textContent = (p ? `${p.school} ${p.year}` : 'Your paper') + (left > 0 ? `, about ${left} min left` : '');
-      $('resume-banner').hidden = !p;
-      $('resume-btn').textContent = left > 0 ? 'Back to the exam' : 'Continue marking';
-      $('resume-btn').onclick = () => busy(async () => { try { await resumeExam(saved); } catch (err) { $('resume-sub').textContent = err.message; } });
-    }
-    const sel = $('mark-paper'); const keep = sel.value;
-    sel.innerHTML = '<option value="">Pick the paper</option>' + homePapers.filter(p => !p.scanned)
-      .map(p => `<option value="${p.id}">${esc(p.school)} ${p.year}</option>`).join('');
-    sel.value = keep;
-    $('quick-desc').textContent = state.weak && state.weak.length
-      ? `Ten questions you haven't tried yet, focused on ${state.weak.map(w => w.topic).slice(0, 2).join(' and ')}.`
-      : "Ten questions you haven't tried yet, from every topic.";
-    renderOnboard();
-  }
-  $('mark-go').onclick = async () => {
-    const id = Number($('mark-paper').value);
-    const p = homePapers.find(x => x.id === id);
-    if (!p) { $('mark-paper').focus(); return; }
-    $('mark-go').disabled = true;
-    try { await busy(() => startMarking(p)); } catch (err) { reviewError(err.message); } finally { $('mark-go').disabled = false; }
-  };
-  $('quick-set').onclick = async () => {
-    $('quick-error').hidden = true; $('quick-set').disabled = true;
-    try {
-      const counts = await loadTopicCounts();
-      const all = [...new Set(counts.filter(r => r.subject === state.subject).map(r => r.topic))];
-      const weak = (state.weak || []).map(w => w.topic);
-      shuffle(all);
-      state.topics = new Set(weak.length ? [...weak, ...all.slice(0, 3)] : all);
-      await busy(() => buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1 }));
-      location.hash = '#set';
-    } catch (err) { $('quick-error').textContent = err.message; $('quick-error').hidden = false; }
-    finally { $('quick-set').disabled = false; }
-  };
-
-  // ---------- set: exit and keyboard ----------
-  $('set-exit').onclick = () => {
-    const s = state.set;
-    if (s && s.results.some(Boolean)) { renderSummary('Set ended early'); location.hash = '#summary'; }
-    else location.hash = '#practise';
-  };
-  document.addEventListener('keydown', (ev) => {
-    if ($('view-set').hidden || ev.metaKey || ev.ctrlKey || ev.altKey || /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) return;
-    const k = ev.key.toLowerCase();
-    if ('abcd'.includes(k) && k.length === 1 && !$('mcq-controls').hidden) {
-      const b = document.querySelector(`#mcq-controls button[data-l="${k.toUpperCase()}"]`); if (b && !b.disabled) { b.click(); ev.preventDefault(); }
-    } else if (k === 's' && !$('short-controls').hidden && !$('show-sol').hidden && !$('show-sol').disabled) { $('show-sol').click(); ev.preventDefault(); }
-    else if ((k === 'enter' || k === 'arrowright') && !$('next').hidden) { $('next').click(); ev.preventDefault(); }
-    else if (/^[0-9]$/.test(k) && !$('sol-wrap').hidden) { const b = $('self-mark').querySelectorAll('button')[Number(k)]; if (b && !b.disabled) { b.click(); ev.preventDefault(); } }
-  });
-
   // ---------- exam mode ----------
   const saveKey = () => 'tb_exam_' + (state.user ? state.user.id : '');
   function saveExam() {
@@ -907,10 +784,9 @@
     lsSet(saveKey(), { paperId: e.paper.id, startedAt: e.startedAt, readingSec: e.readingSec, workSec: e.workSec, answers: e.answers, marks: e.marks, lost: e.lost || {}, ai: e.ai || {}, uploaded: !!e.uploaded, finishedAt: e.finishedAt || null });
   }
   function renderExamSetup() {
+    tabs('exam-tabs', renderExamSetup);
     const d = examDefaults(state.subject);
     $('exam-reading').value = d.reading; $('exam-working').value = d.working;
-    const tt = () => { $('exam-times').textContent = `${$('exam-reading').value} min reading, ${$('exam-working').value} min working`; };
-    tt(); $('exam-reading').oninput = tt; $('exam-working').oninput = tt;
     $('exam-error').hidden = true;
   }
   async function pickExamPaper(subject) {
@@ -956,7 +832,7 @@
   }
   async function resumeExam(saved) {
     const { data: ps } = await sb.from('papers').select('*').eq('id', saved.paperId);
-    if (!ps || !ps[0]) { lsDel(saveKey()); throw new Error('That paper is no longer available.'); }
+    if (!ps || !ps[0]) { lsDel(saveKey()); return renderExamSetup(); }
     await prepareExam(ps[0], saved);
     $('exam-note').textContent = '';
     location.hash = '#examrun';
@@ -982,7 +858,7 @@
     $('exam-phase').textContent = { reading: 'Reading time', working: 'Working time', marking: 'Marking' }[e.phase] || '';
     $('exam-skip').hidden = e.phase !== 'reading';
     $('exam-finish').textContent = e.phase === 'marking' ? 'Save result' : 'Finish exam';
-    $('exam-title').textContent = `${e.paper.school} ${e.paper.year}, ${C.subjects[e.paper.subject] || e.paper.subject}`;
+    $('exam-title').textContent = `${e.paper.school} ${e.paper.year} · ${C.subjects[e.paper.subject] || e.paper.subject}`;
   }
   $('exam-skip').onclick = () => {
     const e = state.exam; if (!e) return;
@@ -1020,7 +896,6 @@
     e.qs.forEach(q => { q.solutionUrl = q.solution_path ? u[q.solution_path] : null; });
     if (auto) $('exam-note').textContent = 'Time is up. Mark yourself honestly against the solutions.';
     renderExamBody(); syncBar(); updateRunning();
-    document.body.classList.remove('focus');
     window.scrollTo(0, 0);
   }
   function examResults(e) {
@@ -1069,7 +944,7 @@
           ch.appendChild(b);
         });
         c.appendChild(ch);
-        if (marking) c.appendChild(mk('p', 'muted small', q.answer ? `You: ${e.answers[q.id] || 'blank'}. Answer: ${q.answer}.` : 'No answer key for this one (not counted).'));
+        if (marking) c.appendChild(mk('p', 'muted small', q.answer ? `You: ${e.answers[q.id] || 'blank'} · Answer: ${q.answer}` : 'No answer key for this one (not counted).'));
       } else if (!marking) {
         c.appendChild(mk('p', 'muted small', 'Write your working on paper.'));
       } else {
@@ -1125,24 +1000,24 @@
     lsDel(saveKey());
     state.set = { qs: e.qs, i: 0, results: rs.map(r => ({ q: r.q, score: r.score, outOf: r.outOf })) };
     renderSummary('Exam done');
-    $('summary-extra').textContent = e.workSec ? `${e.paper.school} ${e.paper.year}. ${Math.round(e.secondsUsed / 60)} of ${Math.round(e.workSec / 60)} minutes used.` : `${e.paper.school} ${e.paper.year}.`;
+    $('summary-extra').textContent = `${e.paper.school} ${e.paper.year} · ${Math.round(e.secondsUsed / 60)} of ${Math.round(e.workSec / 60)} minutes used`;
     state.exam = null; $('exam-finish').disabled = false;
     location.hash = '#summary';
   }
 
   // ---------- review ----------
   async function renderReview() {
+    tabs('review-tabs', renderReview);
     $('review-error').hidden = true;
     const [{ data: mine }, { data: stars }, { data: ex }] = await Promise.all([
       sb.from('my_topic_stats').select('*').eq('subject', state.subject),
       sb.from('bookmarks').select('question_id'),
       sb.from('exams').select('started_at, seconds_used, score, out_of, work_minutes, papers!inner(school, year, subject)').eq('papers.subject', state.subject).order('started_at', { ascending: false }).limit(20),
     ]);
-    state.attempted = (mine || []).some(r => r.out_of > 0);
     state.weak = (mine || []).filter(r => r.out_of >= 3).map(r => ({ ...r, pct: r.score / r.out_of })).sort((a, b) => a.pct - b.pct).slice(0, 3);
-    $('weak-list').textContent = state.weak.length ? state.weak.map(w => `${w.topic} ${Math.round(100 * w.pct)}%`).join(', ') : 'Answer a few questions first and your weakest topics show up here.';
+    $('weak-list').textContent = state.weak.length ? 'Weakest right now: ' + state.weak.map(w => `${w.topic} (${Math.round(100 * w.pct)}%)`).join(', ') : 'Attempt a few questions first and this will find your weak topics.';
     $('drill-weak').disabled = !state.weak.length;
-    $('star-count').textContent = (stars || []).length ? `${(stars || []).length} starred` : 'Star a question while practising to save it here';
+    $('star-count').textContent = `${(stars || []).length} starred question${(stars || []).length === 1 ? '' : 's'}`;
     const tb = $('exam-history').querySelector('tbody'); tb.innerHTML = '';
     (ex || []).forEach(r => {
       const tr = mk('tr');
@@ -1186,46 +1061,6 @@
       if (!(await setFromIds((data || []).map(r => r.question_id), 20))) reviewError('No starred questions in this subject yet. Tap the star on any question.');
     } catch (err) { reviewError(err.message); }
   };
-
-  // ---------- first-run guide ----------
-  const flag = (k, v) => { try { if (v === undefined) return localStorage.getItem('tb_' + k) === '1'; localStorage.setItem('tb_' + k, '1'); } catch { return false; } };
-  function renderOnboard() {
-    const box = $('onboard');
-    const done = { subject: flag('picked_subject'), first: !!state.attempted, papers: flag('seen_papers') };
-    if (flag('onboard_hidden') || (done.subject && done.first && done.papers)) { box.hidden = true; return; }
-    box.hidden = false;
-    for (const k of ['subject', 'first', 'papers']) {
-      const li = $('ob-' + k); li.classList.toggle('done', done[k]);
-      li.querySelector('.chk').className = (done[k] ? 'ph-fill ph-check-circle' : 'ph ph-circle') + ' chk';
-    }
-    const subs = $('ob-subjects'); subs.innerHTML = '';
-    for (const [key, label] of Object.entries(C.subjects)) {
-      const b = mk('button', key === state.subject && done.subject ? 'primary' : '', label.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext '));
-      b.onclick = () => { flag('picked_subject', 1); if (key !== state.subject) $('subject-switch').querySelectorAll('button')[Object.keys(C.subjects).indexOf(key)].click(); else renderOnboard(); };
-      subs.appendChild(b);
-    }
-  }
-  $('onboard-hide').onclick = () => { flag('onboard_hidden', 1); $('onboard').hidden = true; };
-  $('ob-first-go').onclick = async () => {
-    $('ob-first-go').disabled = true;
-    try {
-      const counts = await loadTopicCounts();
-      state.topics = new Set(counts.filter(r => r.subject === state.subject).map(r => r.topic));
-      await busy(() => buildSet({ count: 5, type: 'mcq', diff: 'all', fresh: 1 }));
-      location.hash = '#set';
-    } catch (err) { reviewError(err.message); } finally { $('ob-first-go').disabled = false; }
-  };
-  // one-time tips the first time someone meets each kind of question
-  function firstHint(x) {
-    const k = x.type === 'mcq' ? 'hint_mcq' : 'hint_short';
-    const el = $('set-hint');
-    if (flag(k)) { el.hidden = true; return; }
-    el.textContent = x.type === 'mcq'
-      ? 'Tap the answer you think is right (or press A to D). You will see straight away if it is correct.'
-      : 'Work it out on paper, then tap Show solution. Give yourself the marks you would have got, and say where you lost any.';
-    el.hidden = false;
-    flag(k, 1);
-  }
 
   // ---------- automarker ----------
   const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
