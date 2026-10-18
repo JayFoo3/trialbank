@@ -1001,7 +1001,7 @@ a, button, select, label, summary, .ol-opt { -webkit-tap-highlight-color: transp
 @keyframes jz-bump { 0% { transform: translate(-50%, 0) scale(1); } 40% { transform: translate(-50%, 0) scale(1.18); } 100% { transform: translate(-50%, 0) scale(1); } }
 .jz-stars { display: flex; gap: 8px; margin: 6px 0 2px; }
 .jz-star svg { width: 44px; height: 44px; fill: var(--rule); stroke: var(--rule-strong, #cfc9bd); stroke-width: 1; stroke-linejoin: round; display: block; }
-.jz-star.lit svg { fill: #ffc531; stroke: #e0a100; animation: jz-star .55s cubic-bezier(.3,1.7,.5,1) both; animation-delay: calc(.45s + var(--i) * .28s); }
+.jz-star.lit svg { fill: #ffc531; stroke: #e0a100; animation: jz-star .55s cubic-bezier(.3,1.7,.5,1) both; animation-delay: calc(.3s + var(--i) * .2s); }
 @keyframes jz-star { 0% { transform: scale(0) rotate(-40deg); } 100% { transform: scale(1) rotate(0); } }
 /* a new question slides in */
 .card.question.enter, #q-online.enter { animation: jz-enter .35s cubic-bezier(.2,.9,.3,1); }
@@ -1038,10 +1038,10 @@ button:active:not(:disabled), .button:active, a.other:active, .ol-opt:active:not
 /* ---------- full-screen transitions ---------- */
 .jz-curtain { position: fixed; inset: 0; z-index: 3000; display: grid; place-items: center; color: #fff; pointer-events: all;
   background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--biro) 78%, #fff), var(--biro) 55%, var(--biro-dark));
-  clip-path: circle(0 at var(--x) var(--y)); transition: clip-path .5s cubic-bezier(.7,0,.2,1), transform .5s cubic-bezier(.7,0,.3,1); }
+  clip-path: circle(0 at var(--x) var(--y)); transition: clip-path .3s cubic-bezier(.6,0,.2,1), transform .32s cubic-bezier(.6,0,.3,1); }
 .jz-curtain.in { clip-path: circle(150% at var(--x) var(--y)); }
 .jz-curtain.out { transform: translateY(-104%); }
-.jz-cin { text-align: center; padding: 24px; transform: translateY(18px) scale(.94); opacity: 0; transition: transform .45s cubic-bezier(.3,1.5,.5,1) .18s, opacity .25s .18s; }
+.jz-cin { text-align: center; padding: 24px; transform: translateY(18px) scale(.94); opacity: 0; transition: transform .3s cubic-bezier(.3,1.5,.5,1) .08s, opacity .18s .08s; }
 .jz-curtain.in .jz-cin { transform: none; opacity: 1; }
 .jz-curtain.out .jz-cin { transform: translateY(-20px); opacity: 0; transition-delay: 0s; }
 .jz-cm .mascot { width: 120px; height: auto; margin: 0 auto 6px; display: block; filter: drop-shadow(0 8px 16px rgba(0,0,0,.2)); }
