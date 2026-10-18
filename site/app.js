@@ -830,7 +830,8 @@
   let homePapers = [];
   async function renderHome() {
     const em = state.user.email || '';
-    const first = (em.split('@')[0].split(/[._\d]/).filter(Boolean)[0] || '');
+    const local = em.split('@')[0];
+    const first = /[._]/.test(local) ? (local.split(/[._\d]/).filter(Boolean)[0] || '') : '';   // only when the address has a first.last shape
     const hr = new Date().getHours();
     $('home-hello').textContent = `${hr < 12 ? 'Morning' : hr < 18 ? 'Afternoon' : 'Evening'}${first ? ', ' + first[0].toUpperCase() + first.slice(1) : ''}`;
     $('home-sub').textContent = `${C.subjects[state.subject]}. Pick up where you need it most.`;
@@ -853,7 +854,7 @@
       $('resume-btn').onclick = () => busy(async () => { try { await resumeExam(saved); } catch (err) { $('resume-sub').textContent = err.message; } });
     }
     const sel = $('mark-paper'); const keep = sel.value;
-    sel.innerHTML = '<option value="">Which paper did you do?</option>' + homePapers.filter(p => !p.scanned)
+    sel.innerHTML = '<option value="">Pick the paper</option>' + homePapers.filter(p => !p.scanned)
       .map(p => `<option value="${p.id}">${esc(p.school)} ${p.year}</option>`).join('');
     sel.value = keep;
     $('quick-desc').textContent = state.weak && state.weak.length
