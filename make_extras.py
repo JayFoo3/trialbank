@@ -8,7 +8,7 @@ from PIL import Image
 from upload_pdfs import paper_end
 HERE = os.path.dirname(os.path.abspath(__file__))
 root = sys.argv[sys.argv.index('--root') + 1] if '--root' in sys.argv else os.path.dirname(HERE)
-FOLDERS = {'Ext1': 'Math Extension 1/Exams', 'Physics': 'Physics/Exams', 'Adv': 'Math Advanced/Exams', 'Std2': 'Math Standard 2/Exams', 'Eng': 'Engineering Studies/Exams', 'SE': 'Software Engineering/Exams'}
+FOLDERS = {'Ext2': 'Math Extension 2/Exams', 'Ext1': 'Math Extension 1/Exams', 'Physics': 'Physics/Exams', 'Adv': 'Math Advanced/Exams', 'Std2': 'Math Standard 2/Exams', 'Eng': 'Engineering Studies/Exams', 'SE': 'Software Engineering/Exams'}
 made = 0
 for man in sorted(glob.glob(os.path.join(HERE, 'output', '*', 'manifest.json'))):
     d = os.path.dirname(man); m = json.load(open(man))
