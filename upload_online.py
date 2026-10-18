@@ -18,10 +18,12 @@ for slug in sys.argv[1:]:
     paper = {**d['paper'], 'slug': slug}
     r = ok(requests.post(f'{URL}/rest/v1/papers?on_conflict=slug', headers={**H, 'Prefer': 'resolution=merge-duplicates,return=representation'}, json=paper, timeout=60), 'paper')
     pid = r.json()[0]['id']
-    ok(requests.delete(f'{URL}/rest/v1/questions?paper_id=eq.{pid}', headers=H, timeout=60), 'clear old questions')
     rows = [{'id': f"{slug}/{q['qid']}", 'paper_id': pid, 'qid': q['qid'], 'number': q['number'], 'type': q['type'], 'marks': q['marks'],
              'topic': q['topic'], 'answer': q.get('answer'), 'content': q['content']} for q in d['questions']]
-    ok(requests.post(f'{URL}/rest/v1/questions', headers=H, json=rows, timeout=120), 'questions')
+    # upsert, so students' attempts on questions that still exist are kept; then drop any question no longer in the paper
+    ok(requests.post(f'{URL}/rest/v1/questions?on_conflict=id', headers={**H, 'Prefer': 'resolution=merge-duplicates'}, json=rows, timeout=120), 'questions')
+    keep = ','.join(f'"{r["id"]}"' for r in rows)
+    ok(requests.delete(f'{URL}/rest/v1/questions?paper_id=eq.{pid}&id=not.in.({keep})', headers=H, timeout=60), 'remove old questions')
     print(f'{slug}: {len(rows)} questions, {sum(q["marks"] for q in rows)} marks')
     for part, name in (('paper', 'paper.pdf'), ('full', 'full.pdf')):
         with open(os.path.join(HERE, 'online', f'{slug}-{part}.pdf'), 'rb') as f:

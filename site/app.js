@@ -1284,9 +1284,23 @@
     ]);
     const best = {};
     (exams || []).forEach(e => { if (e.out_of) best[e.paper_id] = Math.max(best[e.paper_id] || 0, Math.round(100 * e.score / e.out_of)); });
-    const thumbs = await signed((papers || []).map(p => `${p.slug}/thumb.webp`)).catch(() => ({}));
+    const thumbs = await thumbUrls((papers || []).map(p => `${p.slug}/thumb.webp`)).catch(() => ({}));
     papersData = { papers: papers || [], sum: Object.fromEntries((sums || []).map(s => [s.paper_id, s])), best, thumbs };
     drawPapers();
+  }
+  // Paper covers: signed links last a week and are remembered on the device, so the browser can reuse the
+  // pictures it already downloaded instead of fetching all of them again on every visit.
+  async function thumbUrls(paths) {
+    const KEY = 'tb_thumbs', now = Date.now();
+    let cache = {}; try { cache = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { /* blocked */ }
+    const fresh = (c) => c && c.exp > now + 864e5;              // at least a day left on the link
+    const need = paths.filter(p => !fresh(cache[p]));
+    if (need.length) {
+      const got = await signed(need, 7 * 86400);                // seconds
+      need.forEach(p => { if (got[p]) cache[p] = { url: got[p], exp: now + 7 * 864e5 }; });
+      try { localStorage.setItem(KEY, JSON.stringify(cache)); } catch { /* full or blocked */ }
+    }
+    return Object.fromEntries(paths.filter(p => cache[p]).map(p => [p, cache[p].url]));
   }
   let paperLevel = 'all';            // the level chip that's on: all, a LEVELS key, or 'todo' (not done yet)
   function drawLevelChips(papers, best) {
@@ -1329,7 +1343,7 @@
         a.href = '#paper/' + encodeURIComponent(p.slug);
         a.title = `${p.school} ${p.year}`;
         const url = thumbs[`${p.slug}/thumb.webp`];
-        a.innerHTML = `<div class="pthumb">${url ? `<img loading="lazy" alt="" src="${url}">` : `<span>${esc(p.school)}<br>${p.year}</span>`}${best[p.id] != null ? `<span class="tag">${best[p.id]}%</span>` : ''}</div>
+        a.innerHTML = `<div class="pthumb${url ? ' loading' : ''}">${url ? `<img loading="lazy" decoding="async" alt="" src="${url}" onload="this.parentNode.classList.remove('loading')" onerror="this.parentNode.classList.remove('loading')">` : `<span>${esc(p.school)}<br>${p.year}</span>`}${best[p.id] != null ? `<span class="tag">${best[p.id]}%</span>` : ''}</div>
           <div class="pname"><strong>${p.year}</strong>${levelBadge(p, false)}</div>`;
         const im = a.querySelector('img');
         if (im) im.onerror = () => { im.replaceWith(Object.assign(mk('span', '', `${esc(p.school)}<br>${p.year}`))); };

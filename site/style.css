@@ -1069,3 +1069,10 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 @keyframes vt-pop-in { from { transform: translateX(-28%); filter: brightness(.94); } to { transform: none; filter: none; } }
 @keyframes vt-pop-out { to { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; } }
+
+/* paper covers: a soft shimmer until the picture arrives, then it fades in */
+.pthumb img { transition: opacity .3s ease-out; }
+.pthumb.loading img { opacity: 0; }
+.pthumb.loading { background: linear-gradient(100deg, var(--paper) 30%, var(--soft) 50%, var(--paper) 70%) 0 0 / 300% 100%; animation: tb-shimmer 1.3s linear infinite; }
+@keyframes tb-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .pthumb.loading { animation: none; } }

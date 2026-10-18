@@ -1,0 +1,942 @@
+{
+ "paper": {
+  "slug": "trialbank-se-2026-b",
+  "subject": "SE",
+  "school": "Trialbank Paper B",
+  "year": 2026,
+  "difficulty": "Medium",
+  "online": true
+ },
+ "questions": [
+  {
+   "number": 1,
+   "qid": "q01",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Software Engineering Project",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "Which of these is a <i>non-functional</i> requirement for a school room-booking app?",
+    "options": [
+     "Students can cancel a booking",
+     "Every page loads in under 2 seconds",
+     "Admins can export bookings to a spreadsheet",
+     "Teachers can see who booked a room"
+    ],
+    "answer": "B",
+    "why": "Non-functional requirements describe how well the system works (performance, security, usability), not what it does."
+   }
+  },
+  {
+   "number": 2,
+   "qid": "q02",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Secure Software Architecture",
+   "answer": "A",
+   "content": {
+    "kind": "single",
+    "prompt": "A website stores passwords as SHA-256 hashes without a salt. Which attack does this make much easier?",
+    "options": [
+     "A rainbow table attack",
+     "Cross-site request forgery",
+     "A denial-of-service attack",
+     "Clickjacking"
+    ],
+    "answer": "A",
+    "why": "Without a salt, identical passwords have identical hashes, so precomputed tables of hashes can reverse them."
+   }
+  },
+  {
+   "number": 3,
+   "qid": "q03",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Programming for the Web",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "Which HTTP response header tells a browser to connect to the site only over HTTPS in future?",
+    "options": [
+     "Content-Type",
+     "Strict-Transport-Security",
+     "Cache-Control",
+     "Set-Cookie"
+    ],
+    "answer": "B",
+    "why": "HSTS (Strict-Transport-Security) makes the browser refuse plain HTTP connections to that site."
+   }
+  },
+  {
+   "number": 4,
+   "qid": "q04",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Programming Fundamentals",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "What is the output of this code?<pre>def f(n):\n    if n &lt;= 1:\n        return n\n    return f(n - 1) + f(n - 2)\n\nprint(f(6))</pre>",
+    "options": [
+     "5",
+     "8",
+     "13",
+     "6"
+    ],
+    "answer": "B",
+    "why": "f is the Fibonacci function: 0, 1, 1, 2, 3, 5, 8, so f(6) = 8."
+   }
+  },
+  {
+   "number": 5,
+   "qid": "q05",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Software Automation",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "Why is a dataset split into training data and testing data?",
+    "options": [
+     "To make training faster",
+     "To estimate how well the model performs on data it has not seen",
+     "To reduce the number of features",
+     "To label the data automatically"
+    ],
+    "answer": "B",
+    "why": "Testing on data the model never trained on shows whether it generalises or has just memorised the training set."
+   }
+  },
+  {
+   "number": 6,
+   "qid": "q06",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Programming for the Web",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "Which CSS selector targets elements with the class <code>card</code> that are inside a <code>&lt;section&gt;</code>?",
+    "options": [
+     "<pre>section.card</pre>",
+     "<pre>section .card</pre>",
+     "<pre>.card section</pre>",
+     "<pre>section &gt; card</pre>"
+    ],
+    "answer": "B",
+    "why": "The space is the descendant combinator: any .card inside a section. section.card would mean a section that itself has the class."
+   }
+  },
+  {
+   "number": 7,
+   "qid": "q07",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Secure Software Architecture",
+   "answer": "A",
+   "content": {
+    "kind": "single",
+    "prompt": "A login form says \"Incorrect password\" when the username exists but \"User not found\" when it doesn't. What vulnerability is this?",
+    "options": [
+     "User enumeration (information disclosure)",
+     "Cross-site scripting",
+     "Buffer overflow",
+     "Race condition"
+    ],
+    "answer": "A",
+    "why": "The different messages let an attacker find out which usernames are real. A single generic message prevents this."
+   }
+  },
+  {
+   "number": 8,
+   "qid": "q08",
+   "type": "mcq",
+   "marks": 1,
+   "topic": "Software Automation",
+   "answer": "B",
+   "content": {
+    "kind": "single",
+    "prompt": "Which is the best example of MLOps practice?",
+    "options": [
+     "Deploying a new model by hand once a year",
+     "Automatically retraining, testing and deploying models, then monitoring them in use",
+     "Writing all documentation after the project ends",
+     "Testing a model only after customers report problems"
+    ],
+    "answer": "B",
+    "why": "MLOps applies DevOps ideas (automation, continuous delivery, monitoring) to machine learning models."
+   }
+  },
+  {
+   "number": 9,
+   "qid": "q09",
+   "type": "short",
+   "marks": 1,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "multi",
+    "prompt": "Which of these are features of a RESTful API? Select ALL that apply.",
+    "options": [
+     "Each request is stateless",
+     "Resources are identified by URLs",
+     "It requires WebSockets",
+     "It uses HTTP methods such as GET and POST",
+     "Responses are always HTML pages",
+     "Responses are commonly JSON"
+    ],
+    "answer": [
+     "A",
+     "B",
+     "D",
+     "F"
+    ],
+    "why": "REST uses stateless HTTP requests to URL-named resources, usually returning JSON. It doesn't need WebSockets and isn't limited to HTML."
+   }
+  },
+  {
+   "number": 10,
+   "qid": "q10",
+   "type": "short",
+   "marks": 1,
+   "topic": "The Object-oriented Paradigm",
+   "answer": null,
+   "content": {
+    "kind": "multi",
+    "prompt": "Select ALL statements that are true for this code.<pre>class Vehicle:\n    wheels = 4\n\n    def __init__(self, make):\n        self.make = make\n\n    def describe(self):\n        return f&quot;{self.make} with {self.wheels} wheels&quot;\n\nclass Motorbike(Vehicle):\n    wheels = 2\n\nbike = Motorbike(&quot;Yamaha&quot;)\ncar = Vehicle(&quot;Toyota&quot;)</pre>",
+    "options": [
+     "bike.describe() returns \"Yamaha with 2 wheels\"",
+     "car.describe() returns \"Toyota with 4 wheels\"",
+     "Motorbike must define its own __init__ before objects can be created",
+     "wheels is a class attribute",
+     "Motorbike overrides the describe() method",
+     "Motorbike inherits __init__ from Vehicle"
+    ],
+    "answer": [
+     "A",
+     "B",
+     "D",
+     "F"
+    ],
+    "why": "self.wheels finds Motorbike's class attribute (2) first. Motorbike inherits both __init__ and describe(); it overrides only the wheels attribute."
+   }
+  },
+  {
+   "number": 11,
+   "qid": "q11",
+   "type": "short",
+   "marks": 1,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "multi",
+    "prompt": "Which of these are ethical concerns with facial recognition systems? Select ALL that apply.",
+    "options": [
+     "Lower accuracy for some demographic groups",
+     "Collecting biometric data without consent",
+     "Faster image loading",
+     "Enabling mass surveillance",
+     "Lower electricity use"
+    ],
+    "answer": [
+     "A",
+     "B",
+     "D"
+    ],
+    "why": "Bias, consent and surveillance are ethical issues. Speed and power use are not."
+   }
+  },
+  {
+   "number": 12,
+   "qid": "q12",
+   "type": "short",
+   "marks": 1,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "multi",
+    "prompt": "Which are appropriate ways to store users' passwords? Select ALL that apply.",
+    "options": [
+     "In plain text",
+     "Hashed with bcrypt",
+     "Hashed with Argon2",
+     "Encoded in base64",
+     "Hashed with MD5",
+     "Hashed with PBKDF2 using many iterations"
+    ],
+    "answer": [
+     "B",
+     "C",
+     "F"
+    ],
+    "why": "bcrypt, Argon2 and PBKDF2 are slow, salted password hashes. Base64 is reversible encoding, and MD5 is fast and broken."
+   }
+  },
+  {
+   "number": 13,
+   "qid": "q13",
+   "type": "short",
+   "marks": 2,
+   "topic": "Software Engineering Project",
+   "answer": null,
+   "content": {
+    "kind": "match",
+    "prompt": "Match each type of testing to its description.",
+    "items": [
+     "Unit testing",
+     "Integration testing",
+     "System testing",
+     "Acceptance testing"
+    ],
+    "options": [
+     "The whole system is tested against the requirements",
+     "The client confirms the system meets their needs",
+     "A single function or module is tested on its own",
+     "Modules are tested to check they work together"
+    ],
+    "answer": [
+     "C",
+     "D",
+     "A",
+     "B"
+    ]
+   }
+  },
+  {
+   "number": 14,
+   "qid": "q14",
+   "type": "short",
+   "marks": 2,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "match",
+    "prompt": "Match each security principle to its description.",
+    "items": [
+     "Principle of least privilege",
+     "Defence in depth",
+     "Input validation",
+     "Session management",
+     "Encryption at rest"
+    ],
+    "options": [
+     "Several layers of security, so one failure isn't fatal",
+     "Checking data is the right type, length and format before using it",
+     "Users and processes get only the access they need",
+     "Stored data is unreadable if a disk or database is stolen",
+     "Creating, tracking and expiring logged-in sessions securely"
+    ],
+    "answer": [
+     "C",
+     "A",
+     "B",
+     "E",
+     "D"
+    ]
+   }
+  },
+  {
+   "number": 15,
+   "qid": "q15",
+   "type": "short",
+   "marks": 2,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "match",
+    "prompt": "Match each technology to its main role in a web app.",
+    "items": [
+     "HTML",
+     "CSS",
+     "JavaScript (in the browser)",
+     "SQL",
+     "Python with Flask"
+    ],
+    "options": [
+     "Querying and updating the database",
+     "The structure and content of a page",
+     "Server-side routes and logic",
+     "Presentation and layout",
+     "Interactivity in the browser"
+    ],
+    "answer": [
+     "B",
+     "D",
+     "E",
+     "A",
+     "C"
+    ]
+   }
+  },
+  {
+   "number": 16,
+   "qid": "q16",
+   "type": "short",
+   "marks": 2,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "match",
+    "prompt": "Match each machine learning term to its meaning.",
+    "items": [
+     "Feature",
+     "Label",
+     "Epoch",
+     "Learning rate",
+     "Overfitting",
+     "Activation function"
+    ],
+    "options": [
+     "One complete pass through the training data",
+     "An input variable used to make a prediction",
+     "The known output the model learns to predict",
+     "How big each weight update is",
+     "A non-linear function applied to a neuron's output",
+     "Scoring well on training data but poorly on new data"
+    ],
+    "answer": [
+     "B",
+     "C",
+     "A",
+     "D",
+     "F",
+     "E"
+    ]
+   }
+  },
+  {
+   "number": 17,
+   "qid": "q17",
+   "type": "short",
+   "marks": 2,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Outline the purpose of adding a <i>salt</i> before hashing a password.",
+    "criteria": [
+     [
+      "Outlines that a unique random salt makes identical passwords hash differently, defeating precomputed (rainbow) tables",
+      "2"
+     ],
+     [
+      "Identifies a feature of salting",
+      "1"
+     ]
+    ],
+    "sample": "<p>A salt is a random value generated for each user and combined with the password before hashing, and stored with the hash. Two users with the same password end up with different hashes, so an attacker can't use precomputed rainbow tables or crack many accounts at once; each password must be attacked separately.</p>",
+    "lines": 6
+   }
+  },
+  {
+   "number": 18,
+   "qid": "q18",
+   "type": "short",
+   "marks": 3,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Explain how a cross-site request forgery (CSRF) attack works, and describe ONE way to prevent it.",
+    "criteria": [
+     [
+      "Explains how the attack uses the victim's logged-in session, and describes a valid defence",
+      "3"
+     ],
+     [
+      "Describes the attack or a defence",
+      "2"
+     ],
+     [
+      "Identifies a feature of CSRF",
+      "1"
+     ]
+    ],
+    "sample": "<p>The victim is logged in to a site, so their browser holds its session cookie. While logged in, they visit an attacker's page that secretly submits a request to that site (for example, a hidden form that changes their email or transfers money). The browser automatically attaches the session cookie, so the site treats the forged request as the user's own. <b>Prevention:</b> include a secret, unpredictable CSRF token in every form and reject requests without it; the attacker's page can't read the token. Setting cookies to SameSite also stops them being sent with cross-site requests.</p>",
+    "lines": 9
+   }
+  },
+  {
+   "number": 19,
+   "qid": "q19",
+   "type": "short",
+   "marks": 4,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "This Flask route shows search results.<pre>@app.route(&quot;/search&quot;)\ndef search():\n    q = request.args.get(&quot;q&quot;, &quot;&quot;)\n    return f&quot;&lt;h1&gt;Results for {q}&lt;/h1&gt;&quot;</pre><p>(a) Identify the vulnerability and explain how an attacker could exploit it. <b>(2 marks)</b></p><p>(b) Rewrite the route so it is secure. <b>(2 marks)</b></p>",
+    "criteria": [
+     [
+      "(a) Identifies reflected XSS and explains that script in the q parameter runs in the victim's browser",
+      "2"
+     ],
+     [
+      "(a) Identifies XSS",
+      "1"
+     ],
+     [
+      "(b) Escapes the output (escape() or an auto-escaping template)",
+      "2"
+     ],
+     [
+      "(b) Partially correct fix",
+      "1"
+     ]
+    ],
+    "sample": "<p>(a) Reflected cross-site scripting. The search text is put straight into the HTML. An attacker sends a victim a link such as <code>/search?q=&lt;script&gt;…&lt;/script&gt;</code>; the script runs in the victim's browser on this site, where it can steal their session cookie or act as them.</p><pre>from markupsafe import escape\n\n@app.route(&quot;/search&quot;)\ndef search():\n    q = request.args.get(&quot;q&quot;, &quot;&quot;)\n    return f&quot;&lt;h1&gt;Results for {escape(q)}&lt;/h1&gt;&quot;</pre><p class=\"note\">Also accept render_template with a Jinja template, which escapes automatically.</p>",
+    "lines": 14
+   }
+  },
+  {
+   "number": 20,
+   "qid": "q20",
+   "type": "short",
+   "marks": 4,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A student opens the profile page of a web app. Describe how the browser, the web server and the database work together to display the page.",
+    "criteria": [
+     [
+      "Describes the request, server-side processing, database query and response in order, with the role of each tier",
+      "4"
+     ],
+     [
+      "Describes most steps",
+      "3"
+     ],
+     [
+      "Outlines some steps",
+      "2"
+     ],
+     [
+      "Provides some relevant information",
+      "1"
+     ]
+    ],
+    "sample": "<p>The <b>browser</b> sends an HTTPS GET request for /profile, with the session cookie that identifies the student. The <b>web server</b> receives it, checks the session to authenticate the student, and runs the route's code. That code sends a parameterised SQL query to the <b>database server</b>, which returns the student's row (name, year, results). The web server inserts the data into an HTML template and sends the page back in an HTTP response with status 200. The browser then renders the HTML, requests the CSS, JavaScript and images it references, and displays the page.</p>",
+    "lines": 11
+   }
+  },
+  {
+   "number": 21,
+   "qid": "q21",
+   "type": "short",
+   "marks": 4,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Compare progressive web apps (PWAs) with native mobile apps.",
+    "criteria": [
+     [
+      "Compares both, giving clear similarities and differences with examples (installation, offline use, device access, performance, cost)",
+      "4"
+     ],
+     [
+      "Describes features of both",
+      "3"
+     ],
+     [
+      "Outlines features of one or both",
+      "2"
+     ],
+     [
+      "Provides some relevant information",
+      "1"
+     ]
+    ],
+    "sample": "<p><b>Similarities:</b> both can be installed on the home screen, open full screen, send notifications and work offline (a PWA through a service worker cache). <b>Differences:</b> a PWA is one web codebase that runs on any device through the browser and updates instantly without an app store, so it's cheaper to build and maintain. A native app is written for each platform (Swift for iOS, Kotlin for Android), is distributed through app stores, and gets fuller access to device hardware (Bluetooth, sensors, background tasks) and usually better performance. A PWA suits content and tools that need wide reach at low cost; a native app suits games or apps that rely heavily on device features.</p>",
+    "lines": 12
+   }
+  },
+  {
+   "number": 22,
+   "qid": "q22",
+   "type": "short",
+   "marks": 5,
+   "topic": "Programming Fundamentals",
+   "answer": null,
+   "content": {
+    "kind": "code",
+    "prompt": "<code>results</code> is a list of <code>(name, mark)</code> tuples. Write a Python function <code>top_students(results, n)</code> that returns a list of the names of the <code>n</code> highest-scoring students, highest mark first. Students with equal marks are listed alphabetically. If there are fewer than <code>n</code> students, return all of them.<p>For example, <code>top_students([(\"Ava\", 80), (\"Ben\", 95), (\"Cy\", 80)], 2)</code> returns <code>[\"Ben\", \"Ava\"]</code>.</p>",
+    "criteria": [
+     [
+      "Correct function that passes all tests, including ties and short lists",
+      "5"
+     ],
+     [
+      "Correct function with one minor error",
+      "4"
+     ],
+     [
+      "Sorts correctly but mishandles ties or n",
+      "3"
+     ],
+     [
+      "Partially working logic",
+      "2"
+     ],
+     [
+      "Some relevant code",
+      "1"
+     ]
+    ],
+    "sample": "<pre>def top_students(results, n):\n    ranked = sorted(results, key=lambda r: (-r[1], r[0]))\n    return [name for name, mark in ranked[:n]]</pre><p class=\"note\">Any correct method earns full marks, for example sorting by name and then by mark with reverse=True. Tests: the example above; n larger than the list; an empty list gives [].</p>",
+    "lines": 14,
+    "lang": "python",
+    "tests": [
+     {
+      "call": "top_students([(\"Ava\", 80), (\"Ben\", 95), (\"Cy\", 80)], 2)",
+      "expect": "[\"Ben\", \"Ava\"]"
+     },
+     {
+      "call": "top_students([(\"Ava\", 80), (\"Ben\", 95), (\"Cy\", 80), (\"Di\", 70)], 3)",
+      "expect": "[\"Ben\", \"Ava\", \"Cy\"]"
+     },
+     {
+      "call": "top_students([(\"Zed\", 50)], 5)",
+      "expect": "[\"Zed\"]"
+     },
+     {
+      "call": "top_students([], 3)",
+      "expect": "[]"
+     }
+    ]
+   }
+  },
+  {
+   "number": 23,
+   "qid": "q23",
+   "type": "short",
+   "marks": 3,
+   "topic": "Programming for the Web",
+   "answer": null,
+   "content": {
+    "kind": "code",
+    "prompt": "A database has these tables:<p><code>Students(id, name, year)</code><br><code>Bookings(id, student_id, room, day)</code></p>Write an SQL query that shows each room and how many times Year 11 students booked it, including only rooms booked more than 5 times, most-booked first.",
+    "criteria": [
+     [
+      "Correct join, WHERE, GROUP BY, HAVING and ORDER BY",
+      "3"
+     ],
+     [
+      "Query with one error or omission",
+      "2"
+     ],
+     [
+      "Some correct SQL",
+      "1"
+     ]
+    ],
+    "sample": "<pre>SELECT Bookings.room, COUNT(*) AS bookings\nFROM Bookings\nJOIN Students ON Bookings.student_id = Students.id\nWHERE Students.year = 11\nGROUP BY Bookings.room\nHAVING COUNT(*) &gt; 5\nORDER BY bookings DESC;</pre><p class=\"note\">WHERE filters rows before grouping; HAVING filters the groups after counting.</p>",
+    "lines": 8,
+    "lang": "sql",
+    "tests": []
+   }
+  },
+  {
+   "number": 24,
+   "qid": "q24",
+   "type": "short",
+   "marks": 2,
+   "topic": "Software Engineering Project",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Explain why developers use branches in version control.",
+    "criteria": [
+     [
+      "Explains that branches isolate work so it can be developed and tested without affecting the main code, then merged",
+      "2"
+     ],
+     [
+      "Identifies a feature of branches",
+      "1"
+     ]
+    ],
+    "sample": "<p>A branch is a separate line of development. Each feature or bug fix is built and tested on its own branch, so the main branch always stays stable and working. Several developers can work in parallel without overwriting each other, and when a feature is finished and reviewed it is merged back into main. If an idea fails, the branch can simply be abandoned.</p>",
+    "lines": 6
+   }
+  },
+  {
+   "number": 25,
+   "qid": "q25",
+   "type": "short",
+   "marks": 4,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A school uses a decision tree to predict whether a student will pass, based on attendance and homework completion.<p>(a) Explain how a decision tree makes a prediction for a new student. <b>(2 marks)</b></p><p>(b) Give ONE advantage and ONE disadvantage of using a decision tree instead of a neural network for this task. <b>(2 marks)</b></p>",
+    "criteria": [
+     [
+      "(a) Explains that the student's features are tested at each node from the root, following branches until a leaf gives the prediction",
+      "2"
+     ],
+     [
+      "(a) Outlines a feature of decision trees",
+      "1"
+     ],
+     [
+      "(b) Valid advantage and valid disadvantage",
+      "2"
+     ],
+     [
+      "(b) One of these",
+      "1"
+     ]
+    ],
+    "sample": "<p>(a) The tree is a series of yes/no questions learnt from training data. Starting at the root, the new student's data is tested (for example, \"attendance ≥ 85%?\"), and the answer decides which branch to follow to the next question (\"homework completion ≥ 70%?\"). This continues until a leaf node is reached, which gives the prediction: pass or fail.</p><p>(b) <b>Advantage:</b> it's easy to explain, since the exact rules behind each prediction can be shown to teachers and students, and it works well with small datasets. <b>Disadvantage:</b> it can overfit by growing too many specific branches, and it's usually less accurate than a neural network on complex patterns.</p>",
+    "lines": 12
+   }
+  },
+  {
+   "number": 26,
+   "qid": "q26",
+   "type": "short",
+   "marks": 4,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Explain how bias can enter a machine learning system at different stages of its development and use.",
+    "criteria": [
+     [
+      "Explains how bias can enter at several stages (data collection, labelling, design or training, deployment) with examples",
+      "4"
+     ],
+     [
+      "Describes bias at two stages",
+      "3"
+     ],
+     [
+      "Outlines how bias can occur",
+      "2"
+     ],
+     [
+      "Provides some relevant information",
+      "1"
+     ]
+    ],
+    "sample": "<p><b>Data collection:</b> if the training data under-represents some groups (for example, mostly lighter-skinned faces), the model performs worse for others. <b>Historical data:</b> past decisions that were unfair, such as hiring records, teach the model to repeat them. <b>Labelling:</b> human labellers bring their own assumptions. <b>Design and training:</b> choosing features that act as proxies for protected attributes (postcode for ethnicity), or optimising only overall accuracy, hides poor results for minorities. <b>Deployment:</b> using a model on a population different from its training data, or feedback loops where its decisions shape future data, can amplify bias over time.</p>",
+    "lines": 12
+   }
+  },
+  {
+   "number": 27,
+   "qid": "q27",
+   "type": "short",
+   "marks": 2,
+   "topic": "Software Automation",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A spam filter is tested on 100 emails: 40 spam correctly flagged, 10 normal emails wrongly flagged as spam, 5 spam emails missed and 45 normal emails correctly allowed. Calculate the filter's accuracy and its precision.",
+    "criteria": [
+     [
+      "Correct accuracy (85%) and precision (0.8 or 80%) with working",
+      "2"
+     ],
+     [
+      "One correct",
+      "1"
+     ]
+    ],
+    "sample": "<p>Accuracy = correct predictions ÷ total = (40 + 45) ÷ 100 = <b>85%</b>.</p><p>Precision = true positives ÷ everything flagged as spam = 40 ÷ (40 + 10) = <b>0.8 (80%)</b>.</p>",
+    "lines": 6
+   }
+  },
+  {
+   "number": 28,
+   "qid": "q28",
+   "type": "short",
+   "marks": 5,
+   "topic": "The Object-oriented Paradigm",
+   "answer": null,
+   "content": {
+    "kind": "code",
+    "prompt": "Write Python code for these two classes.<ul><li><b>BankAccount</b> has a <i>private</i> balance starting at 0, and methods <code>deposit(amount)</code>, <code>withdraw(amount)</code> and <code>get_balance()</code>. Both <code>deposit</code> and <code>withdraw</code> raise a <code>ValueError</code> if the amount is not positive, and <code>withdraw</code> also raises one if the amount is more than the balance.</li><li><b>SavingsAccount</b> is a BankAccount created with an <code>interest_rate</code> (for example 0.05). Its method <code>add_interest()</code> deposits interest on the current balance.</li></ul>",
+    "criteria": [
+     [
+      "Both classes correct: private balance, validation with ValueError, subclass extends BankAccount, calls super().__init__ and reuses deposit",
+      "5"
+     ],
+     [
+      "Mostly correct with one error",
+      "4"
+     ],
+     [
+      "BankAccount correct, SavingsAccount partly correct",
+      "3"
+     ],
+     [
+      "BankAccount partly correct",
+      "2"
+     ],
+     [
+      "Some relevant code",
+      "1"
+     ]
+    ],
+    "sample": "<pre>class BankAccount:\n    def __init__(self):\n        self.__balance = 0\n\n    def deposit(self, amount):\n        if amount &lt;= 0:\n            raise ValueError(&quot;Deposit must be positive&quot;)\n        self.__balance += amount\n\n    def withdraw(self, amount):\n        if amount &lt;= 0 or amount &gt; self.__balance:\n            raise ValueError(&quot;Invalid withdrawal&quot;)\n        self.__balance -= amount\n\n    def get_balance(self):\n        return self.__balance\n\n\nclass SavingsAccount(BankAccount):\n    def __init__(self, interest_rate):\n        super().__init__()\n        self.interest_rate = interest_rate\n\n    def add_interest(self):\n        self.deposit(self.get_balance() * self.interest_rate)</pre>",
+    "lines": 20,
+    "lang": "python",
+    "setup": "def _raises(f):\n    try:\n        f()\n    except ValueError:\n        return True\n    except Exception:\n        return False\n    return False\n\ndef _after(acct, *steps):\n    for s in steps:\n        s(acct)\n    return acct.get_balance()",
+    "tests": [
+     {
+      "call": "_after(BankAccount(), lambda a: a.deposit(100), lambda a: a.withdraw(30))",
+      "expect": "70"
+     },
+     {
+      "call": "_raises(lambda: BankAccount().withdraw(10))",
+      "expect": "True"
+     },
+     {
+      "call": "_raises(lambda: BankAccount().deposit(-5))",
+      "expect": "True"
+     },
+     {
+      "call": "issubclass(SavingsAccount, BankAccount)",
+      "expect": "True"
+     },
+     {
+      "call": "_after(SavingsAccount(0.05), lambda a: a.deposit(200), lambda a: a.add_interest())",
+      "expect": "210"
+     },
+     {
+      "call": "not hasattr(BankAccount(), \"balance\")",
+      "expect": "True"
+     }
+    ]
+   }
+  },
+  {
+   "number": 29,
+   "qid": "q29",
+   "type": "short",
+   "marks": 3,
+   "topic": "The Object-oriented Paradigm",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "With reference to your code in the previous question, explain <i>encapsulation</i>, and why the balance should be private.",
+    "criteria": [
+     [
+      "Explains encapsulation, links the private balance to controlled access through methods, and justifies it with reference to the code",
+      "3"
+     ],
+     [
+      "Explains encapsulation with some link to the code",
+      "2"
+     ],
+     [
+      "Outlines encapsulation",
+      "1"
+     ]
+    ],
+    "sample": "<p>Encapsulation bundles an object's data with the methods that act on it, inside the class. The balance is private (<code>self.__balance</code>), so code outside the class can't change it directly; the only way to change it is by sending a message to the object through <code>deposit()</code> or <code>withdraw()</code>, which validate every change. This means the balance can never become negative or be set to an invalid value by mistake, and the subclass SavingsAccount also has to go through <code>deposit()</code> to add interest. <code>get_balance()</code> gives read-only access.</p>",
+    "lines": 9
+   }
+  },
+  {
+   "number": 30,
+   "qid": "q30",
+   "type": "short",
+   "marks": 4,
+   "topic": "Software Engineering Project",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Describe how a development team could use a Kanban board and daily stand-up meetings to manage a software project.",
+    "criteria": [
+     [
+      "Describes both tools in detail and how they help the team track progress and remove blockers",
+      "4"
+     ],
+     [
+      "Describes both tools",
+      "3"
+     ],
+     [
+      "Describes one tool",
+      "2"
+     ],
+     [
+      "Provides some relevant information",
+      "1"
+     ]
+    ],
+    "sample": "<p>A <b>Kanban board</b> shows every task as a card in columns such as To do, In progress, Testing and Done. Team members pull the next card when they're free and move it across as work progresses, so everyone can see what's happening and where work is piling up. Limiting how many cards can be in progress at once stops people starting too much and finishing too little. A <b>daily stand-up</b> is a short meeting (about 15 minutes) where each member says what they finished yesterday, what they'll do today, and anything blocking them. Blockers are raised early so they can be solved quickly, and the board is updated during the meeting so it stays accurate.</p>",
+    "lines": 12
+   }
+  },
+  {
+   "number": 31,
+   "qid": "q31",
+   "type": "short",
+   "marks": 5,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "A developer is building an app that tracks students' locations so parents can see when their child arrives at school. Discuss the social, ethical and legal issues the developer must consider.",
+    "criteria": [
+     [
+      "Discusses social, ethical and legal issues in detail, with arguments for and against and specific measures",
+      "5"
+     ],
+     [
+      "Describes issues in all three areas",
+      "4"
+     ],
+     [
+      "Describes issues in two areas",
+      "3"
+     ],
+     [
+      "Outlines some issues",
+      "2"
+     ],
+     [
+      "Provides some relevant information",
+      "1"
+     ]
+    ],
+    "sample": "<p><b>Legal:</b> location data is personal information under the Privacy Act 1988 and the Australian Privacy Principles, so the app must collect only what it needs, explain how it's used, store it securely and get valid consent, which for minors involves parents. A data breach could also trigger mandatory notification obligations. <b>Ethical:</b> constant tracking can harm students' autonomy and trust, and they should know when they're tracked and have a say in it. The data could be misused, for example by an abusive family member, so location history should be limited (arrival notifications rather than continuous tracking) and deleted quickly. <b>Social:</b> parents gain peace of mind and schools may improve safety, but normalising surveillance could change how young people feel about privacy, and students without smartphones could be left out. On balance, the app is reasonable if it follows privacy by design: minimal data, clear consent, encryption and strict retention limits.</p>",
+    "lines": 15
+   }
+  },
+  {
+   "number": 32,
+   "qid": "q32",
+   "type": "short",
+   "marks": 6,
+   "topic": "Secure Software Architecture",
+   "answer": null,
+   "content": {
+    "kind": "written",
+    "prompt": "Design a secure login system for a web app. Describe the process from a user registering to their authenticated session, justifying the security measure used at each step.",
+    "criteria": [
+     [
+      "Describes registration, login and session steps in detail, each with a justified security measure",
+      "5–6"
+     ],
+     [
+      "Describes most steps with some justification",
+      "3–4"
+     ],
+     [
+      "Outlines some steps or measures",
+      "1–2"
+     ]
+    ],
+    "sample": "<p><b>Registration:</b> the form is served over HTTPS, so details can't be read in transit. The server validates the email and enforces a strong password policy (length, checked against known breached passwords). The password is hashed with a slow, salted algorithm such as bcrypt or Argon2 and only the hash is stored, so a stolen database doesn't reveal passwords. A verification email confirms the address. <b>Login:</b> the server looks the user up with a parameterised query (preventing SQL injection) and compares the hash. Error messages are generic (\"Incorrect email or password\") to prevent user enumeration, and failed attempts are rate-limited or locked out to stop brute-force attacks. Multi-factor authentication (an authenticator app code) protects accounts even if the password is stolen. <b>Session:</b> after login the server creates a random session ID and sends it in a cookie with Secure, HttpOnly and SameSite set, protecting it from interception, XSS theft and CSRF. The ID is regenerated at login, sessions expire after inactivity, and logout destroys the session on the server. Logins are logged so suspicious activity can be detected.</p>",
+    "lines": 18
+   }
+  }
+ ]
+}

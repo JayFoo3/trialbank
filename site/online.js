@@ -127,7 +127,7 @@
         btn.type = 'button';
         btn.onclick = async () => {
           btn.disabled = true; btn.textContent = worker ? 'Running…' : 'Loading Python…';
-          const r = await runPython(ta.value, c.tests);
+          const r = await runPython(ta.value + (c.setup ? '\n\n' + c.setup : ''), c.tests);   // setup: hidden helpers the tests use
           btn.disabled = false; btn.textContent = 'Run tests';
           out.innerHTML = '';
           if (r.error) { out.appendChild(el('p', 'ol-err', esc(r.error))); return; }

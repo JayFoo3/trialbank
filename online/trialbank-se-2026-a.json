@@ -2,9 +2,10 @@
  "paper": {
   "slug": "trialbank-se-2026-a",
   "subject": "SE",
-  "school": "Trialbank",
+  "school": "Trialbank Paper A",
   "year": 2026,
-  "online": true
+  "online": true,
+  "difficulty": "Medium"
  },
  "questions": [
   {
