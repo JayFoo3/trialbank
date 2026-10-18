@@ -3,7 +3,7 @@
   const C = window.APP_CONFIG;
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey);
   const $ = (id) => document.getElementById(id);
-  const views = ['auth', 'home', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'exam', 'examrun', 'review'];
+  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, papers!inner(subject, school, year, difficulty)';
 
   document.title = C.name;
@@ -11,38 +11,70 @@
 
   const state = {
     user: null,
-    subject: Object.keys(C.subjects)[0],
+    subject: (() => { try { const k = localStorage.getItem('tb_subject'); return k && C.subjects[k] ? k : Object.keys(C.subjects)[0]; } catch { return Object.keys(C.subjects)[0]; } })(),
     topics: new Set(),          // selected topic names
     opts: { count: 10, type: 'all', diff: 'all', fresh: 1 },
     set: null,                  // { qs: [...], i, results: [] }
   };
 
   // ---------- routing ----------
+  const NAV = { home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers' };
   function show(name) {
     views.forEach(v => $('view-' + v).hidden = v !== name);
-    $('nav').hidden = !state.user;
+    $('nav').hidden = !state.user; $('top-right').hidden = !state.user;
+    document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === NAV[name]));
+    document.body.classList.toggle('focus', name === 'set' || (name === 'examrun' && state.exam && state.exam.phase !== 'marking'));
+    $('account-menu').hidden = true;
     window.scrollTo(0, 0);
+  }
+  let loadingN = 0;
+  async function busy(fn) {
+    loadingN++; $('loading').hidden = false;
+    try { return await fn(); } finally { if (--loadingN <= 0) { loadingN = 0; $('loading').hidden = true; } }
   }
   async function route() {
     const [h, arg] = (location.hash || '#home').slice(1).split('/');
     if (!state.user) return show('auth');
-    if (h === 'progress') { await renderProgress(); return show('progress'); }
-    if (h === 'admin' && state.admin) { await renderAdmin(); return show('admin'); }
-    if (h === 'set' && state.set) return show('set');
-    if (h === 'summary' && state.set) return show('summary');
-    if (h === 'papers') { show('papers'); await renderPapers(); return; }
-    if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
-    if (h === 'review') { show('review'); await renderReview(); return; }
-    if (h === 'examrun') { if (state.exam) return show('examrun'); location.hash = '#exam'; return; }
-    if (h === 'exam') {
-      if (state.exam) { location.hash = '#examrun'; return; }
-      show('exam');
-      const saved = lsGet(saveKey());
-      if (saved) { try { await resumeExam(saved); } catch (err) { renderExamSetup(); } } else renderExamSetup();
-      return;
-    }
-    await renderHome(); show('home');
+    drawSubject();
+    return busy(async () => {
+      if (h === 'practise') { show('practise'); await renderBuild(); return; }
+      if (h === 'progress') { show('progress'); await renderProgress(); return; }
+      if (h === 'admin' && state.admin) { show('admin'); await renderAdmin(); return; }
+      if (h === 'set' && state.set) return show('set');
+      if (h === 'summary' && state.set) return show('summary');
+      if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
+      if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
+      if (h === 'examrun' || h === 'exam') {
+        if (state.exam) return show('examrun');
+        const saved = lsGet(saveKey());
+        if (saved) { try { await resumeExam(saved); return show('examrun'); } catch { /* fall through */ } }
+      }
+      if (h !== 'home' && h !== '') { history.replaceState(null, '', '#home'); }
+      show('home'); await renderHome();
+    });
   }
+  function drawSubject() {
+    const el = $('subject-switch'); el.innerHTML = '';
+    for (const [key, label] of Object.entries(C.subjects)) {
+      const b = document.createElement('button');
+      b.textContent = C.shortSubjects?.[key] || label.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext ');
+      b.title = label; b.className = key === state.subject ? 'on' : '';
+      b.setAttribute('aria-pressed', key === state.subject);
+      b.onclick = () => {
+        if (key === state.subject) return;
+        state.subject = key; state.topics.clear(); flag('picked_subject', 1);
+        try { localStorage.setItem('tb_subject', key); } catch {}
+        const h = (location.hash || '#home').slice(1).split('/')[0];
+        if (h === 'paper' || h === 'set' || h === 'summary') location.hash = h === 'paper' ? '#papers' : '#practise'; else route();
+      };
+      el.appendChild(b);
+    }
+  }
+  function tabs() { drawSubject(); }   // older views called this per page; the switch now lives in the header
+  // account menu
+  $('account-btn').onclick = (ev) => { ev.stopPropagation(); const m = $('account-menu'); m.hidden = !m.hidden; $('account-btn').setAttribute('aria-expanded', !m.hidden); };
+  document.addEventListener('click', (ev) => { if (!ev.target.closest('.account')) $('account-menu').hidden = true; });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') $('account-menu').hidden = true; });
   window.addEventListener('hashchange', route);
 
   // ---------- auth ----------
@@ -98,6 +130,12 @@
     setTimeout(async () => {
       state.user = session?.user || null;
       if (!state.user) { state.set = null; state.stars = null; state.exam = null; clearInterval(examTimer); }
+      if (state.user) {
+        const em = state.user.email || '';
+        $('account-email').textContent = em;
+        const nm = em.split('@')[0].split(/[._\d]/).filter(Boolean);
+        $('account-btn').textContent = ((nm[0] || '?')[0] + (nm[1] ? nm[1][0] : '')).toUpperCase();
+      }
       await checkAdmin();
       route();
     }, 0);
@@ -126,8 +164,7 @@
       el.appendChild(b);
     }
   }
-  async function renderHome() {
-    tabs('subject-tabs', renderHome);
+  async function renderBuild() {
     const counts = await loadTopicCounts();
     const byTopic = {};
     counts.filter(r => r.subject === state.subject).forEach(r => {
@@ -139,11 +176,23 @@
       const b = document.createElement('button');
       b.className = 'chip' + (state.topics.has(t) ? ' on' : '');
       b.innerHTML = `${t}<span class="n">${byTopic[t].mcq + byTopic[t].short}</span>`;
-      b.onclick = () => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); b.classList.toggle('on'); };
+      b.dataset.t = t.toLowerCase();
+      b.onclick = () => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); b.classList.toggle('on'); startSummary(); };
       wrap.appendChild(b);
     });
-    $('topics-all').onclick = () => { Object.keys(byTopic).forEach(t => state.topics.add(t)); renderHome(); };
-    $('topics-none').onclick = () => { state.topics.clear(); renderHome(); };
+    filterTopics(); startSummary();
+    $('topics-all').onclick = () => { Object.keys(byTopic).forEach(t => state.topics.add(t)); renderBuild(); };
+    $('topics-none').onclick = () => { state.topics.clear(); renderBuild(); };
+  }
+  function filterTopics() {
+    const q = $('topic-filter').value.trim().toLowerCase();
+    document.querySelectorAll('#topic-chips .chip').forEach(b => { b.hidden = q && !b.dataset.t.includes(q); });
+  }
+  $('topic-filter').oninput = filterTopics;
+  function startSummary() {
+    const n = state.topics.size, o = state.opts;
+    $('start-summary').textContent = n ? `${o.count} questions from ${n} topic${n === 1 ? '' : 's'}` : 'Pick at least one topic';
+    $('start').disabled = !n;
   }
   document.querySelectorAll('.seg').forEach(seg => {
     seg.querySelectorAll('button').forEach(b => b.onclick = () => {
@@ -151,6 +200,7 @@
       b.classList.add('on');
       const v = b.dataset.v;
       state.opts[seg.dataset.opt] = isNaN(v) ? v : Number(v);
+      if (seg.dataset.opt) startSummary();
     });
   });
 
@@ -221,6 +271,7 @@
   function renderQuestion() {
     const s = state.set, x = s.qs[s.i];
     $('set-pos').textContent = `${s.i + 1} of ${s.qs.length} · ${x.topic}`;
+    firstHint(x);
     $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
     const qi = $('q-img'); qi.dataset.trimmed = ''; qi.crossOrigin = 'anonymous'; qi.onload = () => trimImg(qi); qi.src = x.imageUrl;
@@ -384,7 +435,6 @@
 
   // ---------- progress ----------
   async function renderProgress() {
-    tabs('progress-tabs', renderProgress);
     const [{ data: mine }, { data: cohort }] = await Promise.all([
       sb.from('my_topic_stats').select('*').eq('subject', state.subject),
       sb.rpc('cohort_topic_stats', { subj: state.subject }),
@@ -502,16 +552,25 @@
     const s = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
     $('am-cap').value = s.automark_monthly_cap_usd ?? 20;
     $('am-daily').value = s.automark_daily_calls ?? 16;
+    $('am-user').value = s.automark_user_monthly_usd ?? 2;
     $('am-on').checked = (s.automark_enabled ?? 'on') !== 'off';
     const { data, error } = await sb.rpc('automark_spend');
     const r = data && data[0];
     $('am-spend').textContent = error ? error.message
       : `This month: US$${Number(r?.month_usd || 0).toFixed(2)} across ${r?.month_runs || 0} marking requests (about 4 per paper). All time: US$${Number(r?.all_usd || 0).toFixed(2)}.`;
+    amEstimate();
   }
+  const PER_PAPER = 0.45;   // measured: a full Ext 1 paper costs about US$0.44 to mark
+  function amEstimate() {
+    const papers = (v) => Math.floor((Number(v) || 0) / PER_PAPER);
+    $('am-est').textContent = `At about US$${PER_PAPER.toFixed(2)} a paper: each student can mark roughly ${papers($('am-user').value)} papers a month, and everyone together roughly ${papers($('am-cap').value)}.`;
+  }
+  ['am-user', 'am-cap'].forEach(id => $(id).addEventListener('input', amEstimate));
   $('am-save').onclick = async () => {
     const rows = [
       { key: 'automark_monthly_cap_usd', value: String(Math.max(0, Number($('am-cap').value) || 0)) },
       { key: 'automark_daily_calls', value: String(Math.max(0, Math.round(Number($('am-daily').value) || 0))) },
+      { key: 'automark_user_monthly_usd', value: String(Math.max(0, Number($('am-user').value) || 0)) },
       { key: 'automark_enabled', value: $('am-on').checked ? 'on' : 'off' },
     ];
     const { error } = await sb.from('settings').upsert(rows, { onConflict: 'key' });
@@ -680,7 +739,6 @@
   // ---------- papers library ----------
   let papersData = { papers: [], sum: {}, best: {} };
   async function renderPapers() {
-    tabs('papers-tabs', renderPapers);
     $('papers-list').innerHTML = '<p class="muted">Loading…</p>';
     const [{ data: papers }, { data: sums }, { data: exams }] = await Promise.all([
       sb.from('papers').select('id, slug, subject, school, year, difficulty, scanned').eq('subject', state.subject),
@@ -689,7 +747,8 @@
     ]);
     const best = {};
     (exams || []).forEach(e => { if (e.out_of) best[e.paper_id] = Math.max(best[e.paper_id] || 0, Math.round(100 * e.score / e.out_of)); });
-    papersData = { papers: papers || [], sum: Object.fromEntries((sums || []).map(s => [s.paper_id, s])), best };
+    const thumbs = await signed((papers || []).map(p => `${p.slug}/thumb.webp`)).catch(() => ({}));
+    papersData = { papers: papers || [], sum: Object.fromEntries((sums || []).map(s => [s.paper_id, s])), best, thumbs };
     drawPapers();
   }
   function drawPapers() {
@@ -699,23 +758,29 @@
     papers.filter(p => !q || p.school.toLowerCase().includes(q) || String(p.year).includes(q))
       .forEach(p => (bySchool[p.school] = bySchool[p.school] || []).push(p));
     const schools = Object.keys(bySchool).sort((a, b) => (/smiths/i.test(b) - /smiths/i.test(a)) || a.localeCompare(b));
-    $('papers-count').textContent = `· ${papers.length} papers, ${new Set(papers.map(p => p.school)).size} schools`;
+    $('papers-count').textContent = `${papers.length} papers, ${new Set(papers.map(p => p.school)).size} schools`;
     const wrap = $('papers-list'); wrap.innerHTML = '';
     if (!schools.length) { wrap.innerHTML = '<p class="muted">Nothing matches.</p>'; return; }
+    const { thumbs = {} } = papersData;
     schools.forEach(sch => {
       const list = bySchool[sch].sort((a, b) => b.year - a.year);
-      const d = mk('details', 'folder');
-      if (/smiths/i.test(sch) || q) d.open = true;
-      d.innerHTML = `<summary><span>${sch}</span><span class="muted small">${list.length} paper${list.length === 1 ? '' : 's'}</span></summary>`;
+      const sec = mk('section', 'pschool');
+      sec.appendChild(mk('h2', '', esc(sch)));
+      const grid = mk('div', 'pgrid');
       list.forEach(p => {
         const s = sum[p.id] || {};
-        const a = mk('a', 'prow');
+        const a = mk('a', 'ptile');
         a.href = '#paper/' + encodeURIComponent(p.slug);
-        const bits = [diffOf(p), s.n_questions ? s.n_questions + ' questions' : null, s.total_marks ? s.total_marks + ' marks' : null, p.scanned ? 'scanned' : null].filter(Boolean).join(' · ');
-        a.innerHTML = `<span class="yr">${p.year}</span><span class="muted small">${bits}</span>${best[p.id] != null ? `<span class="tag">Sat · ${best[p.id]}%</span>` : ''}`;
-        d.appendChild(a);
+        a.title = `${p.school} ${p.year}`;
+        const url = thumbs[`${p.slug}/thumb.webp`];
+        a.innerHTML = `<div class="pthumb">${url ? `<img loading="lazy" alt="" src="${url}">` : `<span>${esc(p.school)}<br>${p.year}</span>`}${best[p.id] != null ? `<span class="tag">${best[p.id]}%</span>` : ''}</div>
+          <div class="pname"><strong>${p.year}</strong><span class="muted small">${s.total_marks ? s.total_marks + ' marks' : ''}</span></div>`;
+        const im = a.querySelector('img');
+        if (im) im.onerror = () => { im.replaceWith(Object.assign(mk('span', '', `${esc(p.school)}<br>${p.year}`))); };
+        grid.appendChild(a);
       });
-      wrap.appendChild(d);
+      sec.appendChild(grid);
+      wrap.appendChild(sec);
     });
   }
   $('papers-filter').oninput = drawPapers;
@@ -750,13 +815,7 @@
     };
     $('paper-automark').onclick = async (ev) => {
       const b = ev.currentTarget; b.disabled = true;
-      try {
-        state.subject = p.subject;
-        const now = Date.now();
-        await prepareExam(p, { startedAt: now, readingSec: 0, workSec: 0, finishedAt: now, uploaded: true });
-        saveExam(); location.hash = '#examrun'; await finishExam(false);
-        $('exam-note').textContent = 'Upload your written paper below and it will be marked for you.';
-      } catch (err) { $('paper-error').textContent = err.message; $('paper-error').hidden = false; }
+      try { await startMarking(p); } catch (err) { $('paper-error').textContent = err.message; $('paper-error').hidden = false; }
       finally { b.disabled = false; }
     };
     box.innerHTML = '';
@@ -777,6 +836,85 @@
     });
   }
 
+  // ---------- home dashboard ----------
+  async function startMarking(p) {
+    state.subject = p.subject;
+    const now = Date.now();
+    await prepareExam(p, { startedAt: now, readingSec: 0, workSec: 0, finishedAt: now, uploaded: true });
+    saveExam(); location.hash = '#examrun'; await finishExam(false);
+    $('exam-note').textContent = 'Upload your written paper below and it will be marked for you.';
+  }
+  let homePapers = [];
+  async function renderHome() {
+    const em = state.user.email || '';
+    const local = em.split('@')[0];
+    const first = /[._]/.test(local) ? (local.split(/[._\d]/).filter(Boolean)[0] || '') : '';   // only when the address has a first.last shape
+    $('home-hello').textContent = first ? `Hi ${first[0].toUpperCase() + first.slice(1)}` : 'Hi';
+    $('home-sub').textContent = C.subjects[state.subject];
+    renderExamSetup();
+    // an exam left running or unmarked
+    const saved = lsGet(saveKey());
+    $('resume-banner').hidden = true;
+    const [, { data: papers }] = await Promise.all([
+      renderReview(),
+      sb.from('papers').select('*').eq('subject', state.subject).order('school').order('year', { ascending: false }),
+    ]);
+    homePapers = papers || [];
+    if (saved) {
+      const p = homePapers.find(x => x.id === saved.paperId) || null;
+      const left = saved.finishedAt ? null : Math.round((saved.startedAt + (saved.readingSec + saved.workSec) * 1000 - Date.now()) / 60000);
+      $('resume-title').textContent = saved.uploaded ? 'A paper is waiting to be marked' : saved.finishedAt || left <= 0 ? 'You have an exam to mark' : 'Exam in progress';
+      $('resume-sub').textContent = (p ? `${p.school} ${p.year}` : 'Your paper') + (left > 0 ? ` · about ${left} min left on the clock` : '');
+      $('resume-banner').hidden = !p;
+      $('resume-btn').textContent = left > 0 ? 'Back to the exam' : 'Continue marking';
+      $('resume-btn').onclick = () => busy(async () => { try { await resumeExam(saved); } catch (err) { $('resume-sub').textContent = err.message; } });
+    }
+    const sel = $('mark-paper'); const keep = sel.value;
+    sel.innerHTML = '<option value="">Pick the paper</option>' + homePapers.filter(p => !p.scanned)
+      .map(p => `<option value="${p.id}">${esc(p.school)} ${p.year}</option>`).join('');
+    sel.value = keep;
+    $('quick-desc').textContent = state.weak && state.weak.length
+      ? `10 new questions, mostly ${state.weak.map(w => w.topic).slice(0, 2).join(' and ')}.`
+      : "10 questions you haven't done.";
+    renderOnboard();
+  }
+  $('mark-go').onclick = async () => {
+    const id = Number($('mark-paper').value);
+    const p = homePapers.find(x => x.id === id);
+    if (!p) { $('mark-paper').focus(); return; }
+    $('mark-go').disabled = true;
+    try { await busy(() => startMarking(p)); } catch (err) { reviewError(err.message); } finally { $('mark-go').disabled = false; }
+  };
+  $('quick-set').onclick = async () => {
+    $('quick-error').hidden = true; $('quick-set').disabled = true;
+    try {
+      const counts = await loadTopicCounts();
+      const all = [...new Set(counts.filter(r => r.subject === state.subject).map(r => r.topic))];
+      const weak = (state.weak || []).map(w => w.topic);
+      shuffle(all);
+      state.topics = new Set(weak.length ? [...weak, ...all.slice(0, 3)] : all);
+      await busy(() => buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1 }));
+      location.hash = '#set';
+    } catch (err) { $('quick-error').textContent = err.message; $('quick-error').hidden = false; }
+    finally { $('quick-set').disabled = false; }
+  };
+
+  // ---------- set: exit and keyboard ----------
+  $('set-exit').onclick = () => {
+    const s = state.set;
+    if (s && s.results.some(Boolean)) { renderSummary('Set ended early'); location.hash = '#summary'; }
+    else location.hash = '#practise';
+  };
+  document.addEventListener('keydown', (ev) => {
+    if ($('view-set').hidden || ev.metaKey || ev.ctrlKey || ev.altKey || /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) return;
+    const k = ev.key.toLowerCase();
+    if ('abcd'.includes(k) && k.length === 1 && !$('mcq-controls').hidden) {
+      const b = document.querySelector(`#mcq-controls button[data-l="${k.toUpperCase()}"]`); if (b && !b.disabled) { b.click(); ev.preventDefault(); }
+    } else if (k === 's' && !$('short-controls').hidden && !$('show-sol').hidden && !$('show-sol').disabled) { $('show-sol').click(); ev.preventDefault(); }
+    else if ((k === 'enter' || k === 'arrowright') && !$('next').hidden) { $('next').click(); ev.preventDefault(); }
+    else if (/^[0-9]$/.test(k) && !$('sol-wrap').hidden) { const b = $('self-mark').querySelectorAll('button')[Number(k)]; if (b && !b.disabled) { b.click(); ev.preventDefault(); } }
+  });
+
   // ---------- exam mode ----------
   const saveKey = () => 'tb_exam_' + (state.user ? state.user.id : '');
   function saveExam() {
@@ -784,9 +922,10 @@
     lsSet(saveKey(), { paperId: e.paper.id, startedAt: e.startedAt, readingSec: e.readingSec, workSec: e.workSec, answers: e.answers, marks: e.marks, lost: e.lost || {}, ai: e.ai || {}, uploaded: !!e.uploaded, finishedAt: e.finishedAt || null });
   }
   function renderExamSetup() {
-    tabs('exam-tabs', renderExamSetup);
     const d = examDefaults(state.subject);
     $('exam-reading').value = d.reading; $('exam-working').value = d.working;
+    const tt = () => { $('exam-times').textContent = `${$('exam-reading').value} min reading, ${$('exam-working').value} min working`; };
+    tt(); $('exam-reading').oninput = tt; $('exam-working').oninput = tt;
     $('exam-error').hidden = true;
   }
   async function pickExamPaper(subject) {
@@ -832,7 +971,7 @@
   }
   async function resumeExam(saved) {
     const { data: ps } = await sb.from('papers').select('*').eq('id', saved.paperId);
-    if (!ps || !ps[0]) { lsDel(saveKey()); return renderExamSetup(); }
+    if (!ps || !ps[0]) { lsDel(saveKey()); throw new Error('That paper is no longer available.'); }
     await prepareExam(ps[0], saved);
     $('exam-note').textContent = '';
     location.hash = '#examrun';
@@ -896,6 +1035,7 @@
     e.qs.forEach(q => { q.solutionUrl = q.solution_path ? u[q.solution_path] : null; });
     if (auto) $('exam-note').textContent = 'Time is up. Mark yourself honestly against the solutions.';
     renderExamBody(); syncBar(); updateRunning();
+    document.body.classList.remove('focus');
     window.scrollTo(0, 0);
   }
   function examResults(e) {
@@ -1007,7 +1147,6 @@
 
   // ---------- review ----------
   async function renderReview() {
-    tabs('review-tabs', renderReview);
     $('review-error').hidden = true;
     const [{ data: mine }, { data: stars }, { data: ex }] = await Promise.all([
       sb.from('my_topic_stats').select('*').eq('subject', state.subject),
@@ -1015,9 +1154,11 @@
       sb.from('exams').select('started_at, seconds_used, score, out_of, work_minutes, papers!inner(school, year, subject)').eq('papers.subject', state.subject).order('started_at', { ascending: false }).limit(20),
     ]);
     state.weak = (mine || []).filter(r => r.out_of >= 3).map(r => ({ ...r, pct: r.score / r.out_of })).sort((a, b) => a.pct - b.pct).slice(0, 3);
-    $('weak-list').textContent = state.weak.length ? 'Weakest right now: ' + state.weak.map(w => `${w.topic} (${Math.round(100 * w.pct)}%)`).join(', ') : 'Attempt a few questions first and this will find your weak topics.';
+    state.attempted = (mine || []).some(r => r.out_of > 0);
+    $('weak-list').textContent = state.weak.length ? state.weak.map(w => w.topic).join(', ') : 'None yet';
+    $('wrong-sub').textContent = state.attempted ? '' : 'None yet';
     $('drill-weak').disabled = !state.weak.length;
-    $('star-count').textContent = `${(stars || []).length} starred question${(stars || []).length === 1 ? '' : 's'}`;
+    $('star-count').textContent = (stars || []).length ? String((stars || []).length) : 'None yet';
     const tb = $('exam-history').querySelector('tbody'); tb.innerHTML = '';
     (ex || []).forEach(r => {
       const tr = mk('tr');
@@ -1061,6 +1202,41 @@
       if (!(await setFromIds((data || []).map(r => r.question_id), 20))) reviewError('No starred questions in this subject yet. Tap the star on any question.');
     } catch (err) { reviewError(err.message); }
   };
+
+  // ---------- start-here guide (new users) ----------
+  const flag = (k, v) => { try { if (v === undefined) return localStorage.getItem('tb_' + k) === '1'; localStorage.setItem('tb_' + k, '1'); } catch { return false; } };
+  function renderOnboard() {
+    const box = $('onboard');
+    const done = { subject: flag('picked_subject'), first: !!state.attempted, papers: flag('seen_papers') };
+    if (flag('onboard_hidden') || (done.subject && done.first && done.papers)) { box.hidden = true; return; }
+    box.hidden = false;
+    for (const k of ['subject', 'first', 'papers']) $('ob-' + k).classList.toggle('done', done[k]);
+    const subs = $('ob-subjects'); subs.innerHTML = '';
+    for (const [key, label] of Object.entries(C.subjects)) {
+      const b = mk('button', key === state.subject && done.subject ? 'on' : '', label.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext '));
+      b.onclick = () => {
+        flag('picked_subject', 1);
+        if (key !== state.subject) $('subject-switch').querySelectorAll('button')[Object.keys(C.subjects).indexOf(key)].click(); else renderOnboard();
+      };
+      subs.appendChild(b);
+    }
+  }
+  $('onboard-hide').onclick = () => { flag('onboard_hidden', 1); $('onboard').hidden = true; };
+  $('ob-first-go').onclick = async () => {
+    $('ob-first-go').disabled = true;
+    try {
+      const counts = await loadTopicCounts();
+      state.topics = new Set(counts.filter(r => r.subject === state.subject).map(r => r.topic));
+      await busy(() => buildSet({ count: 5, type: 'mcq', diff: 'all', fresh: 1 }));
+      location.hash = '#set';
+    } catch (err) { reviewError(err.message); } finally { $('ob-first-go').disabled = false; }
+  };
+  function firstHint(x) {
+    const k = x.type === 'mcq' ? 'hint_mcq' : 'hint_short', el = $('set-hint');
+    if (flag(k)) { el.hidden = true; return; }
+    el.textContent = x.type === 'mcq' ? 'Tap an answer. You find out straight away.' : 'Do it on paper, check the solution, then give yourself a mark.';
+    el.hidden = false; flag(k, 1);
+  }
 
   // ---------- automarker ----------
   const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

@@ -46,3 +46,6 @@ language sql security definer set search_path = public as $$
   from automark_runs where is_admin();
 $$;
 grant execute on function public.automark_spend() to authenticated;
+
+-- per-student monthly budget (US$), editable on the Admin page
+insert into public.settings (key, value) values ('automark_user_monthly_usd', '2') on conflict (key) do nothing;

@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
     return json({ error: 'Bad question list' }, 400);
 
   // limits
-  const { data: srows } = await admin.from('settings').select('key, value').like('key', 'automark_%');
+  const { data: srows } = await admin.from('settings').select('key, value').or('key.like.automark_%,key.eq.admin_emails');
   const s = Object.fromEntries((srows ?? []).map((r) => [r.key, r.value]));
   if (s.automark_enabled === 'off') return json({ error: 'Auto-marking is switched off right now.' }, 403);
   const cap = Number(s.automark_monthly_cap_usd ?? 20), perDay = Number(s.automark_daily_calls ?? 16);
@@ -118,6 +118,14 @@ Deno.serve(async (req) => {
   const { count } = await admin.from('automark_runs').select('id', { count: 'exact', head: true })
     .eq('user_id', user.id).gte('created_at', new Date(Date.now() - 864e5).toISOString());
   if ((count ?? 0) >= perDay) return json({ error: "You've hit today's auto-marking limit. Try again tomorrow." }, 429);
+  // per-student monthly budget (admins exempt)
+  const isAdmin = String(s.admin_emails ?? '').toLowerCase().split(/[\s,]+/).includes(String(user.email ?? '').toLowerCase());
+  const userCap = Number(s.automark_user_monthly_usd ?? 2);
+  if (!isAdmin && userCap > 0) {
+    const { data: mine } = await admin.from('automark_runs').select('cost_usd').eq('user_id', user.id).gte('created_at', month.toISOString());
+    const used = (mine ?? []).reduce((a, r) => a + Number(r.cost_usd), 0);
+    if (used >= userCap) return json({ error: "You've used your auto-marking for this month. It resets on the 1st." }, 429);
+  }
 
   // the questions
   const { data: qs, error: qerr } = await admin.from('questions')

@@ -14,10 +14,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BUCKET = 'questions'
 
 
-def put(path, data, tries=5):
+def put(path, data, tries=5, ctype='application/pdf'):
     for i in range(tries):
         try:
-            r = requests.post(f'{URL}/storage/v1/object/{BUCKET}/{path}', headers={**H, 'Content-Type': 'application/pdf', 'x-upsert': 'true'}, data=data, timeout=120)
+            r = requests.post(f'{URL}/storage/v1/object/{BUCKET}/{path}', headers={**H, 'Content-Type': ctype, 'x-upsert': 'true'}, data=data, timeout=120)
             if r.status_code < 300:
                 return
             err = f'{r.status_code}: {r.text[:200]}'
@@ -44,9 +44,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--root', default=os.path.expanduser('~/Documents'))
     ap.add_argument('--only')
+    ap.add_argument('--thumbs', action='store_true', help='only upload the first-page thumbnails')
     a = ap.parse_args()
     if not URL or not KEY:
         sys.exit('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
+    if a.thumbs:
+        n = 0
+        for t in sorted(glob.glob(os.path.join(HERE, 'output', '*', 'thumb.webp'))):
+            slug = os.path.basename(os.path.dirname(t))
+            if a.only and slug != a.only:
+                continue
+            put(f'{slug}/thumb.webp', open(t, 'rb').read(), ctype='image/webp'); n += 1
+        print(f'{n} thumbnails uploaded'); return
     want = {}
     for f in glob.glob(os.path.join(HERE, 'output', '*', 'manifest.json')):
         m = json.load(open(f))
