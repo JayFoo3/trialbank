@@ -1419,8 +1419,21 @@
     clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms);
     return t;
   }
+  function confirmBox(html, yes = 'Yes', no = 'No') {
+    return new Promise(res => {
+      const m = mk('div', 'modal');
+      m.innerHTML = `<div class="modal-card soon-card" role="dialog" aria-modal="true"><h2>${html}</h2><div class="row confirm-row"><button class="secondary" data-v="0">${no}</button><button class="primary" data-v="1">${yes}</button></div></div>`;
+      const done = (v) => { m.remove(); document.removeEventListener('keydown', k); res(v); };
+      const k = (ev) => { if (ev.key === 'Escape') done(false); };
+      m.onclick = (ev) => { if (ev.target === m) done(false); const b = ev.target.closest('button[data-v]'); if (b) done(b.dataset.v === '1'); };
+      document.addEventListener('keydown', k);
+      document.body.appendChild(m);
+      m.querySelector('[data-v="1"]').focus();
+    });
+  }
   $('not-learnt').onclick = async () => {
     const x = state.set && state.set.qs[state.set.i]; if (!x || !x.topic) return;
+    if (!(await confirmBox(`You haven't learnt ${esc(x.topic)}?`))) return;
     const set = skipped(); set.add(x.topic); await saveSkipped(set);
     const t = toast(`${esc(x.topic)} hidden until you've learnt it. <button class="link" id="undo-skip">Undo</button>`);
     t.querySelector('#undo-skip').onclick = async () => { const s2 = skipped(); s2.delete(x.topic); await saveSkipped(s2); t.hidden = true; };
