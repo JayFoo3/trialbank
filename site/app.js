@@ -78,35 +78,62 @@
     el.appendChild(add);
   }
   // ---------- which subjects a student takes ----------
-  const SOON = ['Mathematics Advanced', 'Mathematics Extension 2', 'Chemistry', 'Biology', 'Software Engineering', 'Engineering Studies', 'English Advanced', 'Economics'];
-  function mySubjects() {
+  // every HSC course a student can say they take; only the ones in C.subjects have questions yet
+  const HSC = ['English Standard', 'English Advanced', 'English Extension 1', 'English Extension 2', 'English EAL/D',
+    'Mathematics Standard 2', 'Mathematics Advanced', 'Mathematics Extension 1', 'Mathematics Extension 2',
+    'Biology', 'Chemistry', 'Physics', 'Earth and Environmental Science', 'Investigating Science', 'Science Extension',
+    'Business Studies', 'Economics', 'Legal Studies', 'Ancient History', 'Modern History', 'History Extension', 'Geography',
+    'Society and Culture', 'Studies of Religion I', 'Studies of Religion II', 'PDHPE', 'Community and Family Studies',
+    'Software Engineering', 'Enterprise Computing', 'Engineering Studies', 'Design and Technology', 'Industrial Technology',
+    'Food Technology', 'Textiles and Design', 'Agriculture', 'Visual Arts', 'Music 1', 'Music 2', 'Music Extension', 'Drama', 'Dance',
+    'Chinese Continuers', 'French Continuers', 'German Continuers', 'Italian Continuers', 'Japanese Continuers', 'Spanish Continuers'];
+  const keyOf = (name) => Object.keys(C.subjects).find(k => C.subjects[k] === name || k === name);
+  function chosenNames() {   // everything they ticked, live or not
     const m = state.preview ? previewFlags.subjects : state.user?.user_metadata?.subjects;
-    const ok = Array.isArray(m) ? m.filter(k => C.subjects[k]) : [];
-    return ok.length ? ok : null;
+    return Array.isArray(m) && m.length ? m.map(x => C.subjects[x] || x) : null;
+  }
+  function mySubjects() {    // the ticked subjects that have questions; falls back to all live ones
+    const names = chosenNames();
+    if (!names) return null;
+    const live = names.map(keyOf).filter(Boolean);
+    return live.length ? live : Object.keys(C.subjects);
   }
   function openSubjects(first) {
-    const sel = new Set(mySubjects() || []);
+    const sel = new Set(chosenNames() || []);
+    const names = [...Object.values(C.subjects), ...HSC.filter(n => !Object.values(C.subjects).includes(n))];
     const grid = $('subj-grid'); grid.innerHTML = '';
-    for (const [key, label] of Object.entries(C.subjects)) {
+    names.forEach(name => {
+      const live = !!keyOf(name);
       const b = document.createElement('button');
-      b.className = 'subj' + (sel.has(key) ? ' on' : ''); b.textContent = label; b.setAttribute('aria-pressed', sel.has(key));
-      b.onclick = () => { sel.has(key) ? sel.delete(key) : sel.add(key); b.classList.toggle('on'); b.setAttribute('aria-pressed', sel.has(key)); $('subj-save').disabled = !sel.size; };
+      b.className = 'subj' + (sel.has(name) ? ' on' : '');
+      b.dataset.n = name.toLowerCase();
+      b.innerHTML = `<span>${name}</span><span class="${live ? 'ready' : 'soon-tag'}">${live ? 'Ready' : 'Soon'}</span>`;
+      b.setAttribute('aria-pressed', sel.has(name));
+      b.onclick = () => { sel.has(name) ? sel.delete(name) : sel.add(name); b.classList.toggle('on'); b.setAttribute('aria-pressed', sel.has(name)); sync(); };
       grid.appendChild(b);
-    }
-    $('subj-soon').innerHTML = SOON.map(n => `<span>${n}</span>`).join('');
-    $('subj-save').disabled = !sel.size;
+    });
+    const sync = () => {
+      $('subj-save').disabled = !sel.size;
+      const ready = [...sel].filter(keyOf).length, soon = sel.size - ready;
+      $('subj-note').textContent = soon && !ready ? 'None of these have questions yet. Maths Ext 1 and Physics are ready now.'
+        : soon ? `${soon} of your subjects ${soon === 1 ? 'is' : 'are'} coming soon.` : '';
+    };
+    $('subj-search').value = '';
+    $('subj-search').oninput = () => { const q = $('subj-search').value.trim().toLowerCase(); grid.querySelectorAll('.subj').forEach(b => { b.hidden = q && !b.dataset.n.includes(q); }); };
+    sync();
     $('subj-cancel').hidden = first;
     $('subj-modal').hidden = false;
     $('subj-cancel').onclick = () => { $('subj-modal').hidden = true; };
     $('subj-save').onclick = async () => {
-      const list = Object.keys(C.subjects).filter(k => sel.has(k));
+      const list = names.filter(n => sel.has(n));
       $('subj-save').disabled = true;
       if (state.preview) previewFlags.subjects = list;
       else {
         const { data, error } = await sb.auth.updateUser({ data: { subjects: list } });
         if (!error && data?.user) state.user = data.user;
       }
-      if (!list.includes(state.subject)) { state.subject = list[0]; try { localStorage.setItem('tb_subject', state.subject); } catch {} }
+      const mine = mySubjects();
+      if (!mine.includes(state.subject)) { state.subject = mine[0]; try { localStorage.setItem('tb_subject', state.subject); } catch {} }
       $('subj-modal').hidden = true;
       route();
     };
