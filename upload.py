@@ -54,7 +54,7 @@ def main():
     if not a.dry and (not URL or not KEY):
         die('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
 
-    existing = set() if a.dry else {p['slug'] for p in rest('GET', 'papers?select=slug')}
+    existing = set() if a.dry else {p['slug'] for p in rest('GET', 'papers?select=slug,questions(count)') if p['questions'][0]['count']}   # papers with questions already (an HSC paper uploaded as a PDF alone still gets its questions)
     manifests = sorted(glob.glob(os.path.join(HERE, 'output', '*', 'manifest.json')))
     total_bytes = 0
     for mpath in manifests:
