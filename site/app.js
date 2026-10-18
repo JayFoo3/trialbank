@@ -432,7 +432,7 @@
   };
   function verdict(text, cls) {
     const mood = cls === 'good' ? 'cheer' : cls === 'bad' ? 'sad' : 'think';
-    $('verdict').innerHTML = `<span class="vm">${Mascot(mood)}</span><span>${esc(text)}</span>`;
+    $('verdict').innerHTML = `<span class="vm">${Mascot(mood, '', { still: true })}</span><span>${esc(text)}</span>`;
     $('verdict').className = 'verdict ' + cls; $('verdict').hidden = false;
   }
   async function record(score, outOf, chosen, group, btn) {

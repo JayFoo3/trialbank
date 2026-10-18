@@ -651,6 +651,11 @@ h2.sec { font-family: var(--display); color: var(--ink); font-size: 1.3rem; font
   .next-mascot { width: 80px; height: 104px; }
   .next-mascot .mascot { margin-top: 0; }
 }
-.mascot.sprite { aspect-ratio: 440 / 626; background: none; position: relative; }
+.mascot.sprite { aspect-ratio: 440 / 686; background: none; position: relative; }
 .mascot.sprite .mf { position: absolute; inset: 0; background-repeat: no-repeat; transition-property: opacity; transition-timing-function: ease-in-out; }
 .mascot.sprite .mf.hi { z-index: 1; }
+/* frames carry headroom for the jump arc; pull the figure up into place */
+.next-mascot .mascot { margin-top: -14px; }
+.verdict .vm .mascot.sprite { top: -11px; }
+.summary-hero .sm-mascot .mascot.sprite, .tour-mascot .mascot.sprite { margin-top: -9%; }
+@media (max-width: 640px) { .next-mascot .mascot { margin-top: -10px; } }
