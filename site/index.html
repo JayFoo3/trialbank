@@ -148,7 +148,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div id="resume-banner" hidden><span id="resume-title"></span><span id="resume-sub"></span><button id="resume-btn"></button></div>
     </section>
 
-    <div class="others">
+    <!-- removed from the dashboard (timed papers live on each paper's page); kept in the page because the code still wires these controls -->
+    <div class="others" style="display:none" aria-hidden="true">
       <details class="other" data-feature="exam">
         <summary><strong>Timed paper</strong><span class="muted small">Full paper, on the clock</span></summary>
         <div class="other-body">
