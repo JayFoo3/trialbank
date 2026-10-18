@@ -222,6 +222,8 @@
   }
   $('signout').onclick = () => sb.auth.signOut();
   sb.auth.onAuthStateChange((_evt, session) => {
+    // profile edits and token refreshes only change the user object; don't re-route mid-question
+    if ((_evt === 'USER_UPDATED' || _evt === 'TOKEN_REFRESHED') && session?.user && state.user) { state.user = session.user; return; }
     // supabase-js holds a lock while this callback runs: any other supabase call inside it deadlocks,
     // so the admin check and routing are deferred to the next tick.
     setTimeout(async () => {
@@ -230,8 +232,7 @@
       if (state.user) {
         const em = state.user.email || '';
         $('account-email').textContent = em;
-        const nm = em.split('@')[0].split(/[._\d]/).filter(Boolean);
-        $('account-btn').textContent = ((nm[0] || '?')[0] + (nm[1] ? nm[1][0] : '')).toUpperCase();
+        applyPrefs(); loadMedia().then(() => applyPrefs());
       }
       await checkAdmin();
       route();
@@ -429,7 +430,11 @@
     const x = state.set.qs[state.set.i];
     $('sol-img').src = x.solutionUrl; $('sol-wrap').hidden = false; $('show-sol').hidden = true;
   };
-  function verdict(text, cls) { $('verdict').textContent = text; $('verdict').className = 'verdict ' + cls; $('verdict').hidden = false; }
+  function verdict(text, cls) {
+    const mood = cls === 'good' ? 'cheer' : cls === 'bad' ? 'sad' : 'think';
+    $('verdict').innerHTML = `<span class="vm">${Mascot(mood)}</span><span>${esc(text)}</span>`;
+    $('verdict').className = 'verdict ' + cls; $('verdict').hidden = false;
+  }
   async function record(score, outOf, chosen, group, btn) {
     if (state.preview) previewFlags.attempted = 1;
     const s = state.set, x = s.qs[s.i];
@@ -547,6 +552,9 @@
     const rs = state.set.results.filter(Boolean);
     const score = rs.reduce((a, r) => a + r.score, 0), outOf = rs.reduce((a, r) => a + r.outOf, 0);
     $('summary-score').textContent = outOf ? `${score} / ${outOf}  (${Math.round(100 * score / outOf)}%)` : 'Nothing marked';
+    const pct = outOf ? score / outOf : null;
+    $('summary-mascot').innerHTML = Mascot(pct == null ? 'think' : pct >= 0.8 ? 'cheer' : pct >= 0.5 ? 'happy' : 'sad');
+    if (pct != null && pct >= 0.8) setTimeout(() => confetti(), 350);
     const byTopic = {};
     rs.forEach(r => { const t = byTopic[r.q.topic] = byTopic[r.q.topic] || { score: 0, out_of: 0 }; t.score += r.score; t.out_of += r.outOf; });
     bars($('summary-topics'), Object.entries(byTopic).map(([topic, v]) => ({ topic: topicName(topic), ...v })));
@@ -965,6 +973,7 @@
   }
   let homePapers = [];
   async function renderHome() {
+    if (!$('next-mascot').firstChild) $('next-mascot').innerHTML = Mascot('wave');
     const em = state.user.email || '';
     const local = em.split('@')[0];
     const first = /[._]/.test(local) ? (local.split(/[._\d]/).filter(Boolean)[0] || '') : '';   // only when the address has a first.last shape
@@ -1487,6 +1496,146 @@
     $('learnt-save').onclick = async () => { $('learnt-save').disabled = true; await saveSkipped(skip); $('learnt-save').disabled = false; $('learnt-modal').hidden = true; renderBuild(); };
   }
 
+  // ---------- personalise: photo, colour, theme, background ----------
+  const ACCENTS = { blue: '#2f5be8', green: '#1fa45a', purple: '#7c4dde', orange: '#f07818', pink: '#e0457b', teal: '#0f9aa8', graphite: '#3a3f4a' };
+  const BGS = [['plain', 'Plain'], ['dots', 'Dots'], ['grid', 'Grid'], ['lined', 'Lined'], ['photo', 'Photo']];
+  const PREF0 = { theme: 'light', accent: 'blue', bg: 'plain', av: 0, bgv: 0 };
+  const prefs = () => ({ ...PREF0, ...(state.user?.user_metadata?.prefs || {}) });
+  const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+  let media = {};      // signed links to this student's photos
+  let meP = null;      // prefs being edited
+  function applyPrefs(p = meP || prefs()) {
+    const r = document.documentElement;
+    r.dataset.theme = p.theme === 'dark' || (p.theme === 'auto' && darkMQ.matches) ? 'dark' : 'light';
+    if (p.accent && p.accent !== 'blue') r.dataset.accent = p.accent; else delete r.dataset.accent;
+    const bg = p.bg === 'photo' && !media.bg ? 'plain' : p.bg;
+    if (bg && bg !== 'plain') r.dataset.bg = bg; else delete r.dataset.bg;
+    r.style.setProperty('--bg-photo', media.bg ? `url("${media.bg}")` : 'none');
+    const meta = document.querySelector('meta[name=theme-color]');
+    if (meta) meta.content = getComputedStyle(r).getPropertyValue('--bg').trim() || '#fbfaf7';
+    try { localStorage.setItem('tb_prefs', JSON.stringify({ theme: p.theme, accent: p.accent, bg: p.bg })); } catch (e) {}
+    drawAvatar();
+  }
+  darkMQ.addEventListener && darkMQ.addEventListener('change', () => applyPrefs());
+  const mediaName = (k, v) => `${state.user.id}/${k === 'av' ? 'avatar' : 'background'}-${v}`;
+  async function loadMedia(p = prefs()) {
+    media = {};
+    if (!state.user) return;
+    let cache = {}; try { cache = JSON.parse(localStorage.getItem('tb_media') || '{}'); } catch (e) {}
+    const want = [['av', p.av], ['bg', p.bg === 'photo' ? p.bgv : 0]].filter(([, v]) => v);
+    await Promise.all(want.map(async ([k, v]) => {
+      const c = cache[k], path = mediaName(k, v);
+      if (c && c.path === path && c.exp > Date.now() + 36e5) { media[k] = c.url; return; }
+      const { data } = await sb.storage.from('profile').createSignedUrl(path, 604800);
+      if (data?.signedUrl) { media[k] = data.signedUrl; cache[k] = { path, url: data.signedUrl, exp: Date.now() + 6048e5 }; }
+    }));
+    try { localStorage.setItem('tb_media', JSON.stringify(cache)); } catch (e) {}
+  }
+  function initials() {
+    const n = (myName() || (state.user?.email || '?').split('@')[0]).split(/[\s._\d]+/).filter(Boolean);
+    return (((n[0] || '?')[0]) + (n[1] ? n[1][0] : '')).toUpperCase();
+  }
+  function drawAvatar() {
+    const html = media.av ? `<img src="${media.av}" alt="">` : esc(initials());
+    ['account-btn', 'me-av'].forEach(id => { $(id).innerHTML = html; });
+    $('me-av-rm').hidden = !media.av;
+  }
+  async function savePrefs(p) {
+    if (state.preview || !state.user) return;
+    const { data, error } = await sb.auth.updateUser({ data: { prefs: p } });
+    if (!error && data?.user) state.user = data.user;
+  }
+  async function shrinkImage(file, max, square) {
+    const bmp = await createImageBitmap(file);
+    let sx = 0, sy = 0, sw = bmp.width, sh = bmp.height;
+    if (square) { const m = Math.min(sw, sh); sx = (sw - m) / 2; sy = (sh - m) / 2; sw = sh = m; }
+    const k = Math.min(1, max / Math.max(sw, sh)), cv = document.createElement('canvas');
+    cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
+    cv.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+    let blob = await new Promise(r => cv.toBlob(r, 'image/webp', 0.85));
+    if (!blob || blob.type !== 'image/webp') blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.85));
+    return blob;
+  }
+  async function uploadMedia(kind, file) {
+    let blob;
+    try { blob = await shrinkImage(file, kind === 'av' ? 320 : 1920, kind === 'av'); } catch (e) { throw new Error("Couldn't open that image. Try a JPG or PNG."); }
+    if (!blob) throw new Error("Couldn't open that image. Try a JPG or PNG.");
+    if (blob.size > 2e6) throw new Error('That image is too big. Try a smaller one.');
+    const v = Date.now(), old = kind === 'av' ? meP.av : meP.bgv;
+    const { error } = await sb.storage.from('profile').upload(mediaName(kind, v), blob, { contentType: blob.type, upsert: true });
+    if (error) throw error;
+    if (old) sb.storage.from('profile').remove([mediaName(kind, old)]);
+    if (kind === 'av') meP.av = v; else { meP.bgv = v; meP.bg = 'photo'; }
+    await loadMedia(meP);
+  }
+  function drawBgOpts() {
+    const g = $('me-bg'); g.innerHTML = '';
+    BGS.forEach(([k, label]) => {
+      const b = mk('button', 'bgopt' + (meP.bg === k && (k !== 'photo' || media.bg) ? ' on' : ''));
+      b.dataset.v = k;
+      const photo = k === 'photo' && media.bg;
+      b.innerHTML = `<i${photo ? ` style="background-image:url('${media.bg}')"` : ''}>${k === 'photo' && !photo ? '+' : ''}</i>${k === 'photo' && meP.bg === 'photo' && photo ? 'Change' : label}`;
+      b.onclick = () => {
+        if (k === 'photo' && (!media.bg || meP.bg === 'photo')) return $('me-bg-file').click();
+        meP.bg = k; drawBgOpts(); applyPrefs(meP);
+      };
+      g.appendChild(b);
+    });
+  }
+  function openMe() {
+    meP = prefs();
+    $('account-menu').hidden = true; $('me-error').hidden = true; $('me-status').textContent = '';
+    const sw = $('me-accent'); sw.innerHTML = '';
+    Object.entries(ACCENTS).forEach(([k, col]) => {
+      const b = mk('button', 'swatch' + (meP.accent === k ? ' on' : ''));
+      b.style.setProperty('--sw', col); b.title = k[0].toUpperCase() + k.slice(1); b.setAttribute('aria-label', b.title);
+      b.onclick = () => { meP.accent = k; sw.querySelectorAll('.swatch').forEach(x => x.classList.toggle('on', x === b)); applyPrefs(meP); };
+      sw.appendChild(b);
+    });
+    document.querySelectorAll('#me-theme button').forEach(b => {
+      b.classList.toggle('on', b.dataset.v === meP.theme);
+      b.onclick = () => { meP.theme = b.dataset.v; document.querySelectorAll('#me-theme button').forEach(x => x.classList.toggle('on', x === b)); applyPrefs(meP); };
+    });
+    drawBgOpts(); drawAvatar();
+    $('me-modal').hidden = false;
+  }
+  async function meUpload(kind, f) {
+    $('me-status').textContent = 'Uploading...'; $('me-error').hidden = true;
+    try { await uploadMedia(kind, f); await savePrefs(meP); applyPrefs(meP); drawBgOpts(); $('me-status').textContent = 'Saved'; }
+    catch (e) { $('me-error').textContent = e.message || String(e); $('me-error').hidden = false; $('me-status').textContent = ''; }
+  }
+  async function closeMe() {
+    if (!meP) return;
+    const p = meP; meP = null; $('me-modal').hidden = true;
+    applyPrefs(p); await savePrefs(p);
+  }
+  $('open-me').onclick = openMe;
+  $('me-av-up').onclick = () => $('me-av-file').click();
+  $('me-av-file').onchange = (ev) => { const f = ev.target.files[0]; ev.target.value = ''; if (f) meUpload('av', f); };
+  $('me-bg-file').onchange = (ev) => { const f = ev.target.files[0]; ev.target.value = ''; if (f) meUpload('bg', f); };
+  $('me-av-rm').onclick = async () => {
+    const old = meP.av; meP.av = 0; delete media.av; applyPrefs(meP);
+    if (old) sb.storage.from('profile').remove([mediaName('av', old)]);
+    await savePrefs(meP);
+  };
+  $('me-done').onclick = closeMe;
+  $('me-modal').addEventListener('click', (ev) => { if (ev.target.id === 'me-modal') closeMe(); });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('me-modal').hidden) closeMe(); });
+
+  // a burst of confetti for good results
+  function confetti(n = 70) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cols = [getComputedStyle(document.documentElement).getPropertyValue('--biro').trim(), '#ffd23f', '#1fa45a', '#e5484d', '#7c4dde', '#0f9aa8'];
+    for (let i = 0; i < n; i++) {
+      const d = mk('div', 'confetti');
+      d.style.left = Math.random() * 100 + 'vw'; d.style.background = cols[i % cols.length];
+      d.style.setProperty('--x', (Math.random() * 240 - 120) + 'px'); d.style.setProperty('--r', (Math.random() * 1000 - 500) + 'deg');
+      d.style.setProperty('--d', (1.3 + Math.random() * 1.4) + 's'); d.style.animationDelay = (Math.random() * 0.3) + 's';
+      document.body.appendChild(d); setTimeout(() => d.remove(), 3400);
+    }
+  }
+  $('auth-mascot').innerHTML = Mascot('wave');
+
   // ---------- spotlight tour for new students: they tap each lit-up control for real ----------
   const TOUR = [
     { el: '#nav a[data-nav="papers"]', text: 'Tap Papers. Every past paper lives here.' },
@@ -1528,7 +1677,8 @@
       walls.forEach((w, k) => Object.assign(w.style, k ? { width: 0, height: 0 } : { left: 0, top: 0, width: '100vw', height: '100vh' }));
       spot.style.visibility = 'hidden';
       tip.className = 'tour-tip center';
-      tip.innerHTML = `<p>${TOUR[i].text}</p><button class="primary tour-done">Got it</button>`;
+      tip.innerHTML = `<span class="tour-mascot">${Mascot('cheer')}</span><p>${TOUR[i].text}</p><button class="primary tour-done">Got it</button>`;
+      confetti(50);
       Object.assign(tip.style, { left: '50%', top: '50%', width: 'min(320px, calc(100vw - 24px))', transform: 'translate(-50%, -50%)' });
       [walls[0], tip].forEach(x => x.style.visibility = 'visible');
       tip.querySelector('.tour-done').onclick = end;
