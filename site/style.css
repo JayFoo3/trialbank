@@ -327,3 +327,19 @@ h2.sec { color: var(--muted); font-size: .95rem; font-weight: 600; margin-top: 3
 .tour-n { font-size: .8rem; color: var(--muted); margin-right: auto; }
 .tour-skip { color: var(--muted); font-size: .88rem; }
 @media (prefers-reduced-motion: reduce) { .tour-spot { animation: none; } }
+
+/* ---------- subject picker ---------- */
+.subject .add { font-weight: 700; padding: 5px 10px; color: var(--muted); }
+.modal { position: fixed; inset: 0; z-index: 900; background: rgba(17,20,28,.55); display: grid; place-items: center; padding: 16px; }
+.modal-card { background: var(--paper); border-radius: var(--r-lg); padding: 24px; width: min(460px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.modal-card h2 { font-size: 1.35rem; margin-bottom: 14px; }
+.subj-grid { display: grid; gap: 8px; }
+.subj { justify-content: flex-start; padding: 14px 16px; font-size: 1rem; font-weight: 600; border-radius: var(--r); }
+.subj::before { content: ""; width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--rule); margin-right: 4px; flex: none; }
+.subj.on { border-color: var(--biro); background: #eef2fd; }
+.subj.on::before { background: var(--biro); border-color: var(--biro); box-shadow: inset 0 0 0 3px #eef2fd; }
+.soon-label { margin: 16px 0 6px; }
+.soon { display: flex; flex-wrap: wrap; gap: 6px; }
+.soon span { font-size: .8rem; color: var(--muted); background: var(--bg); border-radius: 999px; padding: 3px 10px; }
+.tour-tip.center { text-align: center; padding: 26px 22px 22px; }
+.tour-tip.center p { font-size: 1.4rem; font-weight: 800; margin-bottom: 16px; }

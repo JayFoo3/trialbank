@@ -56,7 +56,9 @@
   }
   function drawSubject() {
     const el = $('subject-switch'); el.innerHTML = '';
-    for (const [key, label] of Object.entries(C.subjects)) {
+    const mine = mySubjects() || Object.keys(C.subjects);
+    if (!mine.includes(state.subject)) state.subject = mine[0];
+    for (const [key, label] of Object.entries(C.subjects).filter(([k]) => mine.includes(k))) {
       const b = document.createElement('button');
       b.textContent = C.shortSubjects?.[key] || label.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext ');
       b.title = label; b.className = key === state.subject ? 'on' : '';
@@ -70,6 +72,44 @@
       };
       el.appendChild(b);
     }
+    const add = document.createElement('button');
+    add.className = 'add'; add.textContent = '+'; add.title = 'Add subjects'; add.setAttribute('aria-label', 'Add subjects');
+    add.onclick = () => openSubjects(false);
+    el.appendChild(add);
+  }
+  // ---------- which subjects a student takes ----------
+  const SOON = ['Mathematics Advanced', 'Mathematics Extension 2', 'Chemistry', 'Biology', 'Software Engineering', 'Engineering Studies', 'English Advanced', 'Economics'];
+  function mySubjects() {
+    const m = state.preview ? previewFlags.subjects : state.user?.user_metadata?.subjects;
+    const ok = Array.isArray(m) ? m.filter(k => C.subjects[k]) : [];
+    return ok.length ? ok : null;
+  }
+  function openSubjects(first) {
+    const sel = new Set(mySubjects() || []);
+    const grid = $('subj-grid'); grid.innerHTML = '';
+    for (const [key, label] of Object.entries(C.subjects)) {
+      const b = document.createElement('button');
+      b.className = 'subj' + (sel.has(key) ? ' on' : ''); b.textContent = label; b.setAttribute('aria-pressed', sel.has(key));
+      b.onclick = () => { sel.has(key) ? sel.delete(key) : sel.add(key); b.classList.toggle('on'); b.setAttribute('aria-pressed', sel.has(key)); $('subj-save').disabled = !sel.size; };
+      grid.appendChild(b);
+    }
+    $('subj-soon').innerHTML = SOON.map(n => `<span>${n}</span>`).join('');
+    $('subj-save').disabled = !sel.size;
+    $('subj-cancel').hidden = first;
+    $('subj-modal').hidden = false;
+    $('subj-cancel').onclick = () => { $('subj-modal').hidden = true; };
+    $('subj-save').onclick = async () => {
+      const list = Object.keys(C.subjects).filter(k => sel.has(k));
+      $('subj-save').disabled = true;
+      if (state.preview) previewFlags.subjects = list;
+      else {
+        const { data, error } = await sb.auth.updateUser({ data: { subjects: list } });
+        if (!error && data?.user) state.user = data.user;
+      }
+      if (!list.includes(state.subject)) { state.subject = list[0]; try { localStorage.setItem('tb_subject', state.subject); } catch {} }
+      $('subj-modal').hidden = true;
+      route();
+    };
   }
   function tabs() { drawSubject(); }   // older views called this per page; the switch now lives in the header
   // account menu
@@ -880,7 +920,8 @@
       ? `10 new questions, mostly ${state.weak.map(w => w.topic).slice(0, 2).join(' and ')}.`
       : "10 questions you haven't done.";
     renderOnboard();
-    if (!flag('tour_done') && !state.tourOn) setTimeout(startTour, 350);
+    if (!mySubjects()) { if ($('subj-modal').hidden) openSubjects(true); }
+    else if (!flag('tour_done') && !state.tourOn) setTimeout(startTour, 350);
     // the single next step: an unfinished exam, then a first set for new students, then a quick set
     const go = $('next-go');
     if (saved && homePapers.some(x => x.id === saved.paperId)) {
@@ -1278,12 +1319,11 @@
 
   // ---------- spotlight tour for new students: they tap each lit-up control for real ----------
   const TOUR = [
-    { el: '#subject-switch', text: 'Tap your subject.' },
     { el: '#nav a[data-nav="papers"]', text: 'Tap Papers. Every past paper lives here.' },
     { el: '#nav a[data-nav="progress"]', text: 'Tap Progress. This shows where you lose marks.' },
     { el: '#nav a[data-nav="practise"]', text: 'Tap Practise. Pick any topics to drill.' },
     { el: '#nav a[data-nav="home"]', text: 'Tap Home to come back.' },
-    { el: '#next-go', text: "You're all good to go. Tap Start for your first questions.", last: true },
+    { el: null, text: "You're all good to go.", last: true },
   ];
   function startTour() {
     if (state.tourOn || $('view-home').hidden) return;
@@ -1306,11 +1346,23 @@
       [spot, tip, ...walls].forEach(x => x.style.visibility = 'hidden');
       clearInterval(timer);
       let tries = 0;
+      if (!TOUR[i].el) return finale();
       timer = setInterval(() => {   // wait for the page the last tap opened to finish loading
         const el = visible(TOUR[i].el);
         if (el && $('loading').hidden) { clearInterval(timer); cur = el; draw(); }
         else if (++tries > 80) { clearInterval(timer); go(i + 1); }
       }, 100);
+    }
+    function finale() {   // dim everything, one centred message, then leave them be
+      cur = null;
+      walls.forEach((w, k) => Object.assign(w.style, k ? { width: 0, height: 0 } : { left: 0, top: 0, width: '100vw', height: '100vh' }));
+      spot.style.visibility = 'hidden';
+      tip.className = 'tour-tip center';
+      tip.innerHTML = `<p>${TOUR[i].text}</p><button class="primary tour-done">Got it</button>`;
+      Object.assign(tip.style, { left: '50%', top: '50%', width: 'min(320px, calc(100vw - 24px))', transform: 'translate(-50%, -50%)' });
+      [walls[0], tip].forEach(x => x.style.visibility = 'visible');
+      tip.querySelector('.tour-done').onclick = end;
+      tip.querySelector('.tour-done').focus();
     }
     function draw() {
       const t = TOUR[i];
