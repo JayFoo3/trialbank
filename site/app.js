@@ -246,6 +246,18 @@
   }
 
   // ---------- home ----------
+  // full topic names for display; the raw value stays in the database and queries
+  const TOPIC_NAMES = {
+    "Bern./Binom Dist.": 'Binomial Distribution', 'Binom. Exp.': 'Binomial Expansion',
+    "DE's": 'Differential Equations', 'Exp. G + D': 'Exponential Growth and Decay',
+    'Graphical Relat.': 'Graphical Relationships', 'Identities': 'Trigonometric Identities',
+    'Inverse Fns': 'Inverse Functions', 'Inverse Trig Fns': 'Inverse Trigonometric Functions',
+    'Normal Approx.': 'Normal Approximation', 'Parametrics': 'Parametric Equations',
+    'Perms/Combs': 'Permutations and Combinations', 'Proof Induction': 'Proof by Induction',
+    'Rem/Fact Th.': 'Remainder and Factor Theorems', 'Sum/Prod. Roots': 'Sums and Products of Roots',
+    'Trig. Eqns': 'Trigonometric Equations', 'Volumes': 'Volumes of Revolution',
+  };
+  const topicName = t => TOPIC_NAMES[t] || t;
   let topicCounts = null;   // [{subject, topic, type, n}]
   async function loadTopicCounts() {
     if (topicCounts) return topicCounts;
@@ -273,12 +285,12 @@
     const wrap = $('topic-chips'); wrap.innerHTML = '';
     const skip = skipped();
     [...state.topics].forEach(t => { if (skip.has(t)) state.topics.delete(t); });
-    Object.keys(byTopic).sort((a, b) => skip.has(a) - skip.has(b) || a.localeCompare(b)).forEach(t => {
+    Object.keys(byTopic).sort((a, b) => skip.has(a) - skip.has(b) || topicName(a).localeCompare(topicName(b))).forEach(t => {
       const b = document.createElement('button');
       b.className = 'chip' + (state.topics.has(t) ? ' on' : '') + (skip.has(t) ? ' notlearnt' : '');
       if (skip.has(t)) b.title = 'Marked as not learnt yet';
-      b.innerHTML = `${t}<span class="n">${byTopic[t].mcq + byTopic[t].short}</span>`;
-      b.dataset.t = t.toLowerCase();
+      b.innerHTML = `${esc(topicName(t))}<span class="n">${byTopic[t].mcq + byTopic[t].short}</span>`;
+      b.dataset.t = (topicName(t) + ' ' + t).toLowerCase();
       b.onclick = () => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); b.classList.toggle('on'); startSummary(); };
       wrap.appendChild(b);
     });
@@ -374,7 +386,7 @@
   }
   function renderQuestion() {
     const s = state.set, x = s.qs[s.i];
-    $('set-pos').textContent = `${s.i + 1} of ${s.qs.length} · ${x.topic}`;
+    $('set-pos').textContent = `${s.i + 1} of ${s.qs.length} · ${topicName(x.topic)}`;
     firstHint(x);
     $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
@@ -495,7 +507,7 @@
     (data || []).forEach(a => (a.lost || []).forEach(l => {
       const r = by[l.reason] = by[l.reason] || { n: 0, topics: {}, ids: new Set() };
       r.n++; r.ids.add(a.question_id);
-      const tp = a.questions.topic || 'Other'; r.topics[tp] = (r.topics[tp] || 0) + 1;
+      const tp = topicName(a.questions.topic || 'Other'); r.topics[tp] = (r.topics[tp] || 0) + 1;
     }));
     const cfpe = by.cfpe; delete by.cfpe;
     const total = Object.values(by).reduce((x, r) => x + r.n, 0);
@@ -535,7 +547,7 @@
     $('summary-score').textContent = outOf ? `${score} / ${outOf}  (${Math.round(100 * score / outOf)}%)` : 'Nothing marked';
     const byTopic = {};
     rs.forEach(r => { const t = byTopic[r.q.topic] = byTopic[r.q.topic] || { score: 0, out_of: 0 }; t.score += r.score; t.out_of += r.outOf; });
-    bars($('summary-topics'), Object.entries(byTopic).map(([topic, v]) => ({ topic, ...v })));
+    bars($('summary-topics'), Object.entries(byTopic).map(([topic, v]) => ({ topic: topicName(topic), ...v })));
   }
 
   // ---------- progress ----------
@@ -556,7 +568,7 @@
       .forEach(r => {
         const d = document.createElement('div');
         d.className = 'bar ' + (r.pct < 50 ? 'low' : r.pct < 75 ? 'mid' : 'high');
-        d.innerHTML = `<div class="lbl"><span>${r.topic}</span><span class="muted">${r.pct}% · ${r.score}/${r.out_of}${r.extra ? ' · ' + r.extra : ''}</span></div>
+        d.innerHTML = `<div class="lbl"><span>${esc(topicName(r.topic))}</span><span class="muted">${r.pct}% · ${r.score}/${r.out_of}${r.extra ? ' · ' + r.extra : ''}</span></div>
                        <div class="track"><div class="fill" style="width:${r.pct}%"></div></div>`;
         el.appendChild(d);
       });
@@ -926,7 +938,7 @@
     box.innerHTML = '';
     qs.forEach(q => {
       const c = mk('div', 'card qcard');
-      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)} · ${q.topic || 'Untagged'}</span></div>`;
+      c.innerHTML = `<div class="between"><strong>${qLabel(q)}</strong><span class="muted small">${marksText(q.marks)} · ${q.topic ? topicName(q.topic) : 'Untagged'}</span></div>`;
       if (q.image_path) { const im = qImg(urls[q.image_path], qLabel(q)); im.loading = 'lazy'; c.appendChild(im); }
       else c.appendChild(mk('p', 'muted small', 'No image for this question.'));
       const row = mk('div', 'row');
@@ -979,7 +991,7 @@
       .map(p => `<option value="${p.id}">${esc(p.school)} ${p.year}</option>`).join('');
     sel.value = keep;
     $('quick-desc').textContent = state.weak && state.weak.length
-      ? `10 new questions, mostly ${state.weak.map(w => w.topic).slice(0, 2).join(' and ')}.`
+      ? `10 new questions, mostly ${state.weak.map(w => topicName(w.topic)).slice(0, 2).join(' and ')}.`
       : "10 questions you haven't done.";
     renderOnboard();
     if (!mySubjects() || !myName()) { if ($('subj-modal').hidden) openSubjects(true); }
@@ -1286,7 +1298,7 @@
     $('checkup-go').textContent = state.attempted ? 'Retake check-up' : 'Start check-up';
     if (state.preview) { mine = []; stars = []; ex = []; }   // admin preview: show what a brand-new student sees
     state.attempted = state.preview ? !!previewFlags.attempted : (mine || []).some(r => r.out_of > 0);
-    $('weak-list').textContent = state.weak.length ? state.weak.map(w => w.topic).join(', ') : 'None yet';
+    $('weak-list').textContent = state.weak.length ? state.weak.map(w => topicName(w.topic)).join(', ') : 'None yet';
     $('wrong-sub').textContent = state.attempted ? '' : 'None yet';
     $('drill-weak').disabled = !state.weak.length;
     $('star-count').textContent = (stars || []).length ? String((stars || []).length) : 'None yet';
@@ -1433,9 +1445,9 @@
   }
   $('not-learnt').onclick = async () => {
     const x = state.set && state.set.qs[state.set.i]; if (!x || !x.topic) return;
-    if (!(await confirmBox(`You haven't learnt ${esc(x.topic)}?`))) return;
+    if (!(await confirmBox(`You haven't learnt ${esc(topicName(x.topic))}?`))) return;
     const set = skipped(); set.add(x.topic); await saveSkipped(set);
-    const t = toast(`${esc(x.topic)} hidden until you've learnt it. <button class="link" id="undo-skip">Undo</button>`);
+    const t = toast(`${esc(topicName(x.topic))} hidden until you've learnt it. <button class="link" id="undo-skip">Undo</button>`);
     t.querySelector('#undo-skip').onclick = async () => { const s2 = skipped(); s2.delete(x.topic); await saveSkipped(s2); t.hidden = true; };
     // drop the rest of this topic from the current set too
     const s = state.set;
@@ -1444,9 +1456,9 @@
   };
   function openLearnt(topics) {
     const skip = skipped(), grid = $('learnt-grid'); grid.innerHTML = '';
-    topics.forEach(t => {
+    topics.sort((a, b) => topicName(a).localeCompare(topicName(b))).forEach(t => {
       const b = document.createElement('button');
-      b.className = 'subj' + (skip.has(t) ? '' : ' on'); b.innerHTML = `<span>${esc(t)}</span>`;
+      b.className = 'subj' + (skip.has(t) ? '' : ' on'); b.innerHTML = `<span>${esc(topicName(t))}</span>`;
       b.onclick = () => { skip.has(t) ? skip.delete(t) : skip.add(t); b.classList.toggle('on'); };
       grid.appendChild(b);
     });
