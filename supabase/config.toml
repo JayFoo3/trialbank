@@ -1,0 +1,12 @@
+# Supabase CLI settings for deploying the Edge Functions (supabase functions deploy ...)
+project_id = "xqkdggyksufbthskmmdz"
+
+[functions.automark]
+verify_jwt = true
+
+[functions.buy-marks]
+verify_jwt = true
+
+# Stripe calls this one directly, so it checks Stripe's signature instead of a sign-in
+[functions.stripe-webhook]
+verify_jwt = false
