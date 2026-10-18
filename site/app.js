@@ -228,11 +228,12 @@
     // so the admin check and routing are deferred to the next tick.
     setTimeout(async () => {
       state.user = session?.user || null;
-      if (!state.user) { state.set = null; state.stars = null; state.exam = null; clearInterval(examTimer); }
+      if (!state.user) { $('streak').hidden = true; state.set = null; state.stars = null; state.exam = null; clearInterval(examTimer); }
       if (state.user) {
         const em = state.user.email || '';
         $('account-email').textContent = em;
         applyPrefs(); loadMedia().then(() => applyPrefs());
+        touchStreak();
       }
       await checkAdmin();
       route();
@@ -912,9 +913,51 @@
   }
   $('papers-filter').oninput = drawPapers;
 
+  // ---------- one paper: Paper / Solutions / Practise tabs ----------
+  function paperTab(name) {
+    document.querySelectorAll('#paper-tabs [data-tab]').forEach(b => { const on = b.dataset.tab === name; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    ['paper', 'sol', 'practise'].forEach(t => { $('tab-' + t).hidden = t !== name; });
+    const cur = state.paperView; if (!cur) return;
+    if (name === 'paper') showPdf(cur.p, 'pdf_path', 'pdf-view', 'pdf-pages');
+    if (name === 'sol') showPdf(cur.p, 'pdf_sol_path', 'sol-view', 'sol-pages');
+  }
+  document.querySelectorAll('#paper-tabs [data-tab]').forEach(b => { b.onclick = () => paperTab(b.dataset.tab); });
+  // draw a PDF from storage into the page, a page at a time as it scrolls into view
+  async function showPdf(p, key, viewId, countId) {
+    const view = $(viewId);
+    if (view.dataset.for === p.slug + key) return;           // already showing this one
+    view.dataset.for = p.slug + key; view.innerHTML = '<p class="muted pdf-wait">Loading the paper…</p>'; $(countId).textContent = '';
+    if (!p[key]) { view.innerHTML = `<p class="muted pdf-wait">${key === 'pdf_sol_path' ? 'No solutions PDF for this paper yet.' : 'No PDF for this paper yet. Use the Practise tab.'}</p>`; return; }
+    try {
+      const [lib, { data, error }] = await Promise.all([loadPdfJs(), sb.storage.from('questions').createSignedUrl(p[key], 3600)]);
+      if (error) throw error;
+      const doc = await lib.getDocument({ url: data.signedUrl }).promise;
+      if (view.dataset.for !== p.slug + key) return;          // moved to another paper meanwhile
+      view.innerHTML = ''; $(countId).textContent = `${doc.numPages} page${doc.numPages === 1 ? '' : 's'}`;
+      const width = Math.min(view.clientWidth || 800, 900), dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const first = await doc.getPage(1), v1 = first.getViewport({ scale: 1 });
+      const pages = [];
+      for (let i = 1; i <= doc.numPages; i++) {
+        const box = mk('div', 'pdfpage'); box.style.aspectRatio = `${v1.width} / ${v1.height}`; box.dataset.n = i;
+        view.appendChild(box); pages.push(box);
+      }
+      const draw = async (box) => {
+        if (box.dataset.done) return; box.dataset.done = 1;
+        const page = await doc.getPage(+box.dataset.n), vp0 = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: (width / vp0.width) * dpr });
+        const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
+        box.style.aspectRatio = `${vp0.width} / ${vp0.height}`;
+        await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+        box.appendChild(cv);
+      };
+      const io = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); draw(e.target); } }), { rootMargin: '800px 0px' });
+      pages.forEach(b => io.observe(b));
+    } catch (err) { view.innerHTML = `<p class="error">Couldn't show the PDF: ${esc(err.message || err)}</p>`; view.dataset.for = ''; }
+  }
   async function renderPaper(slug) {
     const box = $('paper-body'); box.innerHTML = '<p class="muted">Loading…</p>';
-    $('paper-title').textContent = '';
+    $('paper-title').textContent = ''; $('paper-error').hidden = true;
+    ['pdf-view', 'sol-view'].forEach(id => { $(id).dataset.for = ''; $(id).innerHTML = ''; });
     const { data: ps } = await sb.from('papers').select('*').eq('slug', slug);
     const p = ps && ps[0];
     if (!p) { box.innerHTML = '<p class="error">Paper not found.</p>'; return; }
@@ -928,6 +971,9 @@
     $('paper-pdf').onclick = () => officialPdf($('paper-pdf'), p, 'pdf_path', pdfBase, $('paper-error'));
     $('paper-pdf-sol').onclick = () => officialPdf($('paper-pdf-sol'), p, 'pdf_sol_path', { ...pdfBase, filename: paperFile(p).replace('.pdf', '-solutions.pdf'), withSolutions: true }, $('paper-error'));
     $('paper-title').textContent = `${p.school} ${p.year}`;
+    state.paperView = { p };
+    $('paper-pdf').textContent = p.pdf_path ? 'Download PDF' : 'Download';
+    paperTab(p.pdf_path || !qs.length ? 'paper' : 'practise');
     $('paper-meta').textContent = [C.subjects[p.subject] || p.subject, diffOf(p), `${qs.length} questions`, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · ');
     $('paper-practise').onclick = async () => {
       const usable = qs.filter(q => q.image_path);
@@ -1363,12 +1409,12 @@
   try { state.preview = sessionStorage.getItem('tb_preview') === '1'; } catch {}
   $('preview-new').onclick = () => {
     try { sessionStorage.setItem('tb_preview', '1'); } catch {}
-    state.preview = true; previewFlags = {}; $('account-menu').hidden = true; $('preview-new').hidden = true;
+    state.preview = true; previewFlags = {}; setTimeout(() => touchStreak(), 0); $('account-menu').hidden = true; $('preview-new').hidden = true;
     if (location.hash === '#home') route(); else location.hash = '#home';
   };
   $('preview-exit').onclick = () => {
     try { sessionStorage.removeItem('tb_preview'); } catch {}
-    state.preview = false; previewFlags = {}; $('preview-new').hidden = !state.admin;
+    state.preview = false; previewFlags = {}; setTimeout(() => drawStreak(), 0); $('preview-new').hidden = !state.admin;
     if (location.hash === '#home') route(); else location.hash = '#home';
   };
   const flag = (k, v) => { if (state.preview) { if (v === undefined) return !!previewFlags[k]; previewFlags[k] = 1; return; } try { if (v === undefined) return localStorage.getItem('tb_' + k) === '1'; localStorage.setItem('tb_' + k, '1'); } catch { return false; } };
@@ -1621,6 +1667,52 @@
   $('me-done').onclick = closeMe;
   $('me-modal').addEventListener('click', (ev) => { if (ev.target.id === 'me-modal') closeMe(); });
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('me-modal').hidden) closeMe(); });
+
+  // ---------- daily streak: one tick per day you open Trialbank (Sydney time) ----------
+  const dayOf = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
+  const prevDay = (day) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
+  const streakData = () => state.preview ? (previewFlags.streak || { n: 0, best: 0, last: null, days: [] })
+    : { n: 0, best: 0, last: null, days: [], ...(state.user?.user_metadata?.streak || {}) };
+  let streakBusy = false;
+  async function touchStreak() {
+    if (!state.user || streakBusy) return;
+    const st = streakData(), today = dayOf();
+    if (st.last === today) return drawStreak(st, false);
+    streakBusy = true;
+    st.n = st.last === prevDay(today) ? (st.n || 0) + 1 : 1;
+    st.best = Math.max(st.best || 0, st.n); st.last = today;
+    st.days = [...(st.days || []).filter(d => d !== today), today].slice(-60);
+    try {
+      if (state.preview) previewFlags.streak = st;
+      else { const { data, error } = await sb.auth.updateUser({ data: { streak: st } }); if (!error && data?.user) state.user = data.user; }
+    } finally { streakBusy = false; }
+    drawStreak(st, true);
+  }
+  const flame = (n, big) => `<svg viewBox="0 0 32 38" aria-hidden="true" class="${n ? '' : 'out'}">
+    <g class="fl"><path class="fo" d="M16 1c1.2 7 9.5 11.2 11.3 20.2C29 30 23.4 37 16 37S3 31.2 4.6 22.6c1-5.6 4.6-8 5.9-12.6 1.8 2.7 2 5.5 3.6 6.6C16 11.8 15.4 6.6 16 1z"/>
+    <path class="fi" d="M16 16.5c1.2 4.2 6.3 6.3 6.3 11.4 0 4.4-2.9 7.6-6.3 7.6s-6.3-3.2-6.3-7.4c0-3.3 2-4.5 3.1-7.4 1 1.3 1.8 2.9 2.8 3.1.3-2.5.2-4.8.4-7.3z"/></g>
+    <text x="16" y="29.6" text-anchor="middle" style="font-size:${n > 99 ? 9.5 : n > 9 ? 11.5 : 13}px">${n}</text></svg>`;
+  function drawStreak(st = streakData(), bumped = false) {
+    const b = $('streak'), n = st.n || 0;
+    b.hidden = false; b.innerHTML = flame(n); b.title = `${n} day streak`; b.setAttribute('aria-label', `${n} day streak`);
+    if (bumped) {
+      b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
+      if (n > 1) toast(`<span class="toast-flame">${flame(n)}</span><b>${n} day streak!</b> Come back tomorrow to keep it going.`, 4200);
+    }
+  }
+  function openStreakPop() {
+    const st = streakData(), pop = $('streak-pop'), today = dayOf(), have = new Set(st.days || []);
+    const week = []; let d = today;
+    for (let k = 0; k < 7; k++) { week.unshift(d); d = prevDay(d); }
+    const label = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('en-AU', { weekday: 'narrow', timeZone: 'UTC' });
+    pop.innerHTML = `<div class="sp-top"><span class="sp-flame">${flame(st.n || 0, true)}</span>
+      <div><strong>${st.n || 0} day streak</strong><span class="small muted">Best ${st.best || st.n || 0} · open Trialbank every day to keep it</span></div></div>
+      <div class="sp-week">${week.map(day => `<span class="${have.has(day) ? 'hit' : ''}${day === today ? ' today' : ''}"><i></i>${label(day)}</span>`).join('')}</div>`;
+    pop.hidden = false;
+  }
+  $('streak').onclick = (ev) => { ev.stopPropagation(); $('streak-pop').hidden ? openStreakPop() : ($('streak-pop').hidden = true); };
+  document.addEventListener('click', (ev) => { if (!ev.target.closest('#streak-pop')) $('streak-pop').hidden = true; });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && state.user) touchStreak(); });   // a tab left open past midnight
 
   // a burst of confetti for good results
   function confetti(n = 70) {

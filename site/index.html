@@ -27,6 +27,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </nav>
     <div class="top-right" id="top-right" hidden>
       <div class="subject" id="subject-switch" role="group" aria-label="Subject"></div>
+      <button class="streak" id="streak" hidden aria-haspopup="dialog" title="Daily streak"></button>
+      <div class="streak-pop" id="streak-pop" hidden role="dialog" aria-label="Daily streak"></div>
       <div class="account">
         <button class="avatar" id="account-btn" aria-haspopup="true" aria-expanded="false" title="Account">?</button>
         <div class="menu" id="account-menu" hidden>
@@ -291,14 +293,28 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <a class="back small" href="#papers">‹ All papers</a>
     <h1 id="paper-title"></h1>
     <p class="muted" id="paper-meta"></p>
-    <div class="paper-actions">
-      <button class="pa" id="paper-practise"><strong>Practise</strong></button>
-      <button class="pa" id="paper-exam"><strong>Sit timed</strong></button>
-      <button class="pa" id="paper-automark"><strong>Mark my paper</strong></button>
+    <div class="tabs" role="tablist" id="paper-tabs">
+      <button role="tab" data-tab="paper" class="on">Paper</button>
+      <button role="tab" data-tab="sol">Solutions</button>
+      <button role="tab" data-tab="practise">Practise</button>
     </div>
-    <p class="small"><button class="link" id="paper-pdf">Download</button> <span class="muted">/</span> <button class="link" id="paper-pdf-sol">with solutions</button></p>
     <p class="error" id="paper-error" hidden></p>
-    <div id="paper-body"></div>
+    <div class="tabpane" id="tab-paper">
+      <div class="pdfbar"><span class="muted small" id="pdf-pages"></span><button class="primary" id="paper-pdf">Download PDF</button></div>
+      <div class="pdfview" id="pdf-view"></div>
+    </div>
+    <div class="tabpane" id="tab-sol" hidden>
+      <div class="pdfbar"><span class="muted small" id="sol-pages"></span><button class="primary" id="paper-pdf-sol">Download with solutions</button></div>
+      <div class="pdfview" id="sol-view"></div>
+    </div>
+    <div class="tabpane" id="tab-practise" hidden>
+      <div class="paper-actions">
+        <button class="pa" id="paper-practise"><strong>Practise</strong><span class="small muted">Every question, one at a time</span></button>
+        <button class="pa" id="paper-exam"><strong>Sit timed</strong><span class="small muted">Full paper on the clock</span></button>
+        <button class="pa" id="paper-automark"><strong>Mark my paper</strong><span class="small muted">Upload your working</span></button>
+      </div>
+      <div id="paper-body"></div>
+    </div>
   </section>
 
   <!-- ===== exam running / marking ===== -->

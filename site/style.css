@@ -659,3 +659,50 @@ h2.sec { font-family: var(--display); color: var(--ink); font-size: 1.3rem; font
 .verdict .vm .mascot.sprite { top: -11px; }
 .summary-hero .sm-mascot .mascot.sprite, .tour-mascot .mascot.sprite { margin-top: -9%; }
 @media (max-width: 640px) { .next-mascot .mascot { margin-top: -10px; } }
+
+/* ---------- paper tabs and PDF preview ---------- */
+.tabs { display: flex; gap: 4px; margin: 16px 0 14px; border-bottom: 2px solid var(--rule); }
+.tabs button { border: 0; box-shadow: none !important; background: none; border-radius: 12px 12px 0 0; padding: 10px 18px 9px; margin-bottom: -2px;
+  color: var(--muted); border-bottom: 3px solid transparent; font-size: 1.02rem; }
+.tabs button:hover { background: var(--hover); color: var(--ink); }
+.tabs button:active { transform: none; }
+.tabs button.on { color: var(--biro); border-bottom-color: var(--biro); }
+.tabpane { animation: rise .25s ease-out; }
+.pdfbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 0 12px; }
+.pdfview { display: flex; flex-direction: column; gap: 14px; }
+.pdfpage { width: 100%; background: #fff; border-radius: 10px; border: 2px solid var(--rule); box-shadow: 0 3px 0 var(--rule); overflow: hidden; }
+.pdfpage canvas { display: block; width: 100%; height: auto; }
+.pdf-wait { padding: 40px 0; text-align: center; }
+.pa { gap: 4px; }
+.pa .muted { font-weight: 600; }
+.pa:first-child .muted { color: rgba(255,255,255,.85); }
+@media (max-width: 640px) { .tabs button { flex: 1; padding: 10px 6px 9px; } .pdfbar .primary { flex: none; } }
+
+/* ---------- daily streak flame ---------- */
+.top-right { position: relative; }
+.streak { width: 36px; height: 42px; padding: 0; border: 0; background: none !important; box-shadow: none !important; display: grid; place-items: center; }
+.streak:active { transform: scale(.94) !important; }
+.streak svg, .sp-flame svg, .toast-flame svg { width: 100%; height: 100%; overflow: visible; }
+.fo { fill: #ff9600; } .fi { fill: #ffc800; }
+svg.out .fo { fill: var(--rule-strong); } svg.out .fi { fill: var(--hover); }
+.streak .fl, .sp-flame .fl { transform-origin: 16px 37px; animation: flicker 2.6s ease-in-out infinite; }
+svg text { font-family: var(--display); font-weight: 800; font-size: 13px; fill: #fff; paint-order: stroke; stroke: #d96f00; stroke-width: 2.6px; stroke-linejoin: round; }
+svg.out text { stroke: var(--muted); }
+.streak.bump svg { animation: flame-pop .8s cubic-bezier(.3,1.7,.5,1); }
+@keyframes flicker { 0%, 100% { transform: scale(1, 1) skewX(0); } 30% { transform: scale(.98, 1.05) skewX(-2deg); } 65% { transform: scale(1.02, .97) skewX(1.5deg); } }
+@keyframes flame-pop { 0% { transform: scale(.4) rotate(-12deg); } 55% { transform: scale(1.35) rotate(6deg); } 100% { transform: none; } }
+.streak-pop { position: absolute; top: 50px; right: 40px; z-index: 40; width: 270px; background: var(--paper); border: 2px solid var(--rule); border-radius: var(--r);
+  box-shadow: 0 12px 32px var(--shadow); padding: 14px; animation: drop .16s ease-out; }
+.sp-top { display: flex; gap: 12px; align-items: center; }
+.sp-top > div { display: flex; flex-direction: column; gap: 2px; }
+.sp-top strong { font-family: var(--display); font-size: 1.2rem; }
+.sp-flame { width: 46px; height: 54px; flex: none; }
+.sp-flame text { font-size: 12px; }
+.sp-week { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid var(--rule); }
+.sp-week span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: .78rem; font-weight: 700; color: var(--muted); }
+.sp-week i { width: 22px; height: 22px; border-radius: 50%; background: var(--hover); border: 2px solid var(--rule); }
+.sp-week .hit i { background: #ff9600; border-color: #e07f00; }
+.sp-week .today { color: var(--ink); }
+.toast-flame { display: inline-block; width: 22px; height: 26px; vertical-align: middle; margin-right: 8px; }
+@media (max-width: 640px) { .streak-pop { right: 0; } }
+@media (prefers-reduced-motion: reduce) { .streak .fl, .sp-flame .fl, .streak.bump svg { animation: none; } }
