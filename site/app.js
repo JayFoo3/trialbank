@@ -62,31 +62,31 @@
     const mine = mySubjects() || Object.keys(C.subjects);
     if (!mine.includes(state.subject)) state.subject = mine[0];
     const names = chosenNames() || Object.values(C.subjects);
+    const btn = mk('button', 'subj-btn', `${esc(shortName(C.subjects[state.subject]))}<span class="caret" aria-hidden="true"></span>`);
+    btn.title = C.subjects[state.subject]; btn.setAttribute('aria-haspopup', 'true'); btn.setAttribute('aria-expanded', 'false');
+    const menu = mk('div', 'menu subj-menu'); menu.hidden = true;
     names.forEach(name => {
       const key = keyOf(name);
-      const b = document.createElement('button');
-      b.textContent = shortName(name); b.title = name;
-      if (!key) {   // ticked but no questions yet
-        b.className = 'soon';
-        b.onclick = () => comingSoon(name);
-        el.appendChild(b); return;
-      }
-      b.className = key === state.subject ? 'on' : '';
-      b.setAttribute('aria-pressed', key === state.subject);
-      b.onclick = () => {
+      const it = mk('button', 'menu-item' + (key === state.subject ? ' on' : '') + (key ? '' : ' soon'),
+        `<span>${esc(name)}</span>${key ? (key === state.subject ? '<span class="cur">Current</span>' : '') : '<span class="soon-tag">Soon</span>'}`);
+      it.onclick = () => {
+        menu.hidden = true;
+        if (!key) return comingSoon(name);
         if (key === state.subject) return;
         state.subject = key; state.topics.clear(); flag('picked_subject', 1);
         try { localStorage.setItem('tb_subject', key); } catch {}
         const h = (location.hash || '#home').slice(1).split('/')[0];
         if (h === 'paper' || h === 'set' || h === 'summary') location.hash = h === 'paper' ? '#papers' : '#practise'; else route();
       };
-      el.appendChild(b);
+      menu.appendChild(it);
     });
-    const add = document.createElement('button');
-    add.className = 'add'; add.textContent = '+'; add.title = 'Add subjects'; add.setAttribute('aria-label', 'Add subjects');
-    add.onclick = () => openSubjects(false);
-    el.appendChild(add);
+    const add = mk('button', 'menu-item add-subj', 'Add subjects');
+    add.onclick = () => { menu.hidden = true; openSubjects(false); };
+    menu.appendChild(add);
+    btn.onclick = (ev) => { ev.stopPropagation(); menu.hidden = !menu.hidden; btn.setAttribute('aria-expanded', !menu.hidden); $('account-menu').hidden = true; };
+    el.append(btn, menu);
   }
+  document.addEventListener('click', (ev) => { if (!ev.target.closest('#subject-switch')) document.querySelectorAll('.subj-menu').forEach(m => { m.hidden = true; }); });
   function comingSoon(name) {
     const m = mk('div', 'modal');
     m.innerHTML = `<div class="modal-card soon-card" role="dialog" aria-modal="true"><h2>${esc(name)}</h2><p class="muted">Coming soon.</p><button class="primary">OK</button></div>`;
