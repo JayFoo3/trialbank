@@ -37,6 +37,7 @@
     const [h, arg] = (location.hash || '#home').slice(1).split('/');
     if (!state.user) return show('auth');
     drawSubject();
+    if (!state.preview) sb.rpc('log_visit', { v: h || 'home' }).then(() => {}, () => {});   // engagement stats for the Admin page
     return busy(async () => {
       if (h === 'practise') { show('practise'); await renderBuild(); return; }
       if (h === 'progress') { show('progress'); await renderProgress(); return; }
@@ -693,7 +694,79 @@
   // ---------- admin ----------
   const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
   let allowed = [], rosterN = 0;
+  // ---------- engagement stats (Admin) ----------
+  let statsDays = 30, statsData = null;
+  const PAGE_NAMES = { home: 'Home', practise: 'Practise', papers: 'Papers', paper: 'A paper', progress: 'Progress', set: 'Question sets',
+    summary: 'Set results', examrun: 'Timed exam', exam: 'Timed exam', admin: 'Admin' };
+  const fmtN = (n) => Number(n || 0).toLocaleString('en-AU');
+  const dShort = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  function barChart(title, rows, key, unit) {
+    const max = Math.max(1, ...rows.map(r => Number(r[key]) || 0)), total = rows.reduce((a, r) => a + (Number(r[key]) || 0), 0);
+    const box = mk('figure', 'stat-chart');
+    box.innerHTML = `<figcaption><b>${esc(title)}</b><span class="muted small">${fmtN(total)} in ${rows.length} days</span></figcaption>`;
+    const plot = mk('div', 'sc-plot'); plot.setAttribute('role', 'img');
+    plot.setAttribute('aria-label', `${title}: ${rows.map(r => `${dShort(r.day)} ${r[key]}`).join(', ')}`);
+    rows.forEach(r => {
+      const v = Number(r[key]) || 0, col = mk('div', 'sc-col');
+      col.dataset.tip = `${dShort(r.day)}: ${fmtN(v)} ${unit}`;
+      col.innerHTML = `<i style="height:${v ? Math.max(3, 100 * v / max) : 0}%"></i>`;
+      plot.appendChild(col);
+    });
+    box.appendChild(mk('div', 'sc-wrap', `<span class="sc-max small muted">${fmtN(max)}</span>`)).appendChild(plot);
+    box.appendChild(mk('div', 'sc-axis small muted', `<span>${dShort(rows[0].day)}</span><span>${dShort(rows[rows.length - 1].day)}</span>`));
+    return box;
+  }
+  function rankList(title, rows, label, val, unit) {
+    const box = mk('div', 'stat-list'); box.appendChild(mk('h3', '', esc(title)));
+    if (!rows || !rows.length) { box.appendChild(mk('p', 'muted small', 'Nothing yet.')); return box; }
+    const max = Math.max(...rows.map(r => Number(r[val]) || 0), 1);
+    rows.forEach(r => {
+      const v = Number(r[val]) || 0, row = mk('div', 'sl-row');
+      row.innerHTML = `<span class="sl-name">${esc(label(r))}</span><span class="sl-bar"><i style="width:${100 * v / max}%"></i></span><span class="sl-n">${fmtN(v)}</span>`;
+      row.title = `${label(r)}: ${fmtN(v)} ${unit}`;
+      box.appendChild(row);
+    });
+    return box;
+  }
+  async function renderStats() {
+    const { data, error } = await sb.rpc('admin_stats', { days: statsDays, with_admins: $('st-admins').checked });
+    if (error) { $('st-tiles').innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+    const d = statsData = data, n = statsDays;
+    $('st-hero').textContent = fmtN(d.active_7);
+    $('st-hero-label').textContent = `${d.active_7 === 1 ? 'student' : 'students'} active in the last 7 days`;
+    const pct = (a, b) => b ? Math.round(100 * a / b) + '%' : '–';
+    const tiles = [
+      [fmtN(d.users), 'Students signed up', `${fmtN(d.new_period)} new in ${n} days`],
+      [fmtN(d.active_period), `Active in ${n} days`, `${fmtN(d.active_today)} today`],
+      [pct(d.returning, d.active_period), 'Came back', `${fmtN(d.returning)} active on 2+ days`],
+      [fmtN(d.answered_period), `Questions answered in ${n} days`, `${fmtN(d.answered)} all time`],
+      [fmtN(d.exams), 'Timed papers sat', 'All time'],
+      [fmtN(d.views_period), `Page views in ${n} days`, d.active_period ? `${(d.views_period / d.active_period).toFixed(1)} per active student` : ''],
+    ];
+    $('st-tiles').innerHTML = tiles.map(([v, l, sub]) => `<div class="stat-tile"><b>${v}</b><span>${esc(l)}</span><small class="muted">${esc(sub)}</small></div>`).join('');
+    const charts = $('st-charts'); charts.innerHTML = '';
+    const daily = d.daily || [];
+    charts.appendChild(barChart('Active students per day', daily, 'active', 'active'));
+    charts.appendChild(barChart('Questions answered per day', daily, 'answered', 'answered'));
+    charts.appendChild(barChart('Page views per day', daily, 'views', 'views'));
+    charts.appendChild(barChart('Sign-ups per day', daily, 'signups', 'sign-ups'));
+    const lists = $('st-lists'); lists.innerHTML = '';
+    lists.appendChild(rankList('Most visited', d.pages, r => PAGE_NAMES[r.view] || r.view, 'hits', 'views'));
+    lists.appendChild(rankList('Most practised topics', d.topics, r => topicName(r.topic), 'n', 'answers'));
+    lists.appendChild(rankList('Answers by subject', d.subjects, r => shortName(C.subjects[r.subject] || r.subject), 'n', 'answers'));
+    $('st-since').textContent = d.since ? `Page views tracked since ${dShort(d.since)}.` : 'Page views start counting from today.';
+  }
+  document.querySelectorAll('#stats-range button').forEach(b => { b.onclick = () => { statsDays = +b.dataset.v; renderStats(); }; });
+  $('st-admins').onchange = renderStats;
+  $('st-csv').onclick = () => {
+    if (!statsData) return;
+    const rows = [['day', 'active_students', 'questions_answered', 'page_views', 'signups'], ...(statsData.daily || []).map(r => [r.day, r.active, r.answered, r.views, r.signups])];
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' }));
+    a.download = `trialbank-engagement-${statsDays}d.csv`; a.click();
+  };
   async function renderAdmin() {
+    renderStats();
     const [{ data: settings }, { data: emails }, { data: users }, { data: roster }] = await Promise.all([
       sb.from('settings').select('*'),
       sb.from('allowed_emails').select('email').order('email'),

@@ -350,6 +350,18 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <a class="back small" href="#home">‹ Home</a>
     <h1>Admin</h1>
 
+    <div class="card stats" id="stats">
+      <div class="between stats-head">
+        <h2>Engagement</h2>
+        <div class="seg" id="stats-range"><button data-v="7">7 days</button><button data-v="30" class="on">30 days</button><button data-v="90">90 days</button></div>
+      </div>
+      <div class="stat-hero"><b id="st-hero">–</b><span id="st-hero-label">students active in the last 7 days</span></div>
+      <div class="stat-tiles" id="st-tiles"></div>
+      <div class="stat-charts" id="st-charts"></div>
+      <div class="stat-lists" id="st-lists"></div>
+      <div class="row stats-foot"><label class="small"><input type="checkbox" id="st-admins"> Include admin accounts</label><button class="link small" id="st-csv">Download daily CSV</button><span class="muted small" id="st-since"></span></div>
+    </div>
+
     <div class="card">
       <h2>Who can sign up</h2>
       <div class="opt">
