@@ -4,7 +4,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey);
   const $ = (id) => document.getElementById(id);
   const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun'];
-  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, syllabus_note, papers!inner(subject, school, year, difficulty)';
+  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, syllabus_note, pages, papers!inner(subject, school, year, difficulty)';
 
   document.title = C.name;
   $('brand').textContent = C.name;
@@ -1166,7 +1166,8 @@
   const pdfState = {};                 // viewId -> { doc, i, n, key, cache }
   function fitPdfView(view) {
     const top = view.getBoundingClientRect().top + window.scrollY;
-    const bottomGap = window.innerWidth <= 640 ? 92 : 20;        // room for the phone tab bar
+    const flagged = (state.paperView?.qs || []).some(q => q.syllabus_note && (q.pages || []).length);
+    const bottomGap = (window.innerWidth <= 640 ? 92 : 20) + (flagged ? 52 : 0);   // room for the phone tab bar and the syllabus note
     view.style.height = Math.max(260, window.innerHeight - top - bottomGap) + 'px';
   }
   async function showPdf(p, key, viewId, countId) {
@@ -1215,6 +1216,16 @@
     const pane = view.closest('.tabpane');
     pane.querySelector('.pdfnav [data-go="-1"]').disabled = k <= 1;
     pane.querySelector('.pdfnav [data-go="1"]').disabled = k >= st.n;
+    const note = pane.querySelector('.pdf-syl');
+    if (note) {                       // questions on this page that are most likely outside the 2024 syllabus
+      const here = (state.paperView?.qs || []).filter(q => q.syllabus_note && (q.pages || []).includes(k));
+      note.hidden = !here.length;
+      if (here.length) {
+        const names = here.map(qLabel);
+        const list = names.length === 1 ? names[0] : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+        note.innerHTML = `<span class="syl-flag">Syllabus</span> ${esc(list)} ${here.length === 1 ? 'is' : 'are'} most likely not in syllabus. <span class="muted">${esc([...new Set(here.map(q => q.syllabus_note))].join(' '))}</span>`;
+      }
+    }
     const cv = await renderPdfCanvas(st, k, w, h);
     if (st.i !== k) return;                                      // flipped again while drawing
     stage.querySelectorAll('canvas').forEach(c => c.remove());
@@ -1269,7 +1280,7 @@
     $('paper-pdf-sol').textContent = isHsc(p) ? 'Download marking guidelines' : 'Download with solutions';
     const hasQs = qs.some(q => q.image_path);
     $('paper-noq').hidden = hasQs; document.querySelector('#tab-practise .paper-actions').hidden = !hasQs;
-    state.paperView = { p };
+    state.paperView = { p, qs };
     $('paper-pdf').textContent = p.pdf_path ? 'Download PDF' : 'Download';
     paperTab(p.pdf_path || !qs.length ? 'paper' : 'practise');
     $('paper-meta').innerHTML = levelBadge(p) + ' ' + esc([C.subjects[p.subject] || p.subject, qs.length ? `${qs.length} questions` : null, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · '));

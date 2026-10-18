@@ -37,3 +37,6 @@ create trigger questions_syllabus_note before insert or update of text, topic, p
 
 update public.questions q set syllabus_note = public.syllabus_note_for(p.subject, q.topic, coalesce(q.text, ''))
   from public.papers p where p.id = q.paper_id;
+
+-- 1-based pages of the paper each question is on (upload.py fills it), so the PDF preview can name flagged questions on each page
+alter table public.questions add column if not exists pages int[];

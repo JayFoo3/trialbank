@@ -91,7 +91,7 @@ def main():
                 type=q['type'], marks=q.get('marks'), topic=q.get('topic'), topics=q.get('topics') or ([q['topic']] if q.get('topic') else []),
                 subparts=q.get('subparts') or [], answer=q.get('answer'),
                 image_path=uploaded.get(q.get('image')), solution_path=uploaded.get(q.get('solution')),
-                coarse=bool(q.get('coarse')), text=(q.get('text') or '')[:4000]))
+                coarse=bool(q.get('coarse')), text=(q.get('text') or '')[:4000], pages=q.get('pages') or None))
         rest('POST', 'questions', headers={'Prefer': 'resolution=merge-duplicates'}, data=json.dumps(rows))
         keep = {r['id'] for r in rows}
         for old_q in rest('GET', f'questions?paper_id=eq.{paper["id"]}&select=id'):
