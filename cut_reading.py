@@ -451,6 +451,8 @@ def main():
                 school=m.group('school') if m else R['source'].get('school'),
                 year=int(m.group('year')) if m else R['source'].get('year'))
     slug = slugify(f"{subject}-{meta['school']}-{meta['year']}")
+    if meta['school'] == 'HSC':            # an official HSC paper: same slug as hsc.py, so its questions join that paper
+        slug = f"hsc-{subject.lower()}-{meta['year']}"
     outdir = os.path.join(a.out, slug)
     os.makedirs(outdir, exist_ok=True)
 

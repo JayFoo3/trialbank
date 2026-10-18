@@ -37,7 +37,7 @@ SUBJECTS = {
                         "Maths/trialpapers_standard_2.html", "Maths/trialpapers_general2.html", "Maths/trialpapers_general.html"],
                  word="standard", first=2019, folder="Math Standard 2", sol_only=True),
     "Eng": dict(pages=["Engineering Studies/trialpapers.html", "Engineering/trialpapers.html", "EngineeringStudies/trialpapers.html"],
-                word="engineering", first=2019, folder="Engineering Studies", sol_only=False),
+                word="engineering", first=2010, folder="Engineering Studies", sol_only=False),
     "SE": dict(pages=["Software Engineering/trialpapers.html", "SoftwareEngineering/trialpapers.html", "Software/trialpapers.html",
                       "Software Engineering/trialpapers_se.html"],
                word="software", first=2024, folder="Software Engineering", sol_only=False),
