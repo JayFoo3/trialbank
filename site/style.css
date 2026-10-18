@@ -756,3 +756,4 @@ svg.out text { stroke: var(--muted); }
 .sec-note { font-family: var(--font); font-weight: 600; }
 .pschool.hsc .pthumb { border-color: #e9cf4f; box-shadow: 0 3px 0 #e9cf4f; }
 .used-up { color: var(--bad) !important; }
+.cb-sub { display: block; margin-top: 8px; font-family: var(--font); font-size: .95rem; font-weight: 600; color: var(--muted); line-height: 1.4; }

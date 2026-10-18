@@ -773,6 +773,51 @@
     await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) { const k = i++; out[k] = await fn(items[k], k); } }));
     return out;
   }
+  let pdfLibP = null;
+  function loadPdfLib() {
+    if (window.PDFLib) return Promise.resolve(window.PDFLib);
+    return pdfLibP = pdfLibP || new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+      s.onload = () => res(window.PDFLib); s.onerror = () => { pdfLibP = null; rej(new Error('Could not load the PDF tool.')); };
+      document.head.appendChild(s);
+    });
+  }
+  // the official paper with ruled writing booklets (Questions 11-14, four pages each) added to the end
+  async function examWithBooklets(p, btn, errEl) {
+    const old = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…'; if (errEl) errEl.hidden = true;
+    try {
+      const [L, { data, error }] = await Promise.all([loadPdfLib(), sb.storage.from('questions').createSignedUrl(p.pdf_path, 300)]);
+      if (error) throw error;
+      const doc = await L.PDFDocument.load(await (await fetch(data.signedUrl)).arrayBuffer());
+      const font = await doc.embedFont(L.StandardFonts.Helvetica), bold = await doc.embedFont(L.StandardFonts.HelveticaBold);
+      const W = 595.28, H = 841.89, rule = L.rgb(0.72, 0.76, 0.82), ink = L.rgb(0.12, 0.14, 0.17), soft = L.rgb(0.45, 0.48, 0.53);
+      const title = isHsc(p) ? `${p.year} HSC Mathematics Extension 1` : `${p.school} ${p.year} Mathematics Extension 1`;
+      for (const q of [11, 12, 13, 14]) {
+        for (let k = 0; k < 4; k++) {
+          const pg = doc.addPage([W, H]);
+          let y;
+          if (k === 0) {
+            pg.drawText(`Question ${q}`, { x: 50, y: H - 72, size: 22, font: bold, color: ink });
+            pg.drawText('Writing booklet', { x: 50, y: H - 92, size: 11, font, color: soft });
+            pg.drawText('Student number', { x: W - 230, y: H - 58, size: 8, font, color: soft });
+            pg.drawRectangle({ x: W - 230, y: H - 92, width: 180, height: 28, borderColor: rule, borderWidth: 1 });
+            y = H - 130;
+          } else {
+            pg.drawText(`Question ${q} (continued)`, { x: 50, y: H - 52, size: 10, font: bold, color: soft });
+            y = H - 76;
+          }
+          for (; y > 62; y -= 24) pg.drawLine({ start: { x: 50, y }, end: { x: W - 50, y }, thickness: 0.6, color: rule });
+          pg.drawText(`${title}  ·  Question ${q} booklet, page ${k + 1} of 4`, { x: 50, y: 36, size: 8, font, color: soft });
+        }
+      }
+      const blob = new Blob([await doc.save()], { type: 'application/pdf' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = paperFile(p).replace('.pdf', '-with-writing-booklets.pdf');
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    } catch (err) { if (errEl) { errEl.textContent = err.message || String(err); errEl.hidden = false; } }
+    finally { btn.textContent = old; btn.disabled = false; }
+  }
   async function loadJsPdf() {
     if (window.jspdf) return window.jspdf.jsPDF;
     await new Promise((res, rej) => {
@@ -1031,7 +1076,14 @@
     qs.forEach(q => { q.imageUrl = urls[q.image_path]; q.solutionUrl = q.solution_path ? urls[q.solution_path] : null; });
     const total = qs.reduce((a, q) => a + (q.marks || 0), 0);
     const pdfBase = { title: `${p.school} ${p.year} · ${C.subjects[p.subject] || p.subject}`, sub: `${qs.length} questions${total ? ' · ' + total + ' marks' : ''}`, filename: paperFile(p), qs: qs.filter(q => q.image_path) };
-    $('paper-pdf').onclick = () => officialPdf($('paper-pdf'), p, 'pdf_path', pdfBase, $('paper-error'));
+    $('paper-pdf').onclick = async () => {
+      // Extension 1 Section II is answered in separate writing booklets: offer blank ones in the same PDF
+      if (p.subject === 'Ext1' && p.pdf_path) {
+        const both = await confirmBox(`This exam is answered in separate writing booklets.<span class="cb-sub">Add blank booklets for Questions 11 to 14 to the end of the PDF?</span>`, 'Yes, add them', 'Just the exam');
+        if (both) return examWithBooklets(p, $('paper-pdf'), $('paper-error'));
+      }
+      officialPdf($('paper-pdf'), p, 'pdf_path', pdfBase, $('paper-error'));
+    };
     $('paper-pdf-sol').onclick = () => officialPdf($('paper-pdf-sol'), p, 'pdf_sol_path', { ...pdfBase, filename: paperFile(p).replace('.pdf', '-solutions.pdf'), withSolutions: true }, $('paper-error'));
     $('paper-title').textContent = isHsc(p) ? `${p.year} HSC exam` : `${p.school} ${p.year}`;
     $('tab-sol-btn').textContent = isHsc(p) ? 'Marking guidelines' : 'Solutions';
