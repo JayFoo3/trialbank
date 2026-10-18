@@ -795,7 +795,8 @@
       const [L, { data, error }] = await Promise.all([loadPdfLib(), sb.storage.from('questions').createSignedUrl(p.pdf_path, 300)]);
       if (error) throw error;
       const doc = await L.PDFDocument.load(await (await fetch(data.signedUrl)).arrayBuffer());
-      // laid out like NESA's current (2025) HSC writing booklet
+      // laid out like NESA's current (2025) HSC writing booklet, with plenty of room
+      const LAST = 16;                                             // pages per booklet
       const hv = await doc.embedFont(L.StandardFonts.Helvetica), hb = await doc.embedFont(L.StandardFonts.HelveticaBold);
       const tm = await doc.embedFont(L.StandardFonts.TimesRoman), tb = await doc.embedFont(L.StandardFonts.TimesRomanBold);
       const W = 595.28, H = 841.89, K = L.rgb(0, 0, 0), G = L.rgb(0.45, 0.45, 0.45), RULE = L.rgb(0.55, 0.55, 0.55), STRIP = L.rgb(0.84, 0.84, 0.85);
@@ -842,7 +843,7 @@
         t(c, 'Instructions', 70, H - 527, 11, hb);
         const ins = (y, lines) => { t(c, '•', 162, y, 11); lines.forEach((s, i) => t(c, s, 172, y - i * 15, 11)); };
         ins(H - 527, [q ? `Use this writing booklet for Question ${q} ONLY` : 'Use this writing booklet for any question you need more room for']);
-        ins(H - 552, [q ? 'Write your answer in the ruled area on pages 2–8' : 'Write the question number at the top of every page you use']);
+        ins(H - 552, [q ? `Write your answer in the ruled area on pages 2–${LAST}` : 'Write the question number at the top of every page you use']);
         ins(H - 577, ['Write the number of this booklet and the', 'total number of booklets that you have', `used for this ${q ? 'question' : 'section'} (eg: 1 of 3)`]);
         const ay = H - 592;                                         // arrow and booklet boxes
         box(c, 382, ay - 3, 22, 6, 0.8); line(c, 404, ay + 6, 412, ay); line(c, 404, ay - 6, 412, ay); line(c, 404, ay + 6, 404, ay - 6);
@@ -856,7 +857,7 @@
         corners(pg, H - 52, 48);
         let top = H - 70;
         if (n === 2) {
-          t(pg, q ? `Answer Question ${q} on pages 2–8.` : 'Write the number of the question you are answering.', BL + 8, H - 82, 13, tb);
+          t(pg, q ? `Answer Question ${q} on pages 2–${LAST}.` : 'Write the number of the question you are answering.', BL + 8, H - 82, 13, tb);
           const digits = q ? String(q).padStart(2, ' ').split('') : [' ', ' '];
           digits.forEach((d, i) => { box(pg, BR - 66 + i * 22, H - 100, 22, 28); if (d.trim()) tc(pg, d, BR - 55 + i * 22, H - 92, 18, tm); });
           tr(pg, 'Question Number', BR - 22, H - 114, 10, tm);
@@ -869,9 +870,9 @@
         office(pg, 62);
       }
       if (p.subject === 'Ext1') {
-        for (const q of [11, 12, 13, 14]) { cover(q); for (let n = 2; n <= 8; n++) inner(n, q); }
+        for (const q of [11, 12, 13, 14]) { cover(q); for (let n = 2; n <= LAST; n++) inner(n, q); }
       } else {
-        cover(null); for (let n = 2; n <= 8; n++) inner(n, null);
+        cover(null); for (let n = 2; n <= LAST; n++) inner(n, null);
       }
       const blob = new Blob([await doc.save()], { type: 'application/pdf' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
