@@ -783,37 +783,74 @@
       document.head.appendChild(s);
     });
   }
-  // the official paper with ruled writing booklets (Questions 11-14, four pages each) added to the end
+  // HSC-style answer stationery appended to the official paper.
+  // Extension 1: an 8-page writing booklet for each of Questions 11-14. Physics: extra writing pages.
+  const BOOKLETS = {
+    Ext1: { ask: 'This exam is answered in separate writing booklets.', sub: 'Add HSC-style writing booklets for Questions 11 to 14 to the end of the PDF?', file: '-with-writing-booklets' },
+    Physics: { ask: 'Need more room than the lines under each question?', sub: 'Add HSC-style extra writing pages to the end of the PDF?', file: '-with-extra-writing-pages' },
+  };
   async function examWithBooklets(p, btn, errEl) {
     const old = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…'; if (errEl) errEl.hidden = true;
     try {
       const [L, { data, error }] = await Promise.all([loadPdfLib(), sb.storage.from('questions').createSignedUrl(p.pdf_path, 300)]);
       if (error) throw error;
       const doc = await L.PDFDocument.load(await (await fetch(data.signedUrl)).arrayBuffer());
-      const font = await doc.embedFont(L.StandardFonts.Helvetica), bold = await doc.embedFont(L.StandardFonts.HelveticaBold);
-      const W = 595.28, H = 841.89, rule = L.rgb(0.72, 0.76, 0.82), ink = L.rgb(0.12, 0.14, 0.17), soft = L.rgb(0.45, 0.48, 0.53);
-      const title = isHsc(p) ? `${p.year} HSC Mathematics Extension 1` : `${p.school} ${p.year} Mathematics Extension 1`;
-      for (const q of [11, 12, 13, 14]) {
-        for (let k = 0; k < 4; k++) {
-          const pg = doc.addPage([W, H]);
-          let y;
-          if (k === 0) {
-            pg.drawText(`Question ${q}`, { x: 50, y: H - 72, size: 22, font: bold, color: ink });
-            pg.drawText('Writing booklet', { x: 50, y: H - 92, size: 11, font, color: soft });
-            pg.drawText('Student number', { x: W - 230, y: H - 58, size: 8, font, color: soft });
-            pg.drawRectangle({ x: W - 230, y: H - 92, width: 180, height: 28, borderColor: rule, borderWidth: 1 });
-            y = H - 130;
-          } else {
-            pg.drawText(`Question ${q} (continued)`, { x: 50, y: H - 52, size: 10, font: bold, color: soft });
-            y = H - 76;
+      const f = await doc.embedFont(L.StandardFonts.Helvetica), fb = await doc.embedFont(L.StandardFonts.HelveticaBold);
+      const W = 595.28, H = 841.89, K = L.rgb(0, 0, 0), G = L.rgb(0.55, 0.55, 0.55), R = L.rgb(0.62, 0.62, 0.62);
+      const course = C.subjects[p.subject] || p.subject;
+      const heading = isHsc(p) ? 'HIGHER SCHOOL CERTIFICATE EXAMINATION' : `${p.school.toUpperCase()} TRIAL HSC EXAMINATION`, year = p.year;
+      const text = (pg, t, x, y, size, font = f, color = K) => pg.drawText(t, { x, y, size, font, color });
+      const boxes = (pg, x, y, n, label) => {             // a row of number boxes with a label under it
+        for (let i = 0; i < n; i++) pg.drawRectangle({ x: x + i * 17, y, width: 17, height: 20, borderColor: K, borderWidth: 0.8 });
+        text(pg, label, x + n * 17 - f.widthOfTextAtSize(label, 8), y - 11, 8);
+      };
+      const officeLine = (pg) => {
+        pg.drawLine({ start: { x: 56, y: 70 }, end: { x: W - 56, y: 70 }, thickness: 1, color: K });
+        text(pg, 'Office Use Only – Do NOT write anything, or make any marks below this line.', 56, 58, 8, fb);
+      };
+      const ruled = (pg, top, n, pageNo) => {                // ruled writing area with a margin, like the real booklets
+        for (let y = top; y >= 92; y -= 25) pg.drawLine({ start: { x: 56, y }, end: { x: W - 56, y }, thickness: 0.5, color: R });
+        pg.drawLine({ start: { x: 92, y: top + 10 }, end: { x: 92, y: 92 }, thickness: 0.5, color: R });
+        officeLine(pg);
+        text(pg, String(pageNo), W / 2 - 3, 30, 9, f, G);
+      };
+      if (p.subject === 'Ext1') {
+        for (const q of [11, 12, 13, 14]) {
+          const c = doc.addPage([W, H]);                     // cover
+          boxes(c, W - 56 - 5 * 17, H - 70, 5, 'Centre Number');
+          boxes(c, W - 56 - 8 * 17, H - 112, 8, 'Student Number');
+          c.drawRectangle({ x: 56, y: H - 222, width: 42, height: 16, borderColor: K, borderWidth: 1 });
+          text(c, String(year), 63, H - 218, 11, fb);
+          text(c, heading, 106, H - 218, 8, fb);
+          text(c, course, 56, H - 262, 26);
+          text(c, 'Writing Booklet', 56, H - 296, 18);
+          text(c, 'Question Number', 56, H - 350, 11, fb);
+          c.drawRectangle({ x: 160, y: H - 362, width: 54, height: 34, borderColor: K, borderWidth: 1.2 });
+          text(c, String(q), 177, H - 354, 20, fb);
+          const ins = ['Use this Writing Booklet to answer the question indicated', 'Write the question number in the box above', 'Write using black pen', 'Write your Centre Number and Student Number at the top of this page',
+            'Show relevant mathematical reasoning and/or calculations', 'Request an additional Writing Booklet if you need more room'];
+          text(c, 'Instructions', 56, H - 410, 11, fb);
+          ins.forEach((t, i) => text(c, '•  ' + t, 56, H - 434 - i * 18, 10));
+          text(c, 'Practice copy from Trialbank. Not official NESA stationery.', 56, 40, 7, f, G);
+          for (let k = 2; k <= 8; k++) {                     // ruled pages 2-8
+            const pg = doc.addPage([W, H]);
+            text(pg, `Question ${q}`, 56, H - 46, 9, fb, G);
+            ruled(pg, H - 70, 0, k);
           }
-          for (; y > 62; y -= 24) pg.drawLine({ start: { x: 50, y }, end: { x: W - 50, y }, thickness: 0.6, color: rule });
-          pg.drawText(`${title}  ·  Question ${q} booklet, page ${k + 1} of 4`, { x: 50, y: 36, size: 8, font, color: soft });
+        }
+      } else {
+        for (let k = 1; k <= 4; k++) {
+          const pg = doc.addPage([W, H]);
+          text(pg, 'Extra writing space', 56, H - 54, 14, fb);
+          text(pg, 'If you use this space, clearly indicate which question you are answering.', 56, H - 72, 9, f, G);
+          text(pg, 'Question number', W - 56 - 54 - 92, H - 62, 10, fb);
+          pg.drawRectangle({ x: W - 56 - 54, y: H - 72, width: 54, height: 28, borderColor: K, borderWidth: 1 });
+          ruled(pg, H - 100, 0, k);
         }
       }
       const blob = new Blob([await doc.save()], { type: 'application/pdf' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-      a.download = paperFile(p).replace('.pdf', '-with-writing-booklets.pdf');
+      a.download = paperFile(p).replace('.pdf', (BOOKLETS[p.subject] || BOOKLETS.Ext1).file + '.pdf');
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     } catch (err) { if (errEl) { errEl.textContent = err.message || String(err); errEl.hidden = false; } }
     finally { btn.textContent = old; btn.disabled = false; }
@@ -1077,9 +1114,10 @@
     const total = qs.reduce((a, q) => a + (q.marks || 0), 0);
     const pdfBase = { title: `${p.school} ${p.year} · ${C.subjects[p.subject] || p.subject}`, sub: `${qs.length} questions${total ? ' · ' + total + ' marks' : ''}`, filename: paperFile(p), qs: qs.filter(q => q.image_path) };
     $('paper-pdf').onclick = async () => {
-      // Extension 1 Section II is answered in separate writing booklets: offer blank ones in the same PDF
-      if (p.subject === 'Ext1' && p.pdf_path) {
-        const both = await confirmBox(`This exam is answered in separate writing booklets.<span class="cb-sub">Add blank booklets for Questions 11 to 14 to the end of the PDF?</span>`, 'Yes, add them', 'Just the exam');
+      // offer HSC-style answer stationery in the same PDF
+      const bk = BOOKLETS[p.subject];
+      if (bk && p.pdf_path) {
+        const both = await confirmBox(`${bk.ask}<span class="cb-sub">${bk.sub}</span>`, 'Yes, add them', 'Just the exam');
         if (both) return examWithBooklets(p, $('paper-pdf'), $('paper-error'));
       }
       officialPdf($('paper-pdf'), p, 'pdf_path', pdfBase, $('paper-error'));
