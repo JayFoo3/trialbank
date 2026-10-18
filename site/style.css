@@ -640,3 +640,14 @@ h2.sec { font-family: var(--display); color: var(--ink); font-size: 1.3rem; font
 }
 .verdict .vm .mascot img { animation: none !important; }
 .verdict .vm { animation: pop .35s cubic-bezier(.3,1.6,.5,1); }
+
+/* sprite mascot: real frames, so no whole-body wobble */
+.mascot.sprite { display: block; width: 100%; aspect-ratio: 224 / 317; background-repeat: no-repeat; animation: m-in .4s cubic-bezier(.3,1.6,.5,1) both; }
+.mascot img { animation: m-in .45s cubic-bezier(.3,1.6,.5,1) both !important; }
+.next-mascot { width: 170px; height: 250px; }
+.next-mascot .mascot { margin-top: 12px; }
+.verdict .vm .mascot.sprite { position: absolute; width: auto; height: 150px; left: 30px; top: 2px; right: auto; bottom: auto; transform: translateX(-50%); animation: none; }
+@media (max-width: 640px) {
+  .next-mascot { width: 80px; height: 104px; }
+  .next-mascot .mascot { margin-top: 0; }
+}
