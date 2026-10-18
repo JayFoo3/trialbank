@@ -865,7 +865,6 @@
       const left = saved.finishedAt ? null : Math.round((saved.startedAt + (saved.readingSec + saved.workSec) * 1000 - Date.now()) / 60000);
       $('resume-title').textContent = saved.uploaded ? 'A paper is waiting to be marked' : saved.finishedAt || left <= 0 ? 'You have an exam to mark' : 'Exam in progress';
       $('resume-sub').textContent = (p ? `${p.school} ${p.year}` : 'Your paper') + (left > 0 ? ` · about ${left} min left on the clock` : '');
-      $('resume-banner').hidden = !p;
       $('resume-btn').textContent = left > 0 ? 'Back to the exam' : 'Continue marking';
       $('resume-btn').onclick = () => busy(async () => { try { await resumeExam(saved); } catch (err) { $('resume-sub').textContent = err.message; } });
     }
@@ -877,6 +876,25 @@
       ? `10 new questions, mostly ${state.weak.map(w => w.topic).slice(0, 2).join(' and ')}.`
       : "10 questions you haven't done.";
     renderOnboard();
+    // the single next step: an unfinished exam, then a first set for new students, then a quick set
+    const go = $('next-go');
+    if (saved && homePapers.some(x => x.id === saved.paperId)) {
+      const p = homePapers.find(x => x.id === saved.paperId);
+      const left = saved.finishedAt ? null : Math.round((saved.startedAt + (saved.readingSec + saved.workSec) * 1000 - Date.now()) / 60000);
+      $('next-title').textContent = left > 0 ? `Back to ${p.school} ${p.year}` : `Mark ${p.school} ${p.year}`;
+      $('quick-desc').textContent = left > 0 ? `${left} min left on the clock.` : saved.uploaded ? 'Upload your working to get it marked.' : 'Your answers are saved.';
+      go.textContent = left > 0 ? 'Continue' : 'Mark it';
+      go.onclick = () => $('resume-btn').click();
+    } else if (!state.attempted) {
+      $('next-title').textContent = 'Try 5 questions';
+      $('quick-desc').textContent = 'Multiple choice. You find out straight away.';
+      go.textContent = 'Start';
+      go.onclick = () => $('ob-first-go').click();
+    } else {
+      $('next-title').textContent = 'Quick set';
+      go.textContent = 'Start';
+      go.onclick = () => $('quick-set').click();
+    }
   }
   $('mark-go').onclick = async () => {
     const id = Number($('mark-paper').value);

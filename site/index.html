@@ -60,47 +60,45 @@
   <!-- ===== home: dashboard ===== -->
   <section id="view-home" class="view" hidden>
     <h1 class="hello" id="home-hello">Hi</h1>
-    <p class="muted lead" id="home-sub"></p>
+    <p class="muted small" id="home-sub"></p>
 
-    <div class="starthere" id="onboard" hidden>
-      <div class="between"><strong>Start here</strong><button class="link small" id="onboard-hide" aria-label="Hide the start guide">Hide</button></div>
-      <ol class="steps">
-        <li id="ob-subject"><span class="num">1</span><span>Pick your subject</span><span class="ob-subjects" id="ob-subjects"></span></li>
-        <li id="ob-first"><span class="num">2</span><span>Try 5 questions</span><button class="primary" id="ob-first-go">Go</button></li>
-        <li id="ob-papers"><span class="num">3</span><span>Browse the papers</span><a class="button" href="#papers">Open</a></li>
-      </ol>
-    </div>
-
-    <div class="resume" id="resume-banner" hidden>
-      <div><strong id="resume-title">Exam in progress</strong><p class="small muted" id="resume-sub"></p></div>
-      <button class="primary" id="resume-btn">Continue</button>
-    </div>
-
-    <div class="actions">
-      <div class="action main">
-        <h2>Quick set</h2>
-        <p class="muted small" id="quick-desc">10 questions you haven't done.</p>
-        <div class="row"><button class="primary" id="quick-set">Start</button><a class="button ghost" href="#practise">Pick topics</a></div>
-        <p class="error small" id="quick-error" hidden></p>
+    <!-- the one thing to do next: resume an exam, a first set for new students, or a quick set -->
+    <section class="next" aria-labelledby="next-title">
+      <h2 id="next-title">Quick set</h2>
+      <p class="muted" id="quick-desc">10 questions you haven't done.</p>
+      <button class="primary next-go" id="next-go">Start</button>
+      <p class="error small" id="quick-error" hidden></p>
+      <div class="mini" id="onboard" hidden>
+        <span class="mini-item" id="ob-subject"><span class="num">1</span>Subject <span class="ob-subjects" id="ob-subjects"></span></span>
+        <span class="mini-item" id="ob-first"><span class="num">2</span>5 questions</span>
+        <span class="mini-item" id="ob-papers"><span class="num">3</span><a href="#papers">Papers</a></span>
+        <button class="link small" id="onboard-hide">Hide</button>
       </div>
-      <div class="action">
-        <h2>Timed paper</h2>
-        <p class="muted small">A full paper on the clock.</p>
-        <details class="times"><summary class="small">Times: <span id="exam-times"></span></summary>
+      <button id="quick-set" hidden></button><button id="ob-first-go" hidden></button>
+      <div id="resume-banner" hidden><span id="resume-title"></span><span id="resume-sub"></span><button id="resume-btn"></button></div>
+    </section>
+
+    <div class="others">
+      <details class="other">
+        <summary><strong>Timed paper</strong><span class="muted small">Full paper, on the clock</span></summary>
+        <div class="other-body">
+          <p class="small muted">Time: <span id="exam-times"></span></p>
           <div class="options">
             <div class="opt"><span>Reading (min)</span><input type="number" id="exam-reading" min="0" max="30"></div>
             <div class="opt"><span>Working (min)</span><input type="number" id="exam-working" min="5" max="240"></div>
           </div>
-        </details>
-        <button class="primary" id="exam-random">Start</button>
-        <p class="error small" id="exam-error" hidden></p>
-      </div>
-      <div class="action">
-        <h2>Mark my paper</h2>
-        <p class="muted small">Upload your working, get it marked.</p>
-        <select id="mark-paper" aria-label="Which paper did you do?"><option value="">Which paper?</option></select>
-        <button class="primary" id="mark-go">Upload</button>
-      </div>
+          <button class="secondary" id="exam-random">Start paper</button>
+          <p class="error small" id="exam-error" hidden></p>
+        </div>
+      </details>
+      <details class="other">
+        <summary><strong>Mark a paper</strong><span class="muted small">Upload your working</span></summary>
+        <div class="other-body">
+          <select id="mark-paper" aria-label="Which paper"><option value="">Pick the paper</option></select>
+          <button class="secondary" id="mark-go">Upload</button>
+        </div>
+      </details>
+      <a class="other" href="#practise"><strong>Pick topics</strong><span class="muted small">Build your own set</span></a>
     </div>
 
     <h2 class="sec">Weak spots</h2>
