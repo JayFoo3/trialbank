@@ -2725,7 +2725,25 @@
   }
   // the payoff: a count-up or a swap, then the big word slams in with a flash, a fanfare, confetti and the mascot's jump;
   // then each unlock ticks in on a rising note, and the button nudges to say "tap me"
-  function payoff(card, { at = 280, count = null, fmt = (v) => v, swap = null, cheer = true } = {}) {
+  // It waits for a tap ("Tap to reveal"): browsers only play sound after one, and the tap is half the fun.
+  function payoff(card, opts = {}) {
+    const pan = card.querySelector('.tbp-panel'), h2 = card.querySelector('h2'), btn = card.querySelector('.tbp-actions .primary');
+    const real = { title: h2.innerHTML, btn: btn.textContent, k: btn.dataset.k };
+    card.classList.add('locked');
+    if (opts.teaser) h2.textContent = opts.teaser;
+    btn.textContent = 'Tap to reveal'; btn.classList.add('tap'); delete btn.dataset.k;   // no data-k: tapping it reveals, it doesn't close
+    let gone = false;
+    const go = (ev) => {
+      if (gone) return; gone = true; ev?.stopPropagation();
+      card.classList.remove('locked'); btn.classList.remove('tap');
+      h2.innerHTML = real.title; btn.textContent = real.btn; btn.dataset.k = real.k;
+      pan.onclick = null; btn.removeEventListener('click', go);
+      reveal(card, { ...opts, at: 40 });
+    };
+    pan.onclick = go; btn.addEventListener('click', go);
+    setTimeout(() => { if (card.isConnected && !gone) btn.focus({ preventScroll: true }); }, 250);
+  }
+  function reveal(card, { at = 280, count = null, fmt = (v) => v, swap = null, cheer = true } = {}) {
     const J = window.Juice || {}, fx = J.sfx || {}, big = card.querySelector('.tbp-big b'), pan = card.querySelector('.tbp-panel');
     const list = [...card.querySelectorAll('.tbp-list li')], btn = card.querySelector('.tbp-actions .primary');
     const live = () => card.isConnected;
@@ -2765,7 +2783,7 @@
         clearInterval(poll); const m = await loadMyMarks(); drawMarkLeft();
         box.card.classList.remove('pending');
         if (arrived) {
-          payoff(box.card, { at: 120, count: Number(n) || 0, fmt: (v) => '+' + v });
+          payoff(box.card, { count: Number(n) || 0, fmt: (v) => '+' + v, teaser: 'Your papers are here' });
           box.set(`${esc(n)} papers added`, `You can now get <b>${m.balance}</b> papers marked. They never expire.`, 'Mark a paper', 'All set');
           box.result.then(k => { if (k === 'yes') location.hash = '#mark'; });
         } else box.set('Thanks, payment received', "Your papers are taking a little longer than usual to arrive. They'll appear on their own; if they're not here in a few minutes, contact Jayden.", 'OK', 'Almost there');
@@ -2793,7 +2811,7 @@
     const box = to === 'pro' ? celebrate({ kind: 'pro', panel: top(kicker), title: 'Welcome to Pro', body: 'Everything in Full, plus:', extra, primary: "Let's go" })
       : to === 'lite' ? celebrate({ kind: 'level', panel: top('Access unlocked'), title: 'Welcome to Trialbank Lite', body: 'You now have:', extra, primary: 'Start practising' })
       : celebrate({ kind: 'level', panel: top(kicker), title: `You're on ${LEVEL_NAME[to]} now`, body: 'Just unlocked:', extra, primary: "Let's go" });
-    payoff(box.card, { at: old ? 650 : 300, swap: LEVEL_NAME[to] });
+    payoff(box.card, { swap: LEVEL_NAME[to], teaser: to === 'pro' ? 'Something special…' : "You've levelled up" });
     return box;
   }
   async function subjectPopup(x, count, have) {
@@ -2809,7 +2827,7 @@
       title: `${esc(name)} is here`, body: 'Past HSC papers and the hardest trials, sorted by topic.',
       primary: have ? 'Open it' : 'Add to my subjects', secondary: 'Not now' });
     [0, 1, 2].forEach(i => setTimeout(() => window.Juice?.sfx?.tick(), 260 + i * 130));   // the covers dealt in
-    payoff(box.card, { at: 650, count: Number(count) || 0, cheer: false });
+    payoff(box.card, { count: Number(count) || 0, cheer: false, teaser: 'Something new…' });
     return box.result;
   }
   let noticing = false;

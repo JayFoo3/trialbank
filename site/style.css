@@ -1440,3 +1440,13 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
   .tbp-list li, .tbp-list li::before { opacity: 1; transform: none; transition: none; }
   .tbp-list li::before { transform: rotate(45deg); }
 }
+
+/* popups: tap to reveal */
+.tbp.locked .tbp-body, .tbp.locked .tbp-list { display: none; }
+.tbp-body { animation: tbp-fade .35s ease-out both; }
+@keyframes tbp-fade { from { opacity: 0; transform: translateY(4px); } }
+.tbp.locked .tbp-panel { cursor: pointer; animation: tbp-wobble 2.2s ease-in-out .6s infinite; }
+@keyframes tbp-wobble { 0%, 70%, 100% { transform: none; } 76% { transform: rotate(-1.4deg) scale(1.01); } 84% { transform: rotate(1.4deg) scale(1.01); } 92% { transform: rotate(-.6deg); } }
+.tbp-actions .primary.tap { animation: tbp-nudge 1.1s ease-in-out infinite; }
+.tbp-pro .tbp-actions .primary.tap { background: #ffd36b; border-color: #ffd36b; color: #1f2329; box-shadow: 0 4px 0 #c99a2e; }
+@media (prefers-reduced-motion: reduce) { .tbp.locked .tbp-panel, .tbp-actions .primary.tap, .tbp-body { animation: none !important; } }
