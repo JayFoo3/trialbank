@@ -2746,7 +2746,10 @@
           <button class="pro-plan" data-k="monthly"><span class="pro-tag"></span><b>${money(PRO.monthly)}<small>/month</small></b><span>Cancel any time</span><em>Go monthly</em></button>
         </div><p class="small muted">Secure payment with Stripe. Card or Apple Pay. Cancel any time from your profile.</p>`
       : (canTrial || pass) ? '' : '<p class="pro-status">Pro opens soon.</p>'}
-      ${link ? `<div class="pro-ref"><p><b>Give a friend a free week.</b> You both get ${pro.referral_days || 7} days of Pro once they join with your link and answer 10 questions.${pro.referred ? ` <span class="muted">${pro.referred} friend${pro.referred === 1 ? '' : 's'} so far.</span>` : ''}</p>
+      ${link ? `<div class="pro-ref">
+        <p class="pro-ref-h">Invite friends, get Pro free</p>
+        <ol class="pro-ref-steps"><li>Send a friend your link.</li><li>They sign up and answer 10 questions.</li><li><b>You both get ${pro.referral_days || 7} days of Pro, free.</b></li></ol>
+        <p class="small muted">Works for up to 10 friends (${10 * (pro.referral_days || 7)} free days). Free days stack on top of any you already have.${pro.referred || pro.referral_pending ? ` <b class="pro-ref-n">${pro.referred} of 10 friends done${pro.referral_pending ? `, ${pro.referral_pending} still answering` : ''}.</b>` : ''}</p>
         <div class="pro-ref-row"><input readonly value="${esc(link)}" aria-label="Your invite link"><button class="ghost" data-k="copy">Copy link</button></div></div>` : ''}
     </div>`;
     const done = () => { m.classList.add('out'); setTimeout(() => m.remove(), 180); document.removeEventListener('keydown', k); };
@@ -3339,7 +3342,7 @@
     const { data, error } = await sb.rpc('add_friend', { friend_code: code });
     if (error) { if (!/own code/.test(error.message)) toast(esc(error.message.replace(/^.*?: /, ''))); return; }
     const { data: ref } = await sb.rpc('claim_referral', { friend_code: code }).catch(() => ({ data: false }));
-    toast(`You and <b>${esc(data)}</b> are now friends.` + (ref ? ` Answer 10 questions and you <b>both get a free week of Pro</b>.` : ' Do your Daily 5 together.'), 7000);
+    toast(`You and <b>${esc(data)}</b> are now friends.` + (ref ? ` Answer 10 questions and you'll <b>both get 7 days of Pro free</b>.` : ' Do your Daily 5 together.'), 7000);
     if (location.hash === '#home' || !location.hash) drawFriends();
   }
 
