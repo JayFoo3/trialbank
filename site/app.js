@@ -1130,7 +1130,7 @@
       </div>
       <div class="stat-tiles au-tiles">
         <div class="stat-tile"><b>${subs}</b><span>Pro subscribers</span><em>${p.monthly} monthly · ${p.annual} annual</em></div>
-        <div class="stat-tile"><b>${money(Math.round(mrr * 100) / 100)}</b><span>a month from Pro</span><em>before GST and Stripe fees</em></div>
+        <div class="stat-tile"><b>A${money(Math.round(mrr * 100) / 100)}</b><span>a month from Pro</span><em>before GST and Stripe fees</em></div>
         <div class="stat-tile"><b>${p.on_pass}</b><span>on a free week now</span><em>${p.trials_month} trials started this month · ${p.trials} ever</em></div>
         <div class="stat-tile"><b>${p.ref_rewarded}</b><span>referrals paid out</span><em>${p.ref_pending} waiting on 10 answers</em></div>
         <div class="stat-tile"><b>US$${a.spent.toFixed(2)}</b><span>auto-marking</span><em>${a.runs} paper${a.runs === 1 ? '' : 's'} marked</em></div>
@@ -2730,6 +2730,9 @@
       <h2 id="pro-h">${active ? "You're on Pro" : pass ? `Free Pro until ${shortDay(pro.pass_end)}` : from === 'tutor' ? 'The tutor comes with Pro' : from === 'mistake' ? 'Pro explains every mistake' : from === 'paper' ? 'Unlimited practice papers with Pro' : from === 'band' ? 'See what\'s holding your band back' : 'Study with your own tutor'}</h2>
       <ul class="pro-feats">
         <li><b>AI tutor in every subject</b><span>One step at a time on real past questions. 300 messages a month.</span></li>
+        <li><b>Explain my mistake</b><span>One tap from any wrong answer into the tutor, on that exact question.</span></li>
+        <li><b>Your predicted band, unpacked</b><span>Your likely mark and the topics costing you the most.</span></li>
+        <li><b>Unlimited practice papers</b><span>Built around your weak spots, with solutions at the back.</span></li>
         <li><b>5 papers marked every month</b><span>On top of anything you've bought.</span></li>
         <li><b>Pro pets and looks</b><span>Unicorn, dragon and phoenix, the Aurora banner and the Pro border.</span></li>
       </ul>
