@@ -1732,3 +1732,10 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .pro-use b small { font-weight: 400; opacity: .7; }
 .pro-use .pro-use-bar, .pro-use .small { grid-column: 1 / -1; }
 @media (max-width: 560px) { .tu-head { flex-wrap: wrap; } .tu-left { order: 3; width: 100%; text-align: left; margin-left: 0; } }
+
+.tu-left-bar, .pro-use-bar { position: relative; overflow: visible; }
+.tu-left-bar i, .pro-use-bar i { overflow: hidden; }
+.tu-left-bar::after, .pro-use-bar::after { content: ''; position: absolute; top: -3px; bottom: -3px; left: var(--tick, 100%); width: 2px; margin-left: -1px; border-radius: 2px; background: var(--ink); opacity: .45; }
+.pace-ok { color: var(--muted); }
+.pace-warn { color: var(--warn); font-weight: 600; }
+.pace-out { color: var(--bad); font-weight: 600; }

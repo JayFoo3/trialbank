@@ -2448,10 +2448,12 @@
     let usage = '';
     if (active) {
       const [t, mm] = await Promise.all([loadTuLeft(), loadMyMarks().catch(() => myMarks)]);
-      const row = (label, n, of, note) => `<div class="pro-use"><span>${label}</span><b>${n}${of ? `<small> of ${of}</small>` : ''}</b><span class="pro-use-bar"><i style="width:${of ? Math.round(100 * n / of) : 100}%"></i></span>${note ? `<span class="small muted">${note}</span>` : ''}</div>`;
-      usage = `<div class="pro-usage"><p class="small muted">Left this month${t?.refills ? `, refills ${refillDay(t.refills)}` : ''}</p>` +
+      const ref = t?.refills || (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 1).toLocaleDateString('en-CA'); })();
+      const row = (label, n, of, note) => { const pc = pace(of - n, of, ref);
+        return `<div class="pro-use"><span>${label}</span><b>${n}<small> of ${of} left</small></b><span class="pro-use-bar" style="--tick:${pc.tick}%"><i style="width:${Math.round(100 * n / of)}%"></i></span><span class="small pace-${pc.cls}">${pc.text}${note ? ` ${note}` : ''}</span></div>`; };
+      usage = `<div class="pro-usage"><p class="small muted">This month · refills ${refillDay(ref)} · the tick marks an even pace</p>` +
         (t && !t.unlimited ? row('Tutor messages', t.left, t.allowance) : '') +
-        row('Papers marked for you', mm?.pro_left ?? 0, mm?.pro_total || 5, mm?.balance ? `plus ${mm.balance} bought, which never expire` : '') + '</div>';
+        row('Papers marked for you', mm?.pro_left ?? 0, mm?.pro_total || 5, mm?.balance ? `Plus ${mm.balance} bought, which never expire.` : '') + '</div>';
     }
     const m = mk('div', 'modal buy pro-modal');
     m.innerHTML = `<div class="modal-card buy-card pro-card" role="dialog" aria-modal="true" aria-labelledby="pro-h">
@@ -3892,6 +3894,23 @@
     try { const { data } = await sb.rpc('my_tutor_left'); if (data) tuLeft = { ...data, left: Math.max(0, data.allowance - data.used) }; } catch {}
     drawTuLeft(); return tuLeft;
   }
+  // how the month is going: compares what's been used with an even pace through to the refill day
+  function pace(used, allowance, refills) {
+    const end = new Date(refills + 'T00:00:00'), start = new Date(end); start.setMonth(start.getMonth() - 1);
+    const now = Date.now(), days = (end - start) / 864e5, gone = Math.max(0, Math.min(days, (now - start) / 864e5));
+    const f = gone / days, left = allowance - used, tick = Math.round(100 * (1 - f));   // where "left" would sit at an even pace
+    if (left <= 0) return { tick, cls: 'out', text: `All used. Refills ${refillDay(refills)}.` };
+    if (used === 0) return { tick, cls: 'ok', text: gone < 3 ? 'Fresh month, all of it to use.' : 'Not touched yet this month.' };
+    if (gone < 2 && used < allowance * 0.25) return { tick, cls: 'ok', text: 'Early days. Plenty left.' };
+    const rate = used / Math.max(gone, 1), proj = rate * days;
+    if (proj > allowance * 1.03) {
+      const runOut = new Date(start.getTime() + (allowance / rate) * 864e5), early = Math.round((end - runOut) / 864e5);
+      return { tick, cls: 'warn', text: early >= 7 ? `At this pace you'll run out around ${runOut.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}, ${Math.round(early / 7) > 1 ? `about ${Math.round(early / 7)} weeks` : 'about a week'} early.` : `At this pace you'll run out ${early <= 1 ? 'a day or so' : `${early} days`} early.` };
+    }
+    if (proj >= allowance * 0.85) return { tick, cls: 'ok', text: 'On track to use about all of it.' };
+    const spare = Math.round(allowance - proj);
+    return { tick, cls: 'ok', text: proj < allowance * 0.4 ? `Plenty spare. On pace to finish with about ${spare} unused.` : `On track, with about ${spare} spare by the refill.` };
+  }
   const refillDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
   function drawTuLeft() {
     const box = $('tu-left'); if (!box) return;
@@ -3901,8 +3920,11 @@
     box.classList.toggle('low', left <= Math.max(10, allowance * 0.1));
     box.classList.toggle('out', left === 0);
     $('tu-left-n').innerHTML = left === 0 ? 'No messages left' : `<b>${left}</b> of ${allowance} messages left`;
+    const pc = pace(allowance - left, allowance, tuLeft.refills);
     $('tu-left-fill').style.width = `${Math.round(100 * left / allowance)}%`;
-    $('tu-left-r').textContent = left === 0 ? `Refills ${refillDay(tuLeft.refills)}` : `this month · refills ${refillDay(tuLeft.refills)}`;
+    $('tu-left-fill').parentNode.style.setProperty('--tick', `${pc.tick}%`);
+    $('tu-left-r').textContent = pc.text;
+    $('tu-left-r').className = `tu-left-r small pace-${pc.cls}`;
     box.title = 'Every reply from the tutor uses one message. Quick questions count the same as help on a past question.';
   }
   async function tuSend(text) {
