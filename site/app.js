@@ -79,7 +79,7 @@
     drawSubject();
     if (!state.preview) sb.rpc('log_visit', { v: h || 'home' }).then(() => {}, () => {});   // engagement stats for the Admin page
     return busy(async () => {
-      if (h === 'practise') { show('practise'); await renderBuild(); return; }
+      if (h === 'practise') { show('practise'); drawCpCard(); await renderBuild(); return; }
       if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
       if (h === 'admin' && state.admin) { show('admin'); await renderAdmin(); return; }
       if (h === 'profile') { show('profile'); await renderProfile(); return; }
@@ -1319,7 +1319,7 @@
     });
     return window.jspdf.jsPDF;
   }
-  async function makePdf({ title, sub, filename, qs, withSolutions, onProgress }) {
+  async function makePdf({ title, sub, filename, qs, withSolutions, onProgress, lines }) {
     const JsPDF = await loadJsPdf();
     const pdf = new JsPDF({ unit: 'mm', format: 'a4' });
     const W = 210, H = 297, M = 15, CW = W - 2 * M, DPI = 150;
@@ -1331,15 +1331,26 @@
     let y = M;
     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16); pdf.text(title, M, y + 6); y += 12;
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(100); pdf.text(sub, M, y); y += 8; pdf.setTextColor(0);
-    const put = (cv) => {
+    const put = (cv, reserve = 0) => {
       let w = Math.min(CW, cv.width * 25.4 / DPI), h = w * cv.height / cv.width;
       const maxH = H - 2 * M - 8;
       if (h > maxH) { h = maxH; w = h * cv.width / cv.height; }
-      if (y + h > H - M - 6) { pdf.addPage(); y = M; }
+      if (y + h + reserve > H - M - 6) { pdf.addPage(); y = M; }   // keep a question with the start of its writing lines
       pdf.addImage(cv.toDataURL('image/jpeg', 0.9), 'JPEG', M, y, w, h);
       y += h + 5;
     };
-    qc.forEach(put);
+    // writing lines under each written question: more marks, more room (none under multiple choice)
+    const rule = (q) => {
+      if (!lines || q.type === 'mcq') return;
+      let n = Math.min(22, 4 + 3 * (q.marks || 1)), gap = 8;
+      pdf.setDrawColor(190); pdf.setLineWidth(0.2);
+      while (n > 0) {
+        if (y + gap > H - M - 6) { pdf.addPage(); y = M; }
+        y += gap; pdf.line(M, y, W - M, y); n--;
+      }
+      y += 7;
+    };
+    qc.forEach((cv, i) => { put(cv, lines && qs[i].type !== 'mcq' ? 32 : 0); rule(qs[i]); });
     if (sols.length) {
       pdf.addPage(); y = M;
       pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.text('Solutions', M, y + 5); y += 12;
@@ -1356,6 +1367,89 @@
     }
     pdf.save(filename);
   }
+  // ---------- custom practice paper: questions weighted towards weak topics, sized to the time ----------
+  const CP_FREE_KEY = () => `tb_cp_free_${state.user?.id}`;
+  const cpOpt = { mins: 40, focus: 'weak' };
+  async function buildCustomPaper() {
+    const subj = state.subject, mins = cpOpt.mins;
+    const target = Math.max(8, Math.round(mins * 100 / 180));   // HSC pace: about 100 marks in 3 hours
+    const [{ data: pool_, error }, { data: stats }] = await Promise.all([
+      sb.rpc('paper_pool', { subj }),
+      sb.from('my_topic_stats').select('topic, attempts, score, out_of').eq('subject', subj),
+    ]);
+    if (error) throw error;
+    const skip = skipped(subj);
+    let qs = (pool_ || []).filter(q => q.topic && !skip.has(q.topic));
+    if (cpOpt.focus === 'picked') {
+      if (!state.topics.size) throw new Error('Pick some topics above first, or choose another focus.');
+      qs = qs.filter(q => state.topics.has(q.topic));
+    }
+    if (qs.length < 5) throw new Error('Not enough questions for that yet. Try a different focus.');
+    const st = Object.fromEntries((stats || []).map(r => [r.topic, r]));
+    const weight = (t) => {
+      if (cpOpt.focus === 'mixed') return 1;
+      const r = st[t]; if (!r || !r.out_of) return 1.4;   // not tried yet: worth a look
+      return 1 + 3 * Math.max(0, 1 - r.score / r.out_of);   // the weaker the topic, the more it shows up
+    };
+    const pick = (list, need, sizeOf) => {
+      const out = [], left = [...list]; let got = 0;
+      while (got < need && left.length) {
+        const ws = left.map(q => weight(q.topic) * (q.marks > 5 ? 0.3 : 1)), tot = ws.reduce((a, b) => a + b, 0);
+        let r = Math.random() * tot, i = 0; while (r > ws[i]) r -= ws[i++];
+        const q = left.splice(Math.min(i, left.length - 1), 1)[0];
+        if (got + sizeOf(q) > need + 2) continue;
+        out.push(q); got += sizeOf(q);
+      }
+      return out;
+    };
+    const mcqMarks = Math.round(target * 0.15);
+    const mc = pick(qs.filter(q => q.type === 'mcq'), mcqMarks, () => 1);
+    const sh = pick(qs.filter(q => q.type !== 'mcq' && (q.marks || 0) > 0), target - mc.length, q => q.marks || 1)
+      .sort((a, b) => (a.level ?? 2) - (b.level ?? 2));
+    const ids = [...mc, ...sh].map(q => q.id);
+    const { data: rows, error: e2 } = await sb.from('questions').select(QCOLS).in('id', ids);
+    if (e2) throw e2;
+    const by = new Map((rows || []).map(r => [r.id, r]));
+    const full = ids.map(id => by.get(id)).filter(q => q && q.image_path);
+    await attachUrls(full);
+    return { qs: full, marks: full.reduce((a, q) => a + (q.type === 'mcq' ? 1 : q.marks || 0), 0), mins };
+  }
+  function cpAllowed() {
+    if (tuAllowed()) return true;   // Pro: as many as you like
+    const used = lsGet(CP_FREE_KEY()) || 0;
+    return Date.now() - used > 7 * 864e5;   // everyone else: one a week
+  }
+  function drawCpCard() {
+    if (!$('cp-card')) return;
+    const pro = tuAllowed(), free = cpAllowed();
+    $('cp-pro').hidden = pro;
+    $('cp-sub').textContent = pro ? 'A fresh paper built around your weak spots, with ruled lines to write on and the solutions at the back.'
+      : free ? 'A fresh paper built around your weak spots. One free paper a week; Pro makes as many as you like.'
+      : 'You\'ve used this week\'s free paper. Pro makes as many as you like.';
+  }
+  document.querySelectorAll('[data-cp]').forEach(seg => seg.onclick = (ev) => {
+    const b = ev.target.closest('button'); if (!b) return;
+    seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    cpOpt[seg.dataset.cp] = seg.dataset.cp === 'mins' ? +b.dataset.v : b.dataset.v;
+  });
+  async function cpRun(mode) {
+    if (!cpAllowed()) return proOpen() ? openPro('paper') : toast("You've used this week's free paper.");
+    const btn = $(mode === 'pdf' ? 'cp-pdf' : 'cp-now'), say = (t) => { $('cp-status').textContent = t; };
+    btn.disabled = true; say('Picking questions…');
+    try {
+      const p = await buildCustomPaper();
+      if (!tuAllowed()) lsSet(CP_FREE_KEY(), Date.now());
+      const name = C.subjects[state.subject] || state.subject;
+      if (mode === 'pdf') {
+        await makePdf({ title: `${name} practice paper`, sub: `${p.mins} minutes · ${p.marks} marks · ${cpOpt.focus === 'weak' ? 'built around your weak spots' : cpOpt.focus === 'picked' ? 'your picked topics' : 'mixed topics'} · made ${new Date().toLocaleDateString('en-AU')}`,
+          filename: `Trialbank ${name} practice paper.pdf`, qs: p.qs, withSolutions: true, lines: true, onProgress: (d, t) => say(`Building PDF ${d}/${t}`) });
+        say(`${p.qs.length} questions, ${p.marks} marks.`);
+      } else { say(''); await startSet(p.qs); }
+    } catch (err) { say(err.message || String(err)); }
+    finally { btn.disabled = false; drawCpCard(); }
+  }
+  $('cp-pdf').onclick = () => cpRun('pdf');
+  $('cp-now').onclick = () => cpRun('now');
   async function pdfAction(btn, opts, errEl) {
     const old = btn.textContent; btn.disabled = true;
     if (errEl) errEl.hidden = true;
@@ -2493,7 +2587,7 @@
     m.innerHTML = `<div class="modal-card buy-card pro-card" role="dialog" aria-modal="true" aria-labelledby="pro-h">
       <button class="link buy-x" data-k="" aria-label="Close">✕</button>
       <p class="pro-kick">Trialbank Pro</p>
-      <h2 id="pro-h">${active ? "You're on Pro" : pass ? `Free Pro until ${shortDay(pro.pass_end)}` : from === 'tutor' ? 'The tutor comes with Pro' : from === 'mistake' ? 'Pro explains every mistake' : 'Study with your own tutor'}</h2>
+      <h2 id="pro-h">${active ? "You're on Pro" : pass ? `Free Pro until ${shortDay(pro.pass_end)}` : from === 'tutor' ? 'The tutor comes with Pro' : from === 'mistake' ? 'Pro explains every mistake' : from === 'paper' ? 'Unlimited practice papers with Pro' : 'Study with your own tutor'}</h2>
       <ul class="pro-feats">
         <li><b>AI tutor in every subject</b><span>One step at a time on real past questions. 300 messages a month.</span></li>
         <li><b>5 papers marked every month</b><span>On top of anything you've bought.</span></li>
@@ -3941,7 +4035,7 @@
     }
     tu.active = true;
     $('tu-start').hidden = true; $('tu-session').hidden = false; $('tu-end').hidden = false;
-    tuDrawQuestion(); drawTuRecent(); tuSave();
+    tuDrawQuestion(); drawTuRecent(); tuSave(); drawTuLeft();
   }
   // "James Ruse 2025 11a", "HSC 2023 Q14(b)": find that question in the bank
   let tuPapers = null;
@@ -4070,7 +4164,7 @@
     drawTuLeft(); return tuLeft;
   }
   // how the month is going: compares what's been used with an even pace through to the refill day
-  function pace(used, allowance, refills) {
+  function pace(used, allowance, refills, fmt = (n) => n) {
     const end = new Date(refills + 'T00:00:00'), start = new Date(end); start.setMonth(start.getMonth() - 1);
     const now = Date.now(), days = (end - start) / 864e5, gone = Math.max(0, Math.min(days, (now - start) / 864e5));
     const f = gone / days, left = allowance - used, tick = Math.round(100 * (1 - f));   // where "left" would sit at an even pace
@@ -4084,23 +4178,40 @@
     }
     if (proj >= allowance * 0.85) return { tick, cls: 'ok', text: 'On track to use about all of it.' };
     const spare = Math.round(allowance - proj);
-    return { tick, cls: 'ok', text: proj < allowance * 0.4 ? `Plenty spare. On pace to finish with about ${spare} unused.` : `On track, with about ${spare} spare by the refill.` };
+    return { tick, cls: 'ok', text: proj < allowance * 0.4 ? `Plenty spare. On pace to finish with about ${fmt(spare)} unused.` : `On track, with about ${fmt(spare)} spare by the refill.` };
   }
   const refillDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
+  // the allowance as one model, drawn in the header (start screen) and as a bar above the chat box (in a chat)
+  const fmtTok = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n);
+  function tuMeterModel() {
+    if (!tuLeft) return null;
+    if (tuLeft.unlimited) {   // admin: the whole site's tutor budget this month
+      const st = tuLeft.site; if (!st) return null;
+      const cap = Number(st.cap_usd) || 0, spent = Number(st.spent_usd) || 0, left = Math.max(0, cap - spent);
+      const per = st.msgs ? spent / st.msgs : 0.011, msgsLeft = per ? Math.floor(left / per) : 0;
+      const pc = pace(Math.round(spent * 100), Math.round(cap * 100), st.refills, (c) => `US$${(c / 100).toFixed(2)}`);
+      return { fill: cap ? left / cap : 0, tick: pc.tick, cls: pc.cls, low: left <= cap * 0.1, out: left <= 0,
+        head: `<b>US$${left.toFixed(2)}</b> of US$${cap.toFixed(2)} tutor budget left`,
+        sub: `${fmtTok(Number(st.tokens) || 0)} tokens used this month · about ${msgsLeft.toLocaleString('en-AU')} messages left · ${pc.text}` };
+    }
+    const { left, allowance } = tuLeft, pc = pace(allowance - left, allowance, tuLeft.refills);
+    return { fill: allowance ? left / allowance : 0, tick: pc.tick, cls: pc.cls, low: left <= Math.max(10, allowance * 0.1), out: left === 0,
+      head: left === 0 ? 'No messages left' : `<b>${left}</b> of ${allowance} messages left`, sub: pc.text };
+  }
   function drawTuLeft() {
-    const box = $('tu-left'); if (!box) return;
-    if (!tuLeft || tuLeft.unlimited) { box.hidden = true; return; }
-    const { left, allowance } = tuLeft;
-    box.hidden = false;
-    box.classList.toggle('low', left <= Math.max(10, allowance * 0.1));
-    box.classList.toggle('out', left === 0);
-    $('tu-left-n').innerHTML = left === 0 ? 'No messages left' : `<b>${left}</b> of ${allowance} messages left`;
-    const pc = pace(allowance - left, allowance, tuLeft.refills);
-    $('tu-left-fill').style.width = `${Math.round(100 * left / allowance)}%`;
-    $('tu-left-fill').parentNode.style.setProperty('--tick', `${pc.tick}%`);
-    $('tu-left-r').textContent = pc.text;
-    $('tu-left-r').className = `tu-left-r small pace-${pc.cls}`;
-    box.title = 'Every reply from the tutor uses one message. Quick questions count the same as help on a past question.';
+    const m = tuMeterModel(), box = $('tu-left'), bar = $('tu-meter');
+    if (!box || !bar) return;
+    box.hidden = !m || tu.active; bar.hidden = !m || !tu.active;
+    if (!m) return;
+    const paint = (root, n, fill, r) => {
+      root.classList.toggle('low', m.low); root.classList.toggle('out', m.out);
+      n.innerHTML = m.head; fill.style.width = `${Math.max(m.out ? 0 : 1.5, Math.round(1000 * m.fill) / 10)}%`;
+      fill.parentNode.style.setProperty('--tick', `${m.tick}%`);
+      r.textContent = m.sub; r.className = `${r.dataset.base} pace-${m.cls}`;
+    };
+    paint(box, $('tu-left-n'), $('tu-left-fill'), $('tu-left-r'));
+    paint(bar, $('tu-meter-n'), $('tu-meter-fill'), $('tu-meter-r'));
+    box.title = bar.title = tuLeft.unlimited ? 'The whole site\'s tutor spending this month, against the monthly cap in settings.' : 'Every reply from the tutor uses one message. Quick questions count the same as help on a past question.';
   }
   async function tuSend(text) {
     if (tu.busy) return;
@@ -4135,6 +4246,7 @@
       if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
       tu.msgs.push({ role: 'tutor', text: data.say, slip: data.slip?.what || null, learnt: data.learnt || null });
       if (data.left != null && tuLeft) { tuLeft.left = data.left; tuLeft.allowance = data.allowance || tuLeft.allowance; tuLeft.used = tuLeft.allowance - data.left; drawTuLeft(); }
+      else if (tuLeft?.unlimited) loadTuLeft();
       if (data.slip) tu.slipped = true;
       if (data.full_paper && tu.msgs.some(m => m.images?.length)) tu.msgs.push({ role: 'offer' });
       if (data.done && !tu.done) await tuFinish(data);
