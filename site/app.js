@@ -2274,9 +2274,10 @@
     const pr = myProfile();
     const html = media.av ? `<img src="${media.av}" alt="">` : esc(initials());
     $('me-av').innerHTML = html;
-    $('account-btn').innerHTML = pr.pet ? petImg(pr.pet) : html;   // their pet, once picked, is who they are around the site
-    $('account-btn').classList.toggle('has-pet', !!pr.pet);
-    $('account-btn').style.setProperty('--pc', pr.pet ? colorCss(pr.color) : '');
+    const usePet = pr.pet && (pr.pet !== 'photo' || media.av);   // their pet or photo, with its border, is who they are around the site
+    $('account-btn').innerHTML = usePet ? petBadge(pr, 'sm') : html;
+    $('account-btn').classList.toggle('has-pet', !!usePet);
+    if ($('home-pet')) $('home-pet').innerHTML = petBadge(usePet ? pr : { ...pr, pet: null }, 'md');
     $('me-av-rm').hidden = !media.av;
   }
   async function savePrefs(p) {
@@ -2556,7 +2557,9 @@
     const room = 5 - out.length;
     const reviews = plan.splice(0, Math.max(0, room - nNew));
     const fresh = newT.slice(0, Math.max(nNew, room - reviews.length)).map(t => [t, 'new']);
-    const rest = [...plan, ...laterT.filter(t => !used.has(t)).map(t => [t, 'review'])];
+    // anything else to fall back on: due topics left over, topics coming back later, then every other new topic
+    // (on Free, many topics have no questions in the free papers, so the first picks can come up empty)
+    const rest = [...plan, ...laterT.filter(t => !used.has(t)).map(t => [t, 'review']), ...newT.slice(fresh.length).map(t => [t, 'new'])];
     const queue = [...reviews, ...fresh, ...rest];
     const seenSet = seen;
     const pool = async (t, lvl) => {
@@ -2569,12 +2572,17 @@
     };
     let qi = 0; const spare = [];
     while (out.length < 5 && qi < queue.length) {   // a few topics at a time, in parallel, until five are picked
-      const chunk = queue.slice(qi, qi + 5 - out.length); qi += chunk.length;
+      const chunk = queue.slice(qi, qi + Math.max(5 - out.length, qi ? 8 : 0)); qi += chunk.length;   // after the first round, try more topics at once
       const got = await Promise.all(chunk.map(([t, kind]) => pool(t, kind === 'new' ? 1 + (Math.random() < 0.5) : (srs[t]?.level || 1)).then(c => [c, kind])));
       for (const [c, kind] of got) { take(c.find(x => want(x) && !pickIds.has(x.id)), kind); spare.push([c, kind]); }
     }
     for (const [c, kind] of spare) { if (out.length >= 5) break; take(c.find(x => want(x) && !pickIds.has(x.id)), kind); }   // few topics: a second from each
     for (const [c, kind] of spare) { if (out.length >= 5) break; take(c.find(x => !pickIds.has(x.id)), kind); }   // still short of that type: top up with the other
+    if (out.length < 5) {   // last resort: any suitable questions in the subject
+      const { data } = await sb.from('questions').select(QCOLS).eq('papers.subject', subj).lte('marks', 3).limit(300);
+      const any = shuffle((data || []).filter(ok));
+      for (const x of [...any.filter(want), ...any]) { if (out.length >= 5) break; take(x, srs[x.topic] ? 'review' : 'new'); }
+    }
     if (!out.length) throw new Error('No questions to pick from yet. Untick some "not learnt" topics.');
     const row = { subject: subj, day: today, question_ids: out.map(o => o.x.id), kinds: out.map(o => o.kind), answered: [], score: 0, out_of: 0, finished_at: null };
     await saveDaily(row);
@@ -2698,13 +2706,15 @@
     ['none', 'None', 1], ['bronze', 'Bronze', 3], ['silver', 'Silver', 6], ['gold', 'Gold', 10], ['flame', 'Flame', 14], ['diamond', 'Diamond', 20], ['pro', 'Pro', 1, 1],
   ];
   const isProUser = () => (state.admin && !state.viewAs) || (state.viewAs ? state.viewAs === 'pro' : state.release?.level === 'pro');
-  const myProfile = () => ({ pet: null, color: 'blue', border: 'none', ...(state.preview ? previewFlags.profile : state.user?.user_metadata?.profile) });
+  const myProfile = () => ({ pet: null, color: 'blue', border: 'none', ...(state.preview ? previewFlags.profile : state.user?.user_metadata?.profile), self: true });
   const petOf = (k) => PETS.find(p => p[0] === k) || EGG;
   const petUrl = (k) => { const p = petOf(k); return `${EMOJI}${encodeURIComponent(p[2])}/3D/${p[3]}_3d.png`; };
   const petImg = (k) => `<img src="${petUrl(k)}" alt="" loading="lazy" draggable="false">`;
   const colorCss = (k) => (COLORS.find(c => c[0] === k) || COLORS[0])[2];
   // a pet on its colour, inside its border; f is { pet, color, border }
-  const petBadge = (f, size = 'md') => `<span class="pet pet-${size} bd-${esc(f.border || 'none')}" style="--pc:${colorCss(f.color)}">${petImg(f.pet)}</span>`;
+  const photoOf = (f) => f.pet === 'photo' ? (f.me || f.self ? media.av : f.photoUrl) : null;
+  const petBadge = (f, size = 'md') => { const ph = photoOf(f);
+    return `<span class="pet pet-${size} bd-${esc(f.border || 'none')}${ph ? ' is-photo' : ''}" style="--pc:${colorCss(f.color)}">${ph ? `<img class="ph" src="${ph}" alt="" draggable="false">` : petImg(f.pet === 'photo' ? null : f.pet)}</span>`; };
   const locked = (lvl, pro) => pro ? !isProUser() : (state.lvl?.level || 1) < lvl;
   const lockText = (lvl, pro) => pro ? 'Pro' : `Level ${lvl}`;
   const xpFor = (L) => 50 * L * (L - 1);
@@ -2769,7 +2779,7 @@
       </section>
       <p class="small muted pf-earn">Earn XP: 2 for every question, 10 for every mark, 50 for finishing your Daily 5.</p>
       <h2 class="sec">Pet</h2>
-      <div class="pf-grid pets" id="pf-pets">${PETS.map(p => tile('pet', p[0], `${petImg(p[0])}<span>${p[1]}</span>`, p[4], p[5], pr.pet === p[0])).join('')}</div>
+      <div class="pf-grid pets" id="pf-pets">${photoTile(pr)}${PETS.map(p => tile('pet', p[0], `${petImg(p[0])}<span>${p[1]}</span>`, p[4], p[5], pr.pet === p[0])).join('')}</div>
       <h2 class="sec">Banner</h2>
       <div class="pf-grid colors" id="pf-colors">${COLORS.map(c => tile('color', c[0], `<i style="background:${c[2]}"></i><span>${c[1]}</span>`, c[3], c[4], pr.color === c[0])).join('')}</div>
       <h2 class="sec">Border</h2>
@@ -2779,7 +2789,8 @@
         : '<p class="small muted">Add friends to see their pets, levels and streaks here.</p>'}</div>`;
     $('pf-fr').onclick = () => openFriends().then(() => {});
     el.querySelectorAll('.pf-tile').forEach(b => b.onclick = async () => {
-      const { kind, k, lvl, pro } = b.dataset;
+      const { kind, k, lvl, pro } = b.dataset, pr = myProfile();
+      if (k === 'photo' && (!media.av || pr.pet === 'photo')) return $('pf-photo-file').click();   // no photo yet, or tapping it again: upload a new one
       if (b.classList.contains('locked')) {
         window.Juice?.sfx?.bad?.();
         b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
@@ -2790,6 +2801,20 @@
       renderProfile();
     });
   }
+  function photoTile(pr) {
+    const on = pr.pet === 'photo' && media.av;
+    return `<button class="pf-tile photo${on ? ' on' : ''}" data-kind="pet" data-k="photo" data-lvl="1" aria-pressed="${!!on}">
+      ${media.av ? `<img class="ph" src="${media.av}" alt="">` : '<b class="pf-plus">+</b>'}<span>${media.av ? (on ? 'Change photo' : 'Your photo') : 'Upload photo'}</span></button>`;
+  }
+  $('pf-photo-file').onchange = async (ev) => {
+    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+    toast('Uploading your photo…');
+    try {
+      meP = prefs(); await uploadMedia('av', f); const p = meP; meP = null; await savePrefs(p); applyPrefs(p);
+      await saveProfile({ pet: 'photo' }); toast('Photo saved. Your friends will see it.');
+    } catch (e) { meP = null; toast(esc(e.message || String(e))); }
+    if (location.hash === '#profile') renderProfile();
+  };
   function tile(kind, k, inner, lvl, pro, on) {
     const lock = locked(lvl, pro);
     return `<button class="pf-tile${on ? ' on' : ''}${lock ? ' locked' : ''}${pro ? ' pro' : ''}" data-kind="${kind}" data-k="${k}" data-lvl="${lvl}" ${pro ? 'data-pro="1"' : ''}
@@ -2802,7 +2827,12 @@
     if (!state.user || state.preview) return (state.friends = []);
     const { data, error } = await sb.rpc('my_friends');
     if (error) { console.warn('friends', error.message); return state.friends; }
-    return (state.friends = data || []);
+    const fs = data || [], paths = fs.map(f => f.photo).filter(Boolean);
+    if (paths.length) {
+      const { data: urls } = await sb.storage.from('profile').createSignedUrls(paths, 3600);
+      (urls || []).forEach(u => { const f = fs.find(x => x.photo === u.path); if (f && u.signedUrl) f.photoUrl = u.signedUrl; });
+    }
+    return (state.friends = fs);
   }
   let myCode = null;
   async function friendCode() {

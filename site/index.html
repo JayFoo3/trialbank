@@ -88,8 +88,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 </div>
 <div class="modal" id="me-modal" hidden>
   <div class="modal-card me-card" role="dialog" aria-modal="true" aria-labelledby="me-title">
-    <h2 id="me-title">Make it yours</h2>
-    <div class="me-top">
+    <h2 id="me-title">Theme and background</h2>
+    <div class="me-top" hidden>
       <div class="avatar" id="me-av" aria-hidden="true"></div>
       <div class="row"><button class="secondary" id="me-av-up">Upload photo</button><button class="link muted-link" id="me-av-rm" hidden>Remove</button></div>
       <input type="file" id="me-av-file" accept="image/*" hidden>
@@ -139,7 +139,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 
   <!-- ===== home: dashboard ===== -->
   <section id="view-home" class="view" hidden>
-    <h1 class="hello" id="home-hello">Hi</h1>
+    <div class="hello-row"><a class="home-pet" id="home-pet" href="#profile" aria-label="Your profile"></a><h1 class="hello" id="home-hello">Hi</h1></div>
     <p class="muted small" id="home-sub"></p>
     <p class="small muted release-note" id="release-note" hidden></p>
 
@@ -443,6 +443,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <!-- ===== profile: pet, banner, border, level, friends ===== -->
   <section id="view-profile" class="view" hidden>
     <div id="profile-body"></div>
+    <input type="file" id="pf-photo-file" accept="image/*" hidden>
   </section>
 
   <section id="view-admin" class="view" hidden>

@@ -1498,8 +1498,8 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .bd-pro::after { background: conic-gradient(#ff4d6d, #ffb000, #2fd27a, #18b4f5, #7a5cff, #ff4d6d); filter: drop-shadow(0 0 7px rgba(122,92,255,.6)); }
 @keyframes ring-spin { to { transform: rotate(1turn); } }
 @media (prefers-reduced-motion: reduce) { .pet::after { animation: none !important; } }
-.avatar.has-pet { background: var(--pc) !important; padding: 0; overflow: hidden; }
-.avatar.has-pet img { width: 80%; height: 80%; object-fit: contain; }
+.avatar .pet img { width: 78%; height: 78%; object-fit: contain; }
+.avatar .pet img.ph { width: 100%; height: 100%; object-fit: cover; }
 
 /* profile page */
 .pf-hero { position: relative; overflow: hidden; display: flex; align-items: center; gap: 28px; padding: 30px 32px; border-radius: 26px; color: #fff;
@@ -1553,6 +1553,21 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
   .pf-hero { flex-direction: column; text-align: center; gap: 14px; padding: 24px 18px; }
   .pf-lv, .pf-stats { justify-content: center; }
   .pf-who h1 { font-size: 1.8rem; }
-  .pf-grid { grid-template-columns: repeat(3, 1fr); }
+  .pf-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .pf-tile { padding: 10px 2px 8px; } .pf-tile > img { width: 44px; height: 44px; } .pf-tile > span { font-size: .74rem; }
   .pf-grid.colors, .pf-grid.borders { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* photos as profile pictures, and the pet + border wherever you appear */
+.pet img.ph { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; filter: none; }
+.pet.is-photo { background: var(--hover); }
+.pf-tile.photo > img.ph { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; }
+.pf-plus { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; border: 2px dashed var(--rule); color: var(--muted); font-size: 1.6rem; }
+.avatar.has-pet { background: none !important; overflow: visible; display: grid; place-items: center; }
+.avatar.has-pet .pet { --sz: 36px; }
+.hello-row { display: flex; align-items: center; gap: 14px; }
+.hello-row .hello { margin: 0; }
+.home-pet { display: inline-grid; text-decoration: none; transition: transform .15s; }
+.home-pet:hover { transform: scale(1.06) rotate(-3deg); }
+.home-pet .pet { --sz: 52px; }
+@media (max-width: 640px) { .home-pet .pet { --sz: 42px; } }
