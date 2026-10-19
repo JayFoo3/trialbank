@@ -10,6 +10,8 @@ window.APP_CONFIG = {
   // paper PDFs are served from Backblaze B2 (supabase/functions/pdf-url)
   pdfStore: 'b2',
   schoolDomain: 'education.nsw.gov.au',
+  // shown on info.html (pricing and policies); add the ABN once Stripe is set up under JAIOPS
+  business: { name: 'JAIOPS', abn: '', email: 'jaydenvujic@gmail.com' },
   // marking packs (must match the Stripe prices; the pack key is the number of marks)
   packs: [{ marks: 10, price: '$4.99' }, { marks: 25, price: '$9.99' }, { marks: 60, price: '$19.99' }],
 };
