@@ -901,6 +901,64 @@
       $('rel-save').disabled = false; $('rel-saved').textContent = error ? error.message : 'Saved. Students see the change next time they load the site.';
     };
   }
+  // ---------- access levels: what each level gets, for the admin only ----------
+  const ACCESS = [['free', 'Free'], ['lite', 'Lite'], ['full', 'Full'], ['pro', 'Pro']];
+  function levelGets(s) {
+    const rp = +(s.release_public ?? 10), pro = +(s.pro_monthly_marks ?? 5);
+    const feat = { free: rp, lite: 20, full: 100, pro: 100 };
+    const yes = '<span class="lv-yes">✓</span>', no = '<span class="lv-no">–</span>';
+    const tick = (f) => (l) => feat[l] >= FEATURE_AT[f] ? yes : no;
+    return [
+      ['Trial papers', (l) => l === 'free' ? (rp >= 100 ? 'Every paper' : rp === 0 ? 'HSC papers only' : `About ${rp}%`) : 'Every paper'],
+      ['HSC papers, topic practice, annotate, calculator', () => yes],
+      ['Weak spots and got-wrong drills', tick('weak')],
+      ['Timed papers', tick('exam')],
+      ['Progress page', tick('progress')],
+      ['Lost-mark tagging', tick('lost')],
+      ['Auto-marking (shared free pool)', tick('automark')],
+      ['Personal auto-marks', (l) => l === 'pro' ? `<b>${pro} a month</b>` : no],
+      ['Bought marking packs', () => 'If bought'],
+    ];
+  }
+  function drawLevels(s, users) {
+    const n = Object.fromEntries(ACCESS.map(([k]) => [k, 0]));
+    (users || []).forEach(u => { if (u.level in n) n[u.level]++; });
+    const who = { free: 'Other schools', lite: s.cohort_lite === 'on' ? 'Your cohort (Lite is on)' : 'Nobody automatically',
+      full: (s.cohort_lite === 'on' ? '' : 'Your cohort, ') + 'anyone who buys a pack', pro: 'Only people you set' };
+    const t = $('levels-table');
+    t.innerHTML = `<thead><tr><th></th>${ACCESS.map(([k, name]) => `<th>${name} <span class="muted small">${n[k]}</span></th>`).join('')}</tr></thead>` +
+      `<tbody><tr class="lv-who"><td>Who gets it on Auto</td>${ACCESS.map(([k]) => `<td>${who[k]}</td>`).join('')}</tr>` +
+      levelGets(s).map(([label, f]) => `<tr><td>${label}</td>${ACCESS.map(([k]) => `<td>${f(k)}</td>`).join('')}</tr>`).join('') + '</tbody>';
+    const pm = $('pro-marks'); pm.value = s.pro_monthly_marks ?? '5';
+    $('pro-save').onclick = async () => {
+      const v = String(Math.max(0, Math.min(100, Math.round(+pm.value || 0))));
+      const { error } = await sb.from('settings').upsert([{ key: 'pro_monthly_marks', value: v }]);
+      $('pro-msg').textContent = error ? error.message : `Pro accounts get ${v} auto-marks a month.`;
+      if (!error) { s.pro_monthly_marks = v; drawLevels(s, users); }
+    };
+  }
+  function accessPicker(u) {
+    const sel = document.createElement('select'); sel.className = 'lv-pick';
+    if (u.level === 'admin') { sel.innerHTML = '<option>Admin</option>'; sel.disabled = true; return sel; }
+    const name = (k) => (ACCESS.find(x => x[0] === k) || [k, k])[1];
+    const draw = () => {
+      sel.innerHTML = `<option value="auto">Auto${!u.pinned && u.level ? ' · ' + name(u.level) : ''}</option>` +
+        ACCESS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('');
+      sel.value = u.pinned || 'auto'; sel.classList.toggle('pinned', !!u.pinned);
+    };
+    draw();
+    sel.onchange = async () => {
+      const want = sel.value; sel.disabled = true;
+      const { data, error } = await sb.rpc('admin_set_access', { target_email: u.email, lvl: want });
+      sel.disabled = false;
+      if (error) { toast(esc(error.message)); draw(); return; }
+      u.pinned = want === 'auto' ? null : want; u.level = data || u.level; draw();
+      sel.classList.add('saved'); setTimeout(() => sel.classList.remove('saved'), 900);
+      drawLevels(adminSettings, adminUsers);
+    };
+    return sel;
+  }
+  let adminSettings = {}, adminUsers = [];
   async function renderAdmin() {
     renderStats();
     const [{ data: settings }, { data: emails }, { data: users }, { data: roster }] = await Promise.all([
@@ -915,6 +973,7 @@
     $('ntfy-topic').textContent = (settings || []).find(r => r.key === 'ntfy_topic')?.value || 'not set';
     const s = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
     drawRelease(s);
+    adminSettings = s; adminUsers = users || []; drawLevels(s, adminUsers);
     document.querySelectorAll('#admin-mode button').forEach(b => b.classList.toggle('on', b.dataset.v === (s.signup_mode || 'domain')));
     $('admin-code').value = s.invite_code || '';
     $('admin-admins').value = s.admin_emails || '';
@@ -923,7 +982,8 @@
     const tb = $('users-table').querySelector('tbody'); tb.innerHTML = '';
     (users || []).forEach(u => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${u.email}</td><td>${u.given_name ? esc(u.given_name) : '-'}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? esc(u.roster_name) + (u.matched_by === 'name' ? ' <span class="muted small">(by name)</span>' : '') : '<b style="color:#c0392b">Not on list</b>') : '-'}</td><td></td>`;
+      tr.innerHTML = `<td>${u.email}</td><td>${u.given_name ? esc(u.given_name) : '-'}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? esc(u.roster_name) + (u.matched_by === 'name' ? ' <span class="muted small">(by name)</span>' : '') : '<b style="color:#c0392b">Not on list</b>') : '-'}</td><td class="lv-cell"></td><td></td>`;
+      tr.querySelector('.lv-cell').appendChild(accessPicker(u));
       const b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
       b.onclick = async () => {
         if (u.email.toLowerCase() === state.user.email.toLowerCase()) return;
@@ -2308,7 +2368,8 @@
     const [{ data, error }, m] = await Promise.all([sb.rpc('my_automark_usage'), loadMyMarks()]);
     const u = !error && data && data[0]; if (!u) return;
     let text, out = false;
-    if (m.balance > 0) text = `Upload your working · ${m.balance} bought mark${m.balance === 1 ? '' : 's'} left`;
+    if (m.pro_left > 0) text = `Upload your working · ${m.pro_left} Pro mark${m.pro_left === 1 ? '' : 's'} left this month` + (m.balance > 0 ? ` + ${m.balance} bought` : '');
+    else if (m.balance > 0) text = `Upload your working · ${m.balance} bought mark${m.balance === 1 ? '' : 's'} left`;
     else if (u.unlimited) text = 'Upload your working · unlimited (admin)';
     else {
       const total = Math.max(1, Math.floor(Number(u.limit_usd) / PER_PAPER_USD));

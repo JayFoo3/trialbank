@@ -84,10 +84,13 @@ def main():
                      data=json.dumps(dict(slug=slug, subject=m['subject'], school=m['school'], year=m['year'],
                                           difficulty=m['difficulty'], sha256=m['sha256'], pages=m['pages'],
                                           scanned=m.get('scanned', False))))[0]
-        rows = []
+        rows, seen = [], {}
         for q in m['questions']:
+            qid = q['id']   # a reading can list the same part twice: keep both, the second as q16i-2
+            seen[qid] = seen.get(qid, 0) + 1
+            if seen[qid] > 1: qid = f'{qid}-{seen[qid]}'
             rows.append(dict(
-                id=f'{slug}/{q["id"]}', paper_id=paper['id'], qid=q['id'], number=q['number'], part=q.get('part'),
+                id=f'{slug}/{qid}', paper_id=paper['id'], qid=qid, number=q['number'], part=q.get('part'),
                 type=q['type'], marks=q.get('marks'), topic=q.get('topic'), topics=q.get('topics') or ([q['topic']] if q.get('topic') else []),
                 subparts=q.get('subparts') or [], answer=q.get('answer'),
                 image_path=uploaded.get(q.get('image')), solution_path=uploaded.get(q.get('solution')),

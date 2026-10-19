@@ -112,9 +112,9 @@ Deno.serve(async (req) => {
   if (session) {
     const { data: already } = await admin.rpc('session_paid', { uid: user.id, sess: session, paper: paper_id });
     if (already) paid = true;
-    else {
-      const { data: cr } = await admin.from('mark_credits').select('balance').eq('user_id', user.id).maybeSingle();
-      paid = (cr?.balance ?? 0) > 0;
+    else {   // a Pro account's monthly marks, or bought marks
+      const { data: ok } = await admin.rpc('can_claim', { uid: user.id });
+      paid = !!ok;
     }
   }
   if (!paid) {   // release dial: free auto-marking opens at 75 (see supabase/release.sql)
@@ -223,8 +223,8 @@ Deno.serve(async (req) => {
           .filter((l) => REASONS.includes(l.reason) && l.mark >= 1 && l.mark <= max).slice(0, max) : [];
         return { id: q.id, found: !!x.found, choice, awarded, out_of: max, feedback: String(x.feedback ?? '').slice(0, 600), lost };
       });
-    // charge the bought mark only once a section has actually been marked, so failed runs cost nothing
-    if (paid && session) await admin.rpc('use_mark', { uid: user.id, sess: session, paper: paper_id });
+    // charge the mark (Pro monthly first, then bought) only once a section has actually been marked, so failed runs cost nothing
+    if (paid && session) await admin.rpc('claim_mark', { uid: user.id, sess: session, paper: paper_id });
     return json({ results, cost_usd: Number(cost.toFixed(4)), paid });
   } catch (err) {
     return json({ error: String((err as Error).message ?? err) }, 500);

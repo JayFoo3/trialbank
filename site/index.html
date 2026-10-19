@@ -397,6 +397,13 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <p class="small muted">To let anyone sign up, set Who can sign up to Anyone below.</p>
     </div>
 
+    <div class="card levels" id="levels-card">
+      <h2>Access levels</h2>
+      <p class="small muted">What each level gets right now. Change anyone's level from the Access column in Accounts below; Auto follows the dial and the Lite switch.</p>
+      <div class="tbl-wrap"><table class="tbl lv-table" id="levels-table"></table></div>
+      <div class="row"><label class="small inline">Pro auto-marks a month <input id="pro-marks" type="number" min="0" max="100" step="1"></label><button class="primary" id="pro-save">Save</button><span class="muted small" id="pro-msg"></span></div>
+    </div>
+
     <div class="card">
       <h2>Who can sign up</h2>
       <div class="opt">
@@ -447,7 +454,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 
     <div class="card">
       <h2>Accounts <span class="muted small" id="users-count"></span></h2>
-      <div class="tbl-wrap"><table class="tbl" id="users-table"><thead><tr><th>Email</th><th>Name</th><th>Joined</th><th>Last seen</th><th>Attempts</th><th>Class list</th><th></th></tr></thead><tbody></tbody></table></div>
+      <div class="tbl-wrap"><table class="tbl" id="users-table"><thead><tr><th>Email</th><th>Name</th><th>Joined</th><th>Last seen</th><th>Attempts</th><th>Class list</th><th>Access</th><th></th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
   <div class="loading" id="loading" hidden></div>

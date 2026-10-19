@@ -1174,3 +1174,17 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
   background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: .85rem; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100vw - 32px); text-align: center; }
 .ann-hint.on { opacity: 1; transform: translate(-50%, 0); }
 @media (max-width: 640px) { .ann-hint { bottom: calc(140px + env(safe-area-inset-bottom)); } }
+
+/* ---------- admin: access levels ---------- */
+.lv-table { width: 100%; }
+.lv-table th, .lv-table td { text-align: center; vertical-align: middle; }
+.lv-table th:first-child, .lv-table td:first-child { text-align: left; }
+.lv-table thead th { white-space: nowrap; }
+.lv-table tr.lv-who td { font-size: .82em; color: var(--muted); }
+.lv-yes { color: var(--biro); font-weight: 700; }
+.lv-no { color: var(--rule-strong); }
+.lv-pick { font: inherit; font-size: .9em; padding: .25em .5em; border-radius: var(--r-sm); border: 1px solid var(--rule-strong);
+  background: var(--paper); color: inherit; transition: background-color .3s, border-color .3s; }
+.lv-pick.pinned { border-color: var(--biro); font-weight: 600; }
+.lv-pick.saved { background: color-mix(in srgb, var(--biro) 14%, transparent); }
+.levels .row { margin-top: .75rem; }
