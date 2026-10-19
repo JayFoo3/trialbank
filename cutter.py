@@ -53,8 +53,9 @@ def parse_pages(pdf):
             if strip_ns(ln.tag) != 'line':
                 continue
             words = [(float(wd.get('xMin')), float(wd.get('yMin')), float(wd.get('xMax')),
-                      float(wd.get('yMax')), (wd.text or '').strip())
+                      float(wd.get('yMax')), re.sub(r'[\u200b-\u200f\u2060\ufeff]', '', wd.text or '').strip())
                      for wd in ln if strip_ns(wd.tag) == 'word']
+            words = [w for w in words if w[4]]   # zero-width characters (some Word exports put them after "1.") leave empty words
             if not words:
                 continue
             y0 = float(ln.get('yMin')); y1 = float(ln.get('yMax'))

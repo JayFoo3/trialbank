@@ -142,12 +142,13 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <p class="muted small" id="home-sub"></p>
     <p class="small muted release-note" id="release-note" hidden></p>
 
-    <!-- the one thing to do next: resume an exam, a first set for new students, or a quick set -->
+    <!-- the one thing to do next: resume an exam, else today's Daily 5 -->
     <section class="next" aria-labelledby="next-title">
       <div class="next-mascot" id="next-mascot"></div>
-      <h2 id="next-title">Quick set</h2>
-      <p class="muted" id="quick-desc">10 questions you haven't done.</p>
-      <button class="primary next-go" id="next-go">Start</button>
+      <h2 id="next-title">Today's 5</h2>
+      <div class="daily-dots" id="daily-dots" hidden></div>
+      <p class="muted" id="quick-desc">Five questions, about 8 min.</p>
+      <div class="next-acts"><button class="primary next-go" id="next-go">Start</button><button class="link" id="daily-alt" hidden></button></div>
       <p class="error small" id="quick-error" hidden></p>
       <div class="mini" id="onboard" hidden>
         <span class="mini-item" id="ob-subject"><span class="num">1</span>Subject <span class="ob-subjects" id="ob-subjects"></span></span>

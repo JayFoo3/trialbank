@@ -1440,3 +1440,13 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
   .tbp-list li, .tbp-list li::before { opacity: 1; transform: none; transition: none; }
   .tbp-list li::before { transform: rotate(45deg); }
 }
+
+/* Daily 5: five dots on the Home card, filled as you go */
+.daily-dots { display: flex; gap: 8px; margin: 2px 0 12px; }
+.daily-dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,.6); }
+.daily-dots i.on { background: #fff; border-color: #fff; animation: dotpop .35s ease-out both; }
+@keyframes dotpop { 0% { transform: scale(.4); } 70% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.next-acts { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.next .link#daily-alt { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 640px) { .next-acts { gap: 10px; } .next-acts .link { width: 100%; text-align: center; } }
+@media (prefers-reduced-motion: reduce) { .daily-dots i.on { animation: none; } }

@@ -26,7 +26,7 @@
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
   const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor'];
-  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty)';
+  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty), level';
 
   document.title = C.name;
   $('brand').textContent = C.name;
@@ -680,6 +680,8 @@
     const { data: row, error } = await sb.from('attempts').insert({ user_id: state.user.id, question_id: x.id, score, out_of: outOf, chosen }).select('id').single();
     if (error) console.warn('attempt not saved', error.message);
     else { s.results[s.i].attemptId = row.id; if (s.results[s.i].lost?.length) saveLost(s.results[s.i]); }
+    const ch = await srsAnswer(x, score, outOf).catch(e => { console.warn('srs', e.message); return null; });
+    if (s.daily) { s.daily.changes.push(ch); dailyMark(x, score, outOf); }
   }
   // ---------- lost marks: which mark, and why ----------
   const REASONS = [
@@ -777,7 +779,15 @@
   $('skip').onclick = advance;
   function advance() {
     const s = state.set;
+    if (s.daily && !s.results[s.i]) dailyMark(s.qs[s.i], 0, 0);   // skipped: counts as seen for today
     if (s.i + 1 < s.qs.length) { s.i++; renderQuestion(); }
+    else if (s.daily) {
+      busy(async () => {
+        const st = await finishDaily().catch(e => { console.warn('daily', e.message); return null; });
+        renderSummary(s.title); location.hash = '#summary';
+        if (st) dailyPopup(st);
+      });
+    }
     else { renderSummary(s.title || 'Set done'); location.hash = '#summary'; }
   }
 
@@ -1696,16 +1706,7 @@
       $('quick-desc').textContent = left > 0 ? `${left} min left on the clock.` : saved.uploaded ? 'Upload your working to get it marked.' : 'Your answers are saved.';
       go.textContent = left > 0 ? 'Continue' : 'Mark it';
       go.onclick = () => $('resume-btn').click();
-    } else if (!state.attempted) {
-      $('next-title').textContent = 'Try 5 questions';
-      $('quick-desc').textContent = 'Multiple choice. You find out straight away.';
-      go.textContent = 'Start';
-      go.onclick = () => $('ob-first-go').click();
-    } else {
-      $('next-title').textContent = 'Quick set';
-      go.textContent = 'Start';
-      go.onclick = () => $('quick-set').click();
-    }
+    } else await drawDaily();
   }
   $('mark-go').onclick = async () => {
     const id = Number($('mark-paper').value);
@@ -2469,16 +2470,191 @@
     markCounts().then(drawNavBadge, () => {});
   }
 
-  // ---------- daily streak: one tick per day you open Trialbank (Sydney time) ----------
+  // ---------- Daily 5: five questions a day per subject, picked by spaced repetition (Albert's design) ----------
+  // every answer moves its topic: right lifts the topic's level (1-5) and pushes it further out, wrong drops it and brings it back tomorrow
+  const GAPS = [1, 2, 4, 7, 14, 30];
+  const addDays = (day, n) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const qLevel = (x) => x.level || 3;
+  async function loadSrs(subj = state.subject) {
+    if (state.preview) return (previewFlags.srs || {})[subj] || {};
+    const { data, error } = await sb.from('topic_srs').select('*').eq('subject', subj);
+    if (error) { console.warn('srs', error.message); return {}; }
+    return Object.fromEntries((data || []).map(r => [r.topic, r]));
+  }
+  // what one answer does to its topic; returns the change so the end card can say what moved
+  async function srsAnswer(x, score, outOf) {
+    if (!x.topic || !outOf) return null;
+    const subj = x.papers?.subject || state.subject, today = dayOf();
+    const all = await loadSrs(subj);
+    const old = all[x.topic] || { level: 1, box: 0, right_n: 0, wrong_n: 0 };
+    const r = { ...old }, ql = qLevel(x);
+    if (score >= outOf) { r.box = Math.min(GAPS.length - 1, (old.box || 0) + 1); r.right_n = (old.right_n || 0) + 1; if (ql >= (old.level || 1) - 1) r.level = Math.min(5, (old.level || 1) + 1); }
+    else if (score === 0) { r.box = 0; r.wrong_n = (old.wrong_n || 0) + 1; if (ql <= (old.level || 1)) r.level = Math.max(1, (old.level || 1) - 1); }
+    else { r.box = Math.max(0, (old.box || 0) - 1); }
+    r.due = addDays(today, GAPS[r.box]);
+    const row = { user_id: state.user.id, subject: subj, topic: x.topic, level: r.level || 1, box: r.box, due: r.due, right_n: r.right_n || 0, wrong_n: r.wrong_n || 0, updated_at: new Date().toISOString() };
+    if (state.preview) { const p = previewFlags.srs = previewFlags.srs || {}; (p[subj] = p[subj] || {})[x.topic] = row; }
+    else { const { error } = await sb.from('topic_srs').upsert(row); if (error) console.warn('srs not saved', error.message); }
+    return { topic: x.topic, from: old.level || 1, to: row.level, days: GAPS[r.box], right: score >= outOf, fresh: !all[x.topic] };
+  }
+  async function getDaily(subj = state.subject) {
+    const day = dayOf();
+    if (state.preview) return ((previewFlags.daily || {})[subj] || {}).day === day ? previewFlags.daily[subj] : null;
+    const { data } = await sb.from('daily_sets').select('*').eq('subject', subj).eq('day', day).maybeSingle();
+    return data || null;
+  }
+  async function saveDaily(row) {
+    if (state.preview) { (previewFlags.daily = previewFlags.daily || {})[row.subject] = row; return; }
+    const { error } = await sb.from('daily_sets').upsert({ ...row, user_id: state.user.id });
+    if (error) console.warn('daily not saved', error.message);
+  }
+  // pick today's five: up to 2 questions they got wrong, then topics due back, then new topics, each at the student's level for that topic
+  async function buildDaily(subj = state.subject) {
+    const today = dayOf(), skip = skipped(subj), tooHard = hardQs();
+    const [srs, { data: att }, counts] = await Promise.all([
+      loadSrs(subj),
+      sb.from('attempts').select('question_id, score, out_of, created_at, questions!inner(topic, papers!inner(subject))')
+        .eq('user_id', state.user.id).eq('questions.papers.subject', subj).order('created_at', { ascending: false }).limit(1000)
+        .then(r => state.preview ? { data: [] } : r),
+      loadTopicCounts(),
+    ]);
+    const seen = new Set(), wrongIds = [];
+    (att || []).forEach(a => {
+      if (seen.has(a.question_id)) return; seen.add(a.question_id);
+      if (a.score < a.out_of && a.created_at.slice(0, 10) <= addDays(today, -2) && !skip.has(a.questions.topic)) wrongIds.push(a.question_id);
+    });
+    const ok = (x) => hasKey(x) && !x.syllabus_note && !tooHard.has(x.id) && !skip.has(x.topic) && (x.marks || 1) <= 3 && (x.image_path || x.content);
+    const pickIds = new Set(), out = [];
+    const take = (x, kind) => { if (x && !pickIds.has(x.id) && out.length < 5) { pickIds.add(x.id); out.push({ x, kind }); return true; } return false; };
+    // 1. redo: wrong at least two days ago, a topic that's due first
+    if (wrongIds.length) {
+      const { data } = await sb.from('questions').select(QCOLS).in('id', wrongIds.slice(0, 100)).eq('papers.subject', subj);
+      const due = (x) => (srs[x.topic]?.due || today) <= today;
+      const redo = shuffle((data || []).filter(ok)).sort((a, b) => due(b) - due(a));
+      const used = new Set();
+      for (const x of redo) { if (out.length >= 2) break; if (!used.has(x.topic) && take(x, 'redo')) used.add(x.topic); }
+    }
+    // 2. topics due back today, most overdue and most often wrong first; 3. new topics; 4. whatever comes back soonest
+    const allTopics = [...new Set((counts || []).filter(r => r.subject === subj).map(r => r.topic))].filter(t => !skip.has(t));
+    const dueT = Object.values(srs).filter(r => r.due <= today && !skip.has(r.topic)).sort((a, b) => a.due.localeCompare(b.due) || b.wrong_n - a.wrong_n).map(r => r.topic);
+    const newT = shuffle(allTopics.filter(t => !srs[t]));
+    const laterT = Object.values(srs).filter(r => r.due > today && !skip.has(r.topic)).sort((a, b) => a.due.localeCompare(b.due)).map(r => r.topic);
+    const used = new Set(out.map(o => o.x.topic));
+    const plan = [];
+    const nNew = Math.min(newT.length, Object.keys(srs).length ? 1 : 5);   // one new topic a day once they've started, all new on day one
+    dueT.filter(t => !used.has(t)).forEach(t => plan.push([t, 'review']));
+    const room = 5 - out.length;
+    const reviews = plan.splice(0, Math.max(0, room - nNew));
+    const fresh = newT.slice(0, Math.max(nNew, room - reviews.length)).map(t => [t, 'new']);
+    const rest = [...plan, ...laterT.filter(t => !used.has(t)).map(t => [t, 'review'])];
+    const queue = [...reviews, ...fresh, ...rest];
+    const seenSet = seen;
+    const pool = async (t, lvl) => {
+      const lo = Math.max(1, lvl - 1), hi = Math.min(5, lvl + 1);
+      let { data } = await sb.from('questions').select(QCOLS).eq('papers.subject', subj).eq('topic', t).gte('level', lo).lte('level', hi).limit(120);
+      if (!data || !data.filter(ok).length) ({ data } = await sb.from('questions').select(QCOLS).eq('papers.subject', subj).eq('topic', t).limit(120));
+      const c = shuffle((data || []).filter(ok));
+      return c.filter(x => !seenSet.has(x.id)).concat(c.filter(x => seenSet.has(x.id)))
+        .sort((a, b) => Math.abs(qLevel(a) - lvl) - Math.abs(qLevel(b) - lvl) || seenSet.has(a.id) - seenSet.has(b.id));
+    };
+    let qi = 0; const spare = [];
+    while (out.length < 5 && qi < queue.length) {   // a few topics at a time, in parallel, until five are picked
+      const chunk = queue.slice(qi, qi + 5 - out.length); qi += chunk.length;
+      const got = await Promise.all(chunk.map(([t, kind]) => pool(t, kind === 'new' ? 1 + (Math.random() < 0.5) : (srs[t]?.level || 1)).then(c => [c, kind])));
+      for (const [c, kind] of got) { take(c.find(x => !pickIds.has(x.id)), kind); spare.push([c, kind]); }
+    }
+    for (const [c, kind] of spare) { if (out.length >= 5) break; take(c.find(x => !pickIds.has(x.id)), kind); }   // few topics: a second from each
+    if (!out.length) throw new Error('No questions to pick from yet. Untick some "not learnt" topics.');
+    const row = { subject: subj, day: today, question_ids: out.map(o => o.x.id), kinds: out.map(o => o.kind), answered: [], score: 0, out_of: 0, finished_at: null };
+    await saveDaily(row);
+    return { row, qs: out.map(o => o.x) };
+  }
+  async function startDaily(subj = state.subject) {
+    let row = await getDaily(subj), qs;
+    if (!row) ({ row, qs } = await buildDaily(subj));
+    else {
+      const { data, error } = await sb.from('questions').select(QCOLS).in('id', row.question_ids);
+      if (error) throw error;
+      const by = Object.fromEntries((data || []).map(x => [x.id, x]));
+      qs = row.question_ids.map(id => by[id]).filter(Boolean);
+    }
+    const kinds = Object.fromEntries(row.question_ids.map((id, k) => [id, row.kinds?.[k] || 'review']));
+    const done = new Set(row.answered || []);
+    const left = row.finished_at ? qs : qs.filter(x => !done.has(x.id));   // done for today: a replay, which still counts for spaced repetition
+    if (!left.length) throw new Error('Nothing left in today\'s 5.');
+    await startSet(left);
+    state.set.title = "Today's 5 done";
+    state.set.daily = { row, kinds, replay: !!row.finished_at, changes: [], saving: Promise.resolve() };
+  }
+  async function dailyMark(x, score, outOf) {
+    const d = state.set?.daily; if (!d || d.replay) return;
+    const r = d.row;
+    if (!r.answered.includes(x.id)) r.answered = [...r.answered, x.id];
+    r.score += score; r.out_of += outOf;
+    d.saving = d.saving.then(() => saveDaily(r));   // in order, so a slow save never lands after a later one
+    return d.saving;
+  }
+  async function finishDaily() {
+    const d = state.set.daily, r = d.row;
+    if (d.replay) return null;
+    r.finished_at = new Date().toISOString();
+    await (d.saving = d.saving.then(() => saveDaily(r)));
+    return await bumpStreak();
+  }
+  function dailyPopup(st) {
+    const d = state.set.daily, r = d.row, n = st?.n || 0;
+    const by = {};   // where each topic ended up: its first level today against its last
+    d.changes.filter(Boolean).forEach(c => { by[c.topic] = { ...c, from: by[c.topic]?.from ?? c.from }; });
+    const items = Object.values(by).sort((a, b) => (b.to - b.from) - (a.to - a.from)).slice(0, 4).map(c =>
+      c.to > c.from ? `${esc(topicName(c.topic))} up to level ${c.to}` : c.days <= 1 ? `${esc(topicName(c.topic))} comes back tomorrow` : `${esc(topicName(c.topic))} back in ${c.days} days`);
+    const extra = items.length ? `<ul class="tbp-list">${items.map(t => `<li>${t}</li>`).join('')}</ul>` : '';
+    const box = celebrate({ kind: 'daily', panel: panel({ kicker: "Today's 5 done", big: '0', sub: 'day streak', mood: 'happy', cls: 'streak-n' }),
+      title: `${r.score} / ${r.out_of} today`, body: `Do tomorrow's 5 to make it ${n + 1}.`, extra, primary: 'See results' });
+    payoff(box.card, { at: 250, count: n });
+    return box;
+  }
+  // the Home card: today's five, how far through, or done
+  async function drawDaily() {
+    const go = $('next-go'), dots = $('daily-dots'), alt = $('daily-alt');
+    alt.hidden = true;
+    let row = null;
+    try { row = await getDaily(); } catch (_) {}
+    const st = streakData(), streakLive = st.last === dayOf() || st.last === prevDay(dayOf());
+    const total = row ? row.question_ids.length : 5, done = row ? row.answered.length : 0;
+    dots.innerHTML = Array.from({ length: total }, (_, k) => `<i class="${k < done ? 'on' : ''}"></i>`).join('');
+    dots.hidden = false;
+    const late = new Date().toLocaleString('en-AU', { hour: 'numeric', hour12: false, timeZone: 'Australia/Sydney' }) >= 18;
+    if (row && row.finished_at) {
+      $('next-title').textContent = 'Done for today';
+      $('quick-desc').textContent = `${row.score} / ${row.out_of} today. Come back tomorrow to make it ${liveStreak(st) + 1} days.`;
+      go.textContent = 'Quick set'; go.onclick = () => $('quick-set').click();
+      alt.textContent = "Redo today's 5"; alt.hidden = false;
+      alt.onclick = () => busy(async () => { try { await startDaily(); } catch (err) { dailyErr(err); } });
+    } else {
+      $('next-title').textContent = done ? `${done} of ${total} done` : "Today's 5";
+      const kinds = row ? row.kinds : [];
+      const rev = kinds.filter(k => k !== 'new').length, nw = kinds.filter(k => k === 'new').length;
+      $('quick-desc').textContent = streakLive && st.n > 0 && late ? `Your ${st.n} day streak ends at midnight.`
+        : done ? 'Pick up where you left off.'
+        : row ? `${rev ? `${rev} coming back` : ''}${rev && nw ? ' · ' : ''}${nw ? `${nw} new` : ''} · about 8 min`
+        : state.attempted ? 'Picked from what you got wrong and what is due back. About 8 min.' : 'Five questions to start. About 8 min.';
+      go.textContent = done ? 'Continue' : 'Start';
+      go.onclick = () => busy(async () => { try { await startDaily(); } catch (err) { dailyErr(err); } });
+    }
+  }
+  function dailyErr(err) { $('quick-error').textContent = err.message; $('quick-error').hidden = false; }
+
+  // ---------- daily streak: one tick per day you finish your Daily 5 (Sydney time) ----------
   const dayOf = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
   const prevDay = (day) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
   const streakData = () => state.preview ? (previewFlags.streak || { n: 0, best: 0, last: null, days: [] })
     : { n: 0, best: 0, last: null, days: [], ...(state.user?.user_metadata?.streak || {}) };
   let streakBusy = false;
-  async function touchStreak() {
-    if (!state.user || streakBusy) return;
+  const liveStreak = (st) => (st.last === dayOf() || st.last === prevDay(dayOf())) ? (st.n || 0) : 0;   // missed a day: back to 0
+  function touchStreak() { if (state.user) drawStreak(streakData(), false); }
+  async function bumpStreak() {
     const st = streakData(), today = dayOf();
-    if (st.last === today) return drawStreak(st, false);
+    if (st.last === today || streakBusy) return st;
     streakBusy = true;
     st.n = st.last === prevDay(today) ? (st.n || 0) + 1 : 1;
     st.best = Math.max(st.best || 0, st.n); st.last = today;
@@ -2487,14 +2663,16 @@
       if (state.preview) previewFlags.streak = st;
       else { const { data, error } = await sb.auth.updateUser({ data: { streak: st } }); if (!error && data?.user) state.user = data.user; }
     } finally { streakBusy = false; }
-    drawStreak(st, true);
+    drawStreak(st, false);
+    const b = $('streak'); b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
+    return st;
   }
   const flame = (n, big) => `<svg viewBox="0 0 32 38" aria-hidden="true" class="${n ? '' : 'out'}">
     <g class="fl"><path class="fo" d="M16 1c1.2 7 9.5 11.2 11.3 20.2C29 30 23.4 37 16 37S3 31.2 4.6 22.6c1-5.6 4.6-8 5.9-12.6 1.8 2.7 2 5.5 3.6 6.6C16 11.8 15.4 6.6 16 1z"/>
     <path class="fi" d="M16 16.5c1.2 4.2 6.3 6.3 6.3 11.4 0 4.4-2.9 7.6-6.3 7.6s-6.3-3.2-6.3-7.4c0-3.3 2-4.5 3.1-7.4 1 1.3 1.8 2.9 2.8 3.1.3-2.5.2-4.8.4-7.3z"/></g>
     <text x="16" y="29.6" text-anchor="middle" style="font-size:${n > 99 ? 9.5 : n > 9 ? 11.5 : 13}px">${n}</text></svg>`;
   function drawStreak(st = streakData(), bumped = false) {
-    const b = $('streak'), n = st.n || 0;
+    const b = $('streak'), n = liveStreak(st);
     b.hidden = false; b.innerHTML = flame(n); b.title = `${n} day streak`; b.setAttribute('aria-label', `${n} day streak`);
     if (bumped) {
       b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
@@ -2507,8 +2685,8 @@
     const week = []; let d = today;
     for (let k = 0; k < 7; k++) { week.unshift(d); d = prevDay(d); }
     const label = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('en-AU', { weekday: 'narrow', timeZone: 'UTC' });
-    pop.innerHTML = `<div class="sp-top"><span class="sp-flame">${flame(st.n || 0, true)}</span>
-      <div><strong>${st.n || 0} day streak</strong><span class="small muted">Best ${st.best || st.n || 0} · open Trialbank every day to keep it</span></div></div>
+    pop.innerHTML = `<div class="sp-top"><span class="sp-flame">${flame(liveStreak(st), true)}</span>
+      <div><strong>${liveStreak(st)} day streak</strong><span class="small muted">Best ${st.best || st.n || 0} · finish your Daily 5 every day to keep it</span></div></div>
       <div class="sp-week">${week.map(day => `<span class="${have.has(day) ? 'hit' : ''}${day === today ? ' today' : ''}"><i></i>${label(day)}</span>`).join('')}</div>`;
     pop.hidden = false;
   }
