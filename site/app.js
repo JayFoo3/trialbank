@@ -2693,29 +2693,38 @@
 
   // ---------- celebration popups: each kind has its own look ----------
   // kind: 'buy' (gold coin), 'level' (tier flip + unlocks), 'pro' (dark and gold), 'subject' (fanned paper covers)
-  function celebrate({ kind = 'level', hero = '', title, body = '', extra = '', primary = 'Nice', secondary = null }) {
+  function celebrate({ kind = 'level', eyebrow = '', hero = '', title, body = '', extra = '', primary = 'Nice', secondary = null }) {
     const m = mk('div', 'modal cele');
-    m.innerHTML = `<div class="modal-card cele-card cele-${kind}" role="dialog" aria-modal="true"><div class="cele-hero">${hero}</div><h2>${title}</h2><p class="cele-body">${body}</p>${extra}` +
-      `<div class="row confirm-row">${secondary ? `<button class="secondary" data-k="no">${secondary}</button>` : ''}<button class="primary" data-k="yes">${primary}</button></div></div>`;
+    const sparks = [0, 1, 2, 3, 4, 5].map(i => `<i class="spark" style="--i:${i}"></i>`).join('');
+    m.innerHTML = `<div class="modal-card cele-card cele-${kind}" role="dialog" aria-modal="true" aria-labelledby="cele-t">
+      <div class="cele-head"><span class="cele-rays" aria-hidden="true"></span>${sparks}<div class="cele-hero">${hero}</div></div>
+      <div class="cele-main">
+        <p class="cele-eyebrow">${eyebrow}</p>
+        <h2 id="cele-t">${title}</h2>
+        <p class="cele-body">${body}</p>${extra}
+        <div class="cele-actions"><button class="primary wide" data-k="yes">${primary}</button>${secondary ? `<button class="link cele-skip" data-k="no">${secondary}</button>` : ''}</div>
+      </div></div>`;
     const card = m.firstElementChild, heroEl = card.querySelector('.cele-hero');
     let done;
     const result = new Promise(res => { done = res; });
-    const close = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 200); document.removeEventListener('keydown', k); done(v); };
+    const close = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 220); document.removeEventListener('keydown', k); done(v); };
     const k = (ev) => { if (ev.key === 'Escape') close(null); };
     m.onclick = (ev) => { if (ev.target === m) close(null); const b = ev.target.closest('button[data-k]'); if (b) close(b.dataset.k); };
     document.addEventListener('keydown', k); document.body.appendChild(m);
-    const pop = (n = 26) => { if (window.Juice) { Juice.burst(heroEl, n, 150); setTimeout(() => Juice.burst(heroEl, Math.round(n * 0.6), 90), 240); } };
-    if (kind !== 'buy') setTimeout(pop, 380);
+    const pop = (n = 26) => { if (window.Juice) { Juice.burst(heroEl, n, 160); setTimeout(() => Juice.burst(heroEl, Math.round(n * 0.6), 100), 260); } };
+    if (kind !== 'buy') setTimeout(pop, 420);
     card.querySelector('.primary')?.focus();
-    return { result, pop, card, set(t, b2, btn) { if (t != null) card.querySelector('h2').innerHTML = t; if (b2 != null) card.querySelector('.cele-body').innerHTML = b2; if (btn) card.querySelector('.primary').textContent = btn; } };
+    return { result, pop, card, set(t, b2, btn, eb) {
+      if (t != null) card.querySelector('h2').innerHTML = t; if (b2 != null) card.querySelector('.cele-body').innerHTML = b2;
+      if (btn) card.querySelector('.primary').textContent = btn; if (eb != null) card.querySelector('.cele-eyebrow').textContent = eb; } };
   }
   // back from Stripe: a gold coin spins while the payment lands, then settles on the number of marks
   function afterCheckout() {
     const n = new URLSearchParams(location.search).get('bought');
     if (!n) return;
     history.replaceState(null, '', location.pathname + location.hash);
-    const box = celebrate({ kind: 'buy', hero: `<div class="coin spin"><b>+${esc(n)}</b><small>papers</small></div>`,
-      title: 'Thank you!', body: 'Payment received. Adding your papers…', primary: 'Done' });
+    const box = celebrate({ kind: 'buy', eyebrow: 'Payment received', hero: `<div class="coin spin"><b>+${esc(n)}</b><small>papers</small></div>`,
+      title: 'Thank you!', body: 'Adding your papers to your account…', primary: 'Done' });
     const since = new Date(Date.now() - 15 * 60e3).toISOString();
     let tries = 0;
     const poll = setInterval(async () => {
@@ -2726,11 +2735,12 @@
         clearInterval(poll); const m = await loadMyMarks(); drawMarkLeft();
         box.card.querySelector('.coin').classList.remove('spin');
         if (arrived) {
-          box.card.querySelector('.coin').classList.add('landed');
-          box.set(`${esc(n)} papers of marking are yours`, `You can now get <b>${m.balance}</b> papers marked. They never expire.`, 'Mark a paper');
+          const coin = box.card.querySelector('.coin'); coin.classList.add('landed');
+          if (window.Juice) Juice.countUp(coin.querySelector('b'), Number(n) || 0, (v) => '+' + v, 900);
+          box.set(`${esc(n)} papers of marking are yours`, `You can now get <b>${m.balance}</b> papers marked. They never expire.`, 'Mark a paper', 'All set');
           box.pop(30);
           box.result.then(k => { if (k === 'yes') location.hash = '#mark'; });
-        } else box.set('Thanks, payment received', "Your marks are taking a little longer than usual. They'll appear on their own; if they're not here in a few minutes, contact Jayden.", 'OK');
+        } else box.set('Thanks, payment received', "Your papers are taking a little longer than usual to arrive. They'll appear on their own; if they're not here in a few minutes, contact Jayden.", 'OK', 'Almost there');
       }
     }, 2000);
   }
@@ -2749,11 +2759,11 @@
   }
   function levelPopup(from, to) {
     const items = unlocksFor(from, to);
-    const extra = items.length ? `<ul class="cele-unlocks">${items.map((t, i) => `<li style="--i:${i}">${esc(t)}</li>`).join('')}</ul>` : '';
+    const extra = items.length ? `<ul class="cele-unlocks">${items.map((t, i) => `<li style="--i:${i}"><i aria-hidden="true"></i>${esc(t)}</li>`).join('')}</ul>` : '';
     const hero = `<div class="tier"><span class="tier-old">${LEVEL_NAME[from] || ''}</span><span class="tier-arrow" aria-hidden="true"></span><span class="tier-new">${LEVEL_NAME[to]}</span></div>`;
-    if (to === 'pro') return celebrate({ kind: 'pro', hero, title: 'Welcome to Pro', body: 'You now have:', extra, primary: "Let's go" });
-    if (to === 'lite') return celebrate({ kind: 'level', hero, title: 'Welcome to Trialbank Lite', body: 'You now have:', extra, primary: 'Start practising' });
-    return celebrate({ kind: 'level', hero, title: `You've been upgraded to ${LEVEL_NAME[to]}!`, body: 'Just unlocked:', extra, primary: "Let's go" });
+    if (to === 'pro') return celebrate({ kind: 'pro', eyebrow: 'Trialbank Pro', hero, title: 'Welcome to Pro', body: 'Everything in Full, and more:', extra, primary: "Let's go" });
+    if (to === 'lite') return celebrate({ kind: 'level', eyebrow: 'Access unlocked', hero, title: 'Welcome to Trialbank Lite', body: 'You now have:', extra, primary: 'Start practising' });
+    return celebrate({ kind: 'level', eyebrow: 'Level up', hero, title: `You've been upgraded to ${LEVEL_NAME[to]}`, body: 'Just unlocked:', extra, primary: "Let's go" });
   }
   async function subjectPopup(x, count, have) {
     let covers = '';
@@ -2763,8 +2773,8 @@
       covers = (ps || []).map((p, i) => urls[`${p.slug}/thumb.webp`] ? `<img src="${urls[`${p.slug}/thumb.webp`]}" alt="" style="--i:${i}">` : '').join('');
     } catch { /* plain cards instead */ }
     if (!covers) covers = [0, 1, 2].map(i => `<span class="fan-blank" style="--i:${i}"></span>`).join('');
-    return celebrate({ kind: 'subject', hero: `<div class="fan">${covers}<span class="fan-count">${count}</span></div>`,
-      title: `New: ${esc(C.subjects[x] || x)}`, body: `${count} papers are ready to practise, from HSC to the hardest trials.`,
+    return celebrate({ kind: 'subject', eyebrow: 'New on Trialbank', hero: `<div class="fan">${covers}<span class="fan-count">${count}</span></div>`,
+      title: esc(C.subjects[x] || x), body: `${count} papers are ready to practise, from HSC to the hardest trials.`,
       primary: have ? 'Open it' : 'Add to my subjects', secondary: 'Not now' }).result;
   }
   let noticing = false;
