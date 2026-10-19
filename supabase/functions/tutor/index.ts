@@ -154,11 +154,14 @@ Deno.serve(async (req) => {
   // each Pro student's monthly allowance (Sydney months), so no one account can run up the bill
   const sydMonth = new Date(new Date().toLocaleString('en-US', { timeZone: 'Australia/Sydney' })); sydMonth.setDate(1); sydMonth.setHours(0, 0, 0, 0);
   const { count: monthCount } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('error', null).gte('created_at', new Date(Date.now() - (Date.now() - sydMonth.getTime()) - 11 * 36e5).toISOString());
-  const allowance = Number(s.tutor_user_monthly_msgs ?? 300);
+  const { data: allow } = await admin.rpc('tutor_allowance', { uid: user.id });
+  const allowance = Number(allow ?? s.tutor_user_monthly_msgs ?? 300);   // a free week gets a taster, subscribers the full month
   // repeated attempts to use it as a general AI (code, files, essays, batch marking) pause it for the day
   const { count: offCount } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('off_topic', true).gte('created_at', new Date(Date.now() - 864e5).toISOString());
   if (!isAdmin && (offCount ?? 0) >= Number(s.tutor_offtopic_daily ?? 6)) return json({ error: "The tutor is just for study, so it's paused for today after several off-topic requests. Back tomorrow." }, 429);
-  if (!isAdmin && (monthCount ?? 0) >= allowance) return json({ error: "You've used this month's tutor messages. They refill on the 1st." }, 429);
+  if (!isAdmin && (monthCount ?? 0) >= allowance) return json({ error: allowance < Number(s.tutor_user_monthly_msgs ?? 300)
+    ? `You've used the ${allowance} tutor messages in your free week. Pro gives you ${s.tutor_user_monthly_msgs ?? 300} a month.`
+    : "You've used this month's tutor messages. They refill on the 1st." }, 429);
 
   const img = async (bucket: string, path: string) => {
     const { data, error } = await admin.storage.from(bucket).download(path);

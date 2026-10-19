@@ -88,7 +88,7 @@
       if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
       if (h === 'mark') { show('mark'); await renderMark(); return; }
       if (h === 'tutor' && tuAllowed()) { show('tutor'); await renderTutor(); return; }
-      if (h === 'tutor' && state.proSale === 'on') { history.replaceState(null, '', '#home'); show('home'); await renderHome(); openPro('tutor'); return; }
+      if (h === 'tutor' && proOpen()) { history.replaceState(null, '', '#home'); show('home'); await renderHome(); openPro('tutor'); return; }
       if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
       if (h === 'examrun' || h === 'exam') {
         if (state.exam) return show('examrun');
@@ -301,8 +301,10 @@
   const can = (f) => (state.admin && !state.viewAs) || featureLevel() >= (FEATURE_AT[f] ?? 0);
   // papers a "Free" preview can open (the database lets the admin see everything, so this mirrors the dial)
   const seePaper = (p) => state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial;
+  // Pro can be bought (pro_sales) or tried free (pro_trials); 'admin' means only admins see it while testing
+  const proOpen = () => !!state.user && !state.preview && [state.proSale, state.pro?.trials].some(v => v === 'on' || (v === 'admin' && state.admin));
   function applyRelease() {
-    $('nav-tutor').hidden = !tuAllowed() && !(state.proSale === 'on' && state.user && !state.preview);   // once Pro is on sale, everyone sees the Tutor tab (it offers Pro)
+    $('nav-tutor').hidden = !tuAllowed() && !proOpen();   // once Pro is on sale, everyone sees the Tutor tab (it offers Pro)
     document.querySelectorAll('[data-feature]').forEach(el => el.classList.toggle('feature-off', !can(el.dataset.feature)));
     const d = state.viewAs === 'free' ? state.viewDial : state.viewAs ? 100 : state.release?.dial ?? 100, note = $('release-note');
     const lite = state.viewAs ? state.viewAs === 'lite' : state.release?.lite;
@@ -318,7 +320,11 @@
     if (state.user && !state.preview) {
       const [{ data: rel }, { data: pro }] = await Promise.all([sb.rpc('my_release'), sb.rpc('my_pro')]);
       if (rel) state.release = rel; if (pro) { state.pro = pro; state.proSale = pro.sale; }
+      sb.rpc('settle_referral').then(({ data }) => {   // a friend's link brought them here: once they've studied a bit, both get a free week
+        if (data?.rewarded) { toast(`Your friend's invite paid off: <b>${data.days} days of Pro</b> for both of you.`, 7000); checkAdmin(); }
+      }).catch(() => {});
     }
+    drawProMenu();
     applyRelease();
     $('nav-admin').hidden = !state.admin;
     $('preview-new').hidden = !state.admin || state.preview;
@@ -2448,10 +2454,15 @@
     let pro = state.pro;
     try { const { data } = await sb.rpc('my_pro'); if (data) pro = state.pro = data; } catch {}
     const active = pro?.active, onSale = pro?.sale === 'on' || (pro?.sale === 'admin' && state.admin);
+    const pass = pro?.pass && !active, trialsOpen = pro?.trials === 'on' || (pro?.trials === 'admin' && state.admin);
+    const canTrial = trialsOpen && !active && !pro?.pass && !pro?.trial_used;
+    let code = '';
+    if (trialsOpen || onSale) { try { const { data } = await sb.rpc('my_friend_code'); code = data || ''; } catch {} }
+    const link = code ? `${location.origin}${location.pathname}#friend=${code}` : '';
     const perMonth = PRO.annual / 12, save = Math.round(100 * (1 - PRO.annual / (PRO.monthly * 12)));
     const end = pro?.period_end ? new Date(pro.period_end).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
     let usage = '';
-    if (active) {
+    if (active || pass) {
       const [t, mm] = await Promise.all([loadTuLeft(), loadMyMarks().catch(() => myMarks)]);
       const ref = t?.refills || (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 1).toLocaleDateString('en-CA'); })();
       const row = (label, n, of, note) => { const pc = pace(of - n, of, ref);
@@ -2464,19 +2475,24 @@
     m.innerHTML = `<div class="modal-card buy-card pro-card" role="dialog" aria-modal="true" aria-labelledby="pro-h">
       <button class="link buy-x" data-k="" aria-label="Close">✕</button>
       <p class="pro-kick">Trialbank Pro</p>
-      <h2 id="pro-h">${active ? "You're on Pro" : from === 'tutor' ? 'The tutor comes with Pro' : 'Study with your own tutor'}</h2>
+      <h2 id="pro-h">${active ? "You're on Pro" : pass ? `Free Pro until ${shortDay(pro.pass_end)}` : from === 'tutor' ? 'The tutor comes with Pro' : 'Study with your own tutor'}</h2>
       <ul class="pro-feats">
         <li><b>AI tutor in every subject</b><span>One step at a time on real past questions. 300 messages a month.</span></li>
         <li><b>5 papers marked every month</b><span>On top of anything you've bought.</span></li>
         <li><b>Pro pets and looks</b><span>Unicorn, dragon and phoenix, the Aurora banner and the Pro border.</span></li>
       </ul>
+      ${canTrial ? `<button class="primary pro-trial" data-k="trial">Try Pro free for ${pro.trial_days || 7} days</button>
+        <p class="small muted pro-trial-note">No card needed. Your free week has 60 tutor messages and 1 marked paper.</p>` : ''}
+      ${pass ? `${usage}${onSale ? '<p class="pro-keep">Keep Pro after your free week</p>' : ''}` : ''}
       ${active ? `${usage}<p class="pro-status">${pro.plan === 'annual' ? 'Annual' : 'Monthly'} plan · ${pro.cancel_at_period_end ? `ends ${end}` : `renews ${end}`}</p>
         <button class="primary" data-k="portal">Manage subscription</button>`
-      : onSale ? `<div class="pro-plans">
+      : onSale ? `<div class="pro-plans${canTrial ? ' after-trial' : ''}">
           <button class="pro-plan best" data-k="annual"><span class="pro-tag">Best value · save ${save}%</span><b>${money(Math.round(perMonth * 100) / 100)}<small>/month</small></b><span>Billed ${money(PRO.annual)} a year</span><em>Go annual</em></button>
           <button class="pro-plan" data-k="monthly"><span class="pro-tag"></span><b>${money(PRO.monthly)}<small>/month</small></b><span>Cancel any time</span><em>Go monthly</em></button>
         </div><p class="small muted">Secure payment with Stripe. Card or Apple Pay. Cancel any time from your profile.</p>`
-      : '<p class="pro-status">Pro opens soon.</p>'}
+      : (canTrial || pass) ? '' : '<p class="pro-status">Pro opens soon.</p>'}
+      ${link ? `<div class="pro-ref"><p><b>Give a friend a free week.</b> You both get ${pro.referral_days || 7} days of Pro once they join with your link and answer 10 questions.${pro.referred ? ` <span class="muted">${pro.referred} friend${pro.referred === 1 ? '' : 's'} so far.</span>` : ''}</p>
+        <div class="pro-ref-row"><input readonly value="${esc(link)}" aria-label="Your invite link"><button class="ghost" data-k="copy">Copy link</button></div></div>` : ''}
     </div>`;
     const done = () => { m.classList.add('out'); setTimeout(() => m.remove(), 180); document.removeEventListener('keydown', k); };
     const k = (ev) => { if (ev.key === 'Escape') done(); };
@@ -2484,7 +2500,20 @@
       if (ev.target === m) return done();
       const b = ev.target.closest('[data-k]'); if (!b) return;
       if (!b.dataset.k) return done();
+      if (b.dataset.k === 'copy') {
+        try { await navigator.clipboard.writeText(link); b.textContent = 'Copied'; } catch { m.querySelector('.pro-ref input').select(); }
+        if (navigator.share && matchMedia('(pointer: coarse)').matches) navigator.share({ title: 'Trialbank', text: 'Join me on Trialbank and we both get a free week of Pro', url: link }).catch(() => {});
+        return;
+      }
       b.disabled = true;
+      if (b.dataset.k === 'trial') {
+        const { data, error } = await sb.rpc('start_trial');
+        if (error) { b.disabled = false; return toast(esc(error.message.replace(/^.*?: /, ''))); }
+        done(); await checkAdmin();
+        toast(`<b>Pro is on</b> until ${shortDay(data)}. Try the tutor first.`, 7000);
+        window.Juice?.sfx?.fanfare?.();
+        location.hash = '#tutor'; return;
+      }
       const body = b.dataset.k === 'portal' ? { portal: true } : { plan: b.dataset.k };
       toast(b.dataset.k === 'portal' ? 'Opening your subscription…' : 'Opening secure checkout…');
       const { data, error } = await sb.functions.invoke('buy-marks', { body });
@@ -2494,6 +2523,12 @@
     document.addEventListener('keydown', k); document.body.appendChild(m);
   }
   $('open-pro').onclick = () => openPro();
+  const shortDay = (d) => new Date(d).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+  function drawProMenu() {
+    const b = $('open-pro'); if (!b) return;
+    const p = state.pro;
+    b.textContent = p?.pass && !p?.active && p.pass_end ? `Trialbank Pro · free until ${shortDay(p.pass_end)}` : 'Trialbank Pro';
+  }
   // back from Stripe after subscribing: wait for the webhook to switch the account to Pro, then celebrate
   function afterPro() {
     const plan = new URLSearchParams(location.search).get('pro');
@@ -3048,7 +3083,8 @@
     try { localStorage.removeItem('tb_invite'); } catch {}
     const { data, error } = await sb.rpc('add_friend', { friend_code: code });
     if (error) { if (!/own code/.test(error.message)) toast(esc(error.message.replace(/^.*?: /, ''))); return; }
-    toast(`You and <b>${esc(data)}</b> are now friends. Do your Daily 5 together.`, 6000);
+    const { data: ref } = await sb.rpc('claim_referral', { friend_code: code }).catch(() => ({ data: false }));
+    toast(`You and <b>${esc(data)}</b> are now friends.` + (ref ? ` Answer 10 questions and you <b>both get a free week of Pro</b>.` : ' Do your Daily 5 together.'), 7000);
     if (location.hash === '#home' || !location.hash) drawFriends();
   }
 

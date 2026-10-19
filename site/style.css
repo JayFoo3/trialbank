@@ -1758,3 +1758,14 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .tu-recent-row button { flex: none; width: 64px; height: 64px; padding: 0; border: 1px solid var(--rule); border-radius: var(--r-sm); overflow: hidden; background: var(--paper); cursor: pointer; }
 .tu-recent-row button:hover { border-color: var(--biro); }
 .tu-recent-row img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Pro free week and referrals */
+.pro-trial { width: 100%; font-size: 17px; padding: 14px 18px; }
+.pro-trial-note { margin: 6px 0 14px; text-align: center; }
+.pro-plans.after-trial .pro-plan.best { box-shadow: none; }
+.pro-keep { font-weight: 700; margin: 4px 0 8px; }
+.pro-ref { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule); text-align: left; }
+.pro-ref p { margin: 0 0 8px; font-size: 14px; }
+.pro-ref-row { display: flex; gap: 8px; }
+.pro-ref-row input { flex: 1; min-width: 0; font-size: 13px; }
+.pro-plans.after-trial .pro-plan.best em { background: var(--hover); color: var(--ink); }
