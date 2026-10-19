@@ -3728,7 +3728,8 @@
     drawTuModes();
     $('tu-start').hidden = tu.active; $('tu-session').hidden = !tu.active; $('tu-end').hidden = !tu.active;
     if (tu.handoff) { const q = tu.handoff; tu.handoff = null; tuStart(false, q); return; }
-    if (tu.active) { tuDraw(); return; }
+    if (tu.active) { tuDraw(); drawTuRecent(); return; }
+    if (!tu.restoreTried) { tu.restoreTried = true; try { if (await tuRestore()) { drawTuRecent(); return; } } catch (err) { console.warn('tutor restore', err); } }
     const [{ data: tc }, { data: notes }] = await Promise.all([
       sb.from('topic_counts').select('topic, n, type').eq('subject', subj),
       sb.from('tutor_notes').select('notes').eq('subject', subj).maybeSingle(),
@@ -3799,8 +3800,67 @@
   }
 
   async function tuCleanup() {
-    const p = tu.paths.splice(0);
+    const keep = new Set(tuRecent().map(r => r.path));
+    const p = tu.paths.splice(0).filter(x => !keep.has(x));   // question slices go; the student's own photos stay for 7 days
     if (p.length) sb.storage.from('submissions').remove(p).catch(() => {});
+  }
+  // ---------- the student's recent tutor photos, so homework does not need uploading again (7 days) ----------
+  const TU_PHOTO_DAYS = 7;
+  const tuRecentKey = () => `tb_tu_photos_${state.user?.id}`;
+  function tuRecent() {
+    const all = lsGet(tuRecentKey()) || [], cut = Date.now() - TU_PHOTO_DAYS * 864e5;
+    const old = all.filter(r => r.at < cut).map(r => r.path);
+    if (old.length) { lsSet(tuRecentKey(), all.filter(r => r.at >= cut)); sb.storage.from('submissions').remove(old).catch(() => {}); }
+    return all.filter(r => r.at >= cut);
+  }
+  function tuRemember(paths) {
+    const all = tuRecent().filter(r => !paths.includes(r.path));
+    lsSet(tuRecentKey(), [...paths.map(path => ({ path, at: Date.now(), subject: tu.subject })), ...all].slice(0, 40));
+  }
+  const tuUrlCache = new Map();
+  async function tuSign(paths) {
+    const need = paths.filter(p => !tuUrlCache.has(p));
+    if (need.length) {
+      const { data } = await sb.storage.from('submissions').createSignedUrls(need, 3600);
+      (data || []).forEach(d => { if (d.signedUrl) tuUrlCache.set(d.path, d.signedUrl); });
+    }
+    return paths.map(p => tuUrlCache.get(p) || null);
+  }
+  async function drawTuRecent() {
+    const box = $('tu-recent'); if (!box) return;
+    const inChat = new Set([...tu.msgs.flatMap(m => m.images || []), ...tu.pending.map(f => f.path).filter(Boolean)]);
+    const list = tuRecent().filter(r => !inChat.has(r.path) && (!r.subject || r.subject === tuSubject())).slice(0, 12);
+    if (!list.length) { box.hidden = true; return; }
+    const urls = await tuSign(list.map(r => r.path));
+    const ok = list.map((r, i) => ({ ...r, url: urls[i] })).filter(r => r.url);
+    if (!ok.length) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = `<p class="small muted">Your photos from earlier · tap to add</p><div class="tu-recent-row">${ok.map((r, i) => `<button type="button" data-i="${i}" aria-label="Add this photo"><img src="${r.url}" alt=""></button>`).join('')}</div>`;
+    box.querySelectorAll('button').forEach(b => b.onclick = () => {
+      if (tu.pending.length >= 4) return toast('Up to 4 photos per message.');
+      const r = ok[+b.dataset.i]; tu.pending.push({ path: r.path, url: r.url }); drawTuPending(); drawTuRecent();
+    });
+  }
+  // ---------- keep the current chat, so a reload or another tab doesn't lose it ----------
+  const tuChatKey = () => `tb_tu_chat_${state.user?.id}`;
+  function tuSave() {
+    if (!state.user || !tu.active) return;
+    lsSet(tuChatKey(), { at: Date.now(), subject: tu.subject, qid: tu.q?.id || null, mode: tu.mode, session: tu.session, n: tu.n, done: tu.done,
+      msgs: tu.msgs.filter(m => !m.error && m.role !== 'offer').map(({ files, thumbs, ...m }) => m).slice(-40) });
+  }
+  async function tuRestore() {
+    const c = lsGet(tuChatKey());
+    if (!c || Date.now() - c.at > 7 * 864e5 || c.subject !== tuSubject() || !c.msgs?.length) return false;
+    let q = null;
+    if (c.qid) {
+      const { data } = await sb.from('questions').select('id, qid, number, part, type, marks, topic, image_path, solution_path, content, papers!inner(subject, school, year, difficulty)').eq('id', c.qid).maybeSingle();
+      q = data || null;
+    }
+    await tuLoad(q);
+    Object.assign(tu, { session: c.session || tu.session, n: c.n || 0, done: c.done || null, msgs: c.msgs });
+    const paths = [...new Set(c.msgs.flatMap(m => m.images || []))];
+    if (paths.length) { const urls = await tuSign(paths); const u = new Map(paths.map((p, i) => [p, urls[i]])); tu.msgs.forEach(m => { if (m.images?.length) m.thumbs = m.images.map(p => u.get(p)).filter(Boolean); }); }
+    tuDraw(); return true;
   }
   async function tuStart(own = false, given = null) {
     if (tu.busy) return;
@@ -3827,7 +3887,7 @@
     }
     tu.active = true;
     $('tu-start').hidden = true; $('tu-session').hidden = false; $('tu-end').hidden = false;
-    tuDrawQuestion();
+    tuDrawQuestion(); drawTuRecent(); tuSave();
   }
   // "James Ruse 2025 11a", "HSC 2023 Q14(b)": find that question in the bank
   let tuPapers = null;
@@ -3877,8 +3937,13 @@
     c.querySelector('[data-go]').onclick = () => tuAutoMark(i);
     return c;
   }
-  function tuAutoMark(i) {
-    const work = tu.msgs.flatMap(x => x.files || []);
+  async function tuAutoMark(i) {
+    const work = [];
+    for (const x of tu.msgs) {
+      if (x.role !== 'student' || !x.images?.length) continue;
+      if (x.files?.length === x.images.length) { work.push(...x.files); continue; }
+      for (const p of x.images) { const { data } = await sb.storage.from('submissions').download(p); if (data) work.push(new File([data], p.split('/').pop(), { type: data.type || 'image/jpeg' })); }
+    }
     const m = mk('div', 'modal buy');
     m.innerHTML = `<div class="modal-card buy-card tu-am" role="dialog" aria-modal="true" aria-labelledby="tu-am-h">
       <button class="link buy-x" data-x aria-label="Close">✕</button>
@@ -3996,29 +4061,33 @@
       if (text || files.length) {
         const imgs = [], thumbs = [];
         for (const f of files) {
+          if (f.path) { imgs.push(f.path); thumbs.push(f.url); continue; }   // a photo from earlier: already uploaded
           const blob = await shrinkImage(f.file, 1600);
           const path = `${state.user.id}/tutor-${tu.session}/s${String(++tu.n).padStart(2, '0')}.${blob.type === 'image/webp' ? 'webp' : 'jpg'}`;
           const { error } = await sb.storage.from('submissions').upload(path, blob, { contentType: blob.type, upsert: true });
           if (error) throw error;
           tu.paths.push(path); imgs.push(path); thumbs.push(f.url);
         }
-        tu.msgs.push({ role: 'student', text, images: imgs, thumbs, files: files.map(f => f.file) });
+        tuRemember(imgs);
+        tu.msgs.push({ role: 'student', text, images: imgs, thumbs, files: files.map(f => f.file).filter(Boolean) });
         tuDraw();
       }
       const { data, error } = await sb.functions.invoke('tutor', { body: {
         subject: tu.subject || tuSubject(), mode: tu.mode, question_id: tu.q?.id || null, chunks: tu.chunks,
-        messages: tu.msgs.filter(m => !m.error && (m.role === 'student' || m.role === 'tutor')).map(m => ({ role: m.role, text: m.text || '', images: m.images || [] })),
+        messages: tu.msgs.filter(m => !m.error && (m.role === 'student' || m.role === 'tutor' || m.role === 'result')).map(m => m.role === 'result'
+          ? { role: 'student', text: `(Auto-mark result for ${m.rec.title}: ${m.rec.results.map(r => `${r.label} ${r.awarded}/${r.out_of}${r.feedback ? ` (${r.feedback})` : ''}`).join('; ')})`.slice(0, 2000), images: [] }
+          : { role: m.role, text: m.text || '', images: m.images || [] }),
       } });
       if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
       tu.msgs.push({ role: 'tutor', text: data.say, slip: data.slip?.what || null, learnt: data.learnt || null });
       if (data.left != null && tuLeft) { tuLeft.left = data.left; tuLeft.allowance = data.allowance || tuLeft.allowance; tuLeft.used = tuLeft.allowance - data.left; drawTuLeft(); }
       if (data.slip) tu.slipped = true;
-      if (data.full_paper && tu.msgs.some(m => m.files?.length)) tu.msgs.push({ role: 'offer' });
+      if (data.full_paper && tu.msgs.some(m => m.images?.length)) tu.msgs.push({ role: 'offer' });
       if (data.done && !tu.done) await tuFinish(data);
     } catch (err) {
       tu.msgs.push({ role: 'tutor', error: true, text: err.message || String(err) });
     } finally {
-      tu.busy = false; tuDraw();
+      tu.busy = false; tuDraw(); tuSave(); drawTuRecent();
     }
   }
   async function tuFinish(d) {
@@ -4076,7 +4145,7 @@
     $('tu-ref-in').value = ''; tuStart(false, f);
   };
   function askTutor(q) { tu.handoff = q; if (location.hash === '#tutor') renderTutor(); else location.hash = '#tutor'; }
-  $('tu-end').onclick = () => { tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; renderTutor(); };
+  $('tu-end').onclick = () => { lsSet(tuChatKey(), null); tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; renderTutor(); };
   document.querySelectorAll('#tu-quick [data-say]').forEach(b => { b.onclick = () => tuSend(b.dataset.say); });
   $('tu-symbtn').onclick = () => { const s = $('tu-syms'); s.hidden = !s.hidden; $('tu-symbtn').setAttribute('aria-expanded', !s.hidden); };
   $('tu-syms').innerHTML = TU_SYMS.map(s => `<button type="button">${s}</button>`).join('');
