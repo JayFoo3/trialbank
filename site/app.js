@@ -25,7 +25,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { storage: durable, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
-  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun'];
+  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty)';
 
   document.title = C.name;
@@ -40,9 +40,9 @@
   };
 
   // ---------- routing ----------
-  const NAV = { home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers' };
+  const NAV = { mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers' };
   // page transitions: iOS-style push going deeper, pop going back, a quick fade between tabs
-  const DEPTH = { auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, paper: 1, set: 2, examrun: 2, summary: 3 };
+  const DEPTH = { mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, paper: 1, set: 2, examrun: 2, summary: 3 };
   const canVT = !!document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (canVT) document.documentElement.classList.add('has-vt');
   let shown = null;
@@ -83,6 +83,7 @@
       if (h === 'set' && state.set) return show('set');
       if (h === 'summary' && state.set) return show('summary');
       if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
+      if (h === 'mark') { show('mark'); await renderMark(); return; }
       if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
       if (h === 'examrun' || h === 'exam') {
         if (state.exam) return show('examrun');
@@ -1700,10 +1701,10 @@
   }
   $('mark-go').onclick = async () => {
     const id = Number($('mark-paper').value);
-    const p = homePapers.find(x => x.id === id);
+    const p = markPapers.find(x => x.id === id) || homePapers.find(x => x.id === id);
     if (!p) { $('mark-paper').focus(); return; }
-    $('mark-go').disabled = true;
-    try { await busy(() => startMarking(p)); } catch (err) { reviewError(err.message); } finally { $('mark-go').disabled = false; }
+    $('mark-go').disabled = true; $('mk-error').hidden = true;
+    try { await busy(() => startMarking(p)); } catch (err) { $('mk-error').textContent = err.message; $('mk-error').hidden = false; } finally { $('mark-go').disabled = false; }
   };
   $('quick-set').onclick = async () => {
     $('quick-error').hidden = true; $('quick-set').disabled = true;
@@ -2352,12 +2353,35 @@
     $('buy-marks').hidden = !myMarks.can_buy;
     return myMarks;
   }
+  function packPicker() {
+    const P = C.packs || [];
+    const per = P.map(p => parseFloat(String(p.price).replace(/[^0-9.]/g, '')) / p.marks);
+    const best = per.indexOf(Math.min(...per));
+    return new Promise(res => {
+      const m = mk('div', 'modal buy');
+      m.innerHTML = `<div class="modal-card buy-card" role="dialog" aria-modal="true" aria-labelledby="buy-h">
+        <button class="link buy-x" data-k="" aria-label="Close">✕</button>
+        <h2 id="buy-h">Get more marks</h2>
+        <p class="buy-sub">One mark auto-marks one full paper.${myMarks.balance ? ` You have <b>${myMarks.balance}</b> right now.` : ''}</p>
+        <div class="buy-packs">${P.map((p, i) => `<button class="buy-pack${i === 1 ? ' pop' : ''}" data-k="${p.marks}" style="--i:${i}">
+          <span class="buy-tag">${i === 1 ? 'Most popular' : i === best ? 'Best value' : ''}</span>
+          <span class="buy-n">${p.marks}</span><span class="buy-u">marks</span>
+          <span class="buy-price">${esc(p.price)}</span><span class="buy-each">${Math.round(per[i] * 100)}c a paper</span>
+          <span class="buy-go">Buy</span></button>`).join('')}</div>
+        <ul class="buy-points"><li>One-off payment, no subscription</li><li>Marks never expire</li><li>Card or Apple Pay, via Stripe</li></ul>
+      </div>`;
+      const done = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 180); document.removeEventListener('keydown', k); res(v); };
+      const k = (ev) => { if (ev.key === 'Escape') done(null); };
+      m.onclick = (ev) => { if (ev.target === m) return done(null); const b = ev.target.closest('[data-k]'); if (b) done(b.dataset.k || null); };
+      document.addEventListener('keydown', k); document.body.appendChild(m);
+      m.querySelector('.buy-pack.pop')?.focus();
+    });
+  }
   async function openBuy() {
     const P = C.packs || [];
     if (!P.length) return;
-    const pick = await choiceBox(`Marking packs<span class="cb-sub">Each mark auto-marks one full paper you upload. Bought marks are yours: they never expire and don't count against the free monthly marks. ${myMarks.balance ? `You have ${myMarks.balance} left.` : ''}</span>`,
-      [...P.map((p, i) => [String(p.marks), `${p.marks} marks · ${p.price}`, i === 1 ? 'primary' : 'secondary']), ['cancel', 'Not now', 'link']]);
-    if (!pick || pick === 'cancel') return;
+    const pick = await packPicker();
+    if (!pick) return;
     toast('Opening secure checkout…');
     const { data, error } = await sb.functions.invoke('buy-marks', { body: { pack: pick } });
     if (error || !data?.url) {
@@ -2369,6 +2393,54 @@
   }
   $('buy-marks').onclick = () => { $('account-menu').hidden = true; openBuy(); };
   setTimeout(() => afterCheckout(), 0);   // back from Stripe (defined further down, once everything it uses exists)
+  // how many papers each kind of mark covers right now
+  async function markCounts() {
+    const [{ data: use }, { data: pool }, m] = await Promise.all([sb.rpc('my_automark_usage'), sb.rpc('automark_pool'), loadMyMarks()]);
+    const u = (use && use[0]) || { used_usd: 0, limit_usd: 0, unlimited: false };
+    const P = (x) => Math.floor(Number(x) / PER_PAPER_USD);
+    const pl = pool || { cap_usd: 0, spent_usd: 0, enabled: false };
+    const poolTotal = P(pl.cap_usd), poolLeft = Math.max(0, Math.min(poolTotal, P(Number(pl.cap_usd) - Number(pl.spent_usd))));
+    const freeOn = !!pl.enabled && (state.admin || can('automark'));
+    const freeTotal = P(u.limit_usd), freeLeft = Math.max(0, Math.min(freeTotal, P(Number(u.limit_usd) - Number(u.used_usd))));
+    const free = u.unlimited ? null : freeOn ? Math.min(freeLeft, poolLeft) : 0;
+    return { bought: m.balance || 0, pro: m.pro_left || 0, free, freeLeft, freeTotal, freeOn, poolLeft, poolTotal, unlimited: !!u.unlimited, canBuy: !!m.can_buy,
+      total: (m.balance || 0) + (m.pro_left || 0) + (free || 0) };
+  }
+  function drawNavBadge(c) {
+    const b = $('nav-marks'); if (!b) return;
+    b.hidden = !c || c.unlimited; if (c && !c.unlimited) { b.textContent = c.total > 99 ? '99+' : String(c.total); b.classList.toggle('zero', c.total === 0); }
+  }
+  let markPapers = [];
+  async function renderMark() {
+    const [c, { data: ps }] = await Promise.all([markCounts(),
+      sb.from('papers').select('id, slug, subject, school, year, difficulty, scanned, release_pct').eq('subject', state.subject).order('year', { ascending: false }).order('school')]);
+    drawNavBadge(c);
+    markPapers = (ps || []).filter(seePaper).filter(p => !p.scanned && !isHsc(p));
+    const sel = $('mark-paper'), keep = sel.value;
+    sel.innerHTML = '<option value="">Pick the paper</option>' + markPapers.map(p => `<option value="${p.id}">${esc(p.school)} ${p.year}</option>`).join('');
+    sel.value = keep;
+    const next = new Date(); next.setUTCMonth(next.getUTCMonth() + 1, 1);
+    const reset = next.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
+    const lite = state.release?.lite && !state.admin;
+    const tile = (n, label, sub, cls = '') => `<div class="mk-tile ${cls}"><b>${n}</b><span>${label}</span><small>${sub}</small></div>`;
+    const tiles = [
+      tile(c.bought, 'Bought', 'Never expire'),
+      c.pro || state.release?.level === 'pro' ? tile(c.pro, 'Pro', `Refill on ${reset}`) : '',
+      c.unlimited ? tile('∞', 'Free', 'Admin') : c.freeOn ? tile(`${c.freeLeft}<em>/${c.freeTotal}</em>`, 'Free this month', `Back on ${reset}`)
+        : tile('–', 'Free', lite ? 'Unlocks after trials' : 'Not on your plan', 'off'),
+    ].join('');
+    const pct = c.poolTotal ? Math.round(100 * c.poolLeft / c.poolTotal) : 0;
+    $('mk-balance').innerHTML = `
+      <div class="mk-big"><b>${c.unlimited ? '∞' : c.total}</b><span>${c.unlimited ? 'unlimited marks (admin)' : `mark${c.total === 1 ? '' : 's'} you can use right now`}</span></div>
+      <div class="mk-tiles">${tiles}</div>
+      <div class="mk-pool">
+        <div class="between small"><span><b>Shared free pool</b> · everyone's free marks come from here</span><span>${c.poolLeft} of ${c.poolTotal} papers left</span></div>
+        <div class="mk-bar"><i style="width:${pct}%"></i></div>
+        <p class="small muted">Resets on ${reset}. Bought and Pro marks are used first, so the free pool lasts longer for everyone.</p>
+      </div>
+      ${c.canBuy ? '<button class="primary mk-buy" id="mk-buy">Get more marks</button>' : lite ? '<p class="small muted mk-later">Marking packs open after trials.</p>' : ''}`;
+    if ($('mk-buy')) $('mk-buy').onclick = openBuy;
+  }
   async function drawMarkLeft() {
     if (!state.user || state.preview) return;
     const [{ data, error }, m] = await Promise.all([sb.rpc('my_automark_usage'), loadMyMarks()]);
@@ -2385,6 +2457,7 @@
       text = out ? `Used up · back on ${next.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })}` : `${left} of ${total} left this month`;
     }
     ['mark-left', 'paper-mark-left'].forEach(id => { const el = $(id); if (el) { el.textContent = text; el.classList.toggle('used-up', out); } });
+    markCounts().then(drawNavBadge, () => {});
   }
 
   // ---------- daily streak: one tick per day you open Trialbank (Sydney time) ----------
@@ -2656,7 +2729,7 @@
           box.card.querySelector('.coin').classList.add('landed');
           box.set(`${esc(n)} marks are yours`, `That's <b>${m.balance}</b> in total. They never expire. Use one on any paper with <b>Mark my paper</b>.`, 'Mark a paper');
           box.pop(30);
-          box.result.then(k => { if (k === 'yes') location.hash = '#home'; });
+          box.result.then(k => { if (k === 'yes') location.hash = '#mark'; });
         } else box.set('Thanks, payment received', "Your marks are taking a little longer than usual. They'll appear on their own; if they're not here in a few minutes, contact Jayden.", 'OK');
       }
     }, 2000);

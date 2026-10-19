@@ -1259,3 +1259,77 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .by-jaiops { color: var(--muted); font-weight: 700; font-size: .9rem; text-decoration: none; letter-spacing: .02em; }
 .by-jaiops:hover { color: var(--ink); }
 .made-by { color: inherit; font-weight: 700; }
+
+/* ---------- Marking tab ---------- */
+.mainnav a { position: relative; }
+.nav-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--biro); color: #fff; font-size: .72rem; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.nav-badge.zero { background: var(--rule-strong); color: var(--ink); }
+@media (max-width: 700px) { .nav-badge { position: absolute; top: 0; right: 4px; min-width: 17px; height: 17px; font-size: .65rem; padding: 0 4px; } }
+.mk-lede { margin-top: -4px; max-width: 560px; }
+.mk-balance { text-align: center; padding: 26px 22px 22px; }
+.mk-big b { display: block; font-family: var(--display); font-size: clamp(4rem, 14vw, 5.6rem); line-height: .95; color: var(--biro); }
+.mk-big span { display: block; font-weight: 800; font-size: 1.05rem; margin-top: 4px; }
+.mk-tiles { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 20px 0 18px; }
+.mk-tile { flex: 1 1 140px; max-width: 200px; background: var(--soft); border-radius: var(--r); padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+.mk-tile b { font-family: var(--display); font-size: 1.7rem; line-height: 1.1; }
+.mk-tile b em { font-style: normal; font-size: 1rem; color: var(--muted); }
+.mk-tile span { font-weight: 800; font-size: .9rem; }
+.mk-tile small { color: var(--muted); font-size: .78rem; }
+.mk-tile.off { opacity: .6; }
+.mk-pool { text-align: left; border-top: 1px solid var(--rule); padding-top: 14px; }
+.mk-bar { height: 10px; border-radius: 5px; background: var(--soft); overflow: hidden; margin: 8px 0 6px; }
+.mk-bar i { display: block; height: 100%; border-radius: 5px; background: var(--good); transition: width .6s ease; }
+.mk-pool p { margin: 0; }
+.mk-buy { margin-top: 16px; min-width: 220px; }
+.mk-later { margin: 14px 0 0; }
+.mk-upload h2 { margin-bottom: 4px; }
+.mk-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.mk-row select { flex: 1 1 220px; }
+.mk-how { list-style: none; counter-reset: s; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.mk-how li { counter-increment: s; padding: 14px; border-radius: var(--r); background: var(--paper); border: 1px solid var(--rule); display: flex; flex-direction: column; gap: 3px; }
+.mk-how li::before { content: counter(s); width: 24px; height: 24px; border-radius: 50%; background: var(--biro-soft); color: var(--biro); font-weight: 800; font-size: .85rem;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
+.mk-how span { color: var(--muted); font-size: .9rem; }
+@media (max-width: 600px) { .mk-how { grid-template-columns: 1fr; } }
+
+/* ---------- pack picker ---------- */
+.modal.buy { z-index: 1900; animation: cele-fade .18s ease-out; }
+.modal.buy.out { opacity: 0; transition: opacity .18s; }
+.buy-card { position: relative; max-width: 620px; width: calc(100% - 32px); text-align: center; padding: 26px 22px 20px; animation: cele-in .35s cubic-bezier(.2,1.3,.4,1); }
+.buy-x { position: absolute; top: 12px; right: 14px; font-size: 1.1rem; color: var(--muted); }
+.buy-card h2 { font-family: var(--display); font-size: 1.7rem; margin: 0 0 4px; }
+.buy-sub { color: var(--muted); margin: 0 0 18px; }
+.buy-packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: end; }
+.buy-pack { font: inherit; color: inherit; cursor: pointer; background: var(--paper); border: 2px solid var(--rule); border-radius: var(--r-lg); padding: 14px 10px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; box-shadow: 0 5px 0 var(--rule); transition: transform .12s, box-shadow .12s, border-color .12s;
+  animation: unlock-in .35s calc(.08s + var(--i) * .07s) cubic-bezier(.2,1.4,.4,1) both; }
+.buy-pack:hover, .buy-pack:focus-visible { transform: translateY(-3px); border-color: var(--biro); box-shadow: 0 8px 0 var(--biro-soft); outline: none; }
+.buy-pack:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--rule); }
+.buy-pack.pop { border-color: var(--biro); box-shadow: 0 6px 0 var(--biro-dark); padding-top: 20px; }
+.buy-tag { min-height: 1.1em; font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--biro); }
+.buy-n { font-family: var(--display); font-size: 2.6rem; line-height: 1; margin-top: 4px; }
+.buy-u { color: var(--muted); font-weight: 700; font-size: .9rem; }
+.buy-price { font-family: var(--display); font-size: 1.35rem; margin-top: 10px; }
+.buy-each { color: var(--muted); font-size: .8rem; }
+.buy-go { margin-top: 12px; width: 100%; padding: .55em 0; border-radius: var(--r-sm); background: var(--soft); font-weight: 800; }
+.buy-pack.pop .buy-go { background: var(--biro); color: #fff; }
+.buy-points { list-style: none; padding: 0; margin: 18px 0 0; display: flex; gap: 6px 18px; justify-content: center; flex-wrap: wrap; color: var(--muted); font-size: .85rem; }
+.buy-points li { position: relative; padding-left: 16px; }
+.buy-points li::before { content: ''; position: absolute; left: 2px; top: .35em; width: .3em; height: .6em; border: solid var(--good); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+@media (max-width: 520px) { .buy-packs { grid-template-columns: 1fr; } .buy-pack { flex-direction: row; justify-content: space-between; padding: 12px 14px; gap: 8px; }
+  .buy-pack .buy-tag { display: none; } .buy-n { font-size: 1.8rem; margin: 0; } .buy-price { margin: 0 0 0 auto; } .buy-each { display: none; } .buy-go { width: auto; margin: 0 0 0 8px; padding: .45em .9em; } .buy-pack.pop { padding-top: 12px; } }
+/* phones: five tabs fit the bottom bar */
+@media (max-width: 640px) {
+  .mainnav a { flex: 1 1 0; min-width: 0; padding: 5px 2px; font-size: .74rem; gap: 2px; }
+  .mainnav a span { white-space: nowrap; }
+}
+/* phones: keep the header inside the screen (brand, subject, calculator, timer, account) */
+@media (max-width: 420px) {
+  .top-in { gap: 6px; }
+  .top-right { gap: 5px; min-width: 0; }
+  .subject .subj-btn { max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 10px; padding-right: 8px; }
+  .calc-btn, .timer-btn { width: 36px; height: 36px; padding: 0; }
+  .avatar { width: 36px; height: 36px; }
+  .brand { font-size: 1.35rem; }
+}

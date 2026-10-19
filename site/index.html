@@ -32,6 +32,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <a href="#home" data-nav="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></a>
       <a href="#practise" data-nav="practise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg><span>Practise</span></a>
       <a href="#papers" data-nav="papers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/></svg><span>Papers</span></a>
+      <a href="#mark" data-nav="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="m8 14 3 3 5-6"/></svg><span>Marking</span><b class="nav-badge" id="nav-marks" hidden></b></a>
       <a href="#progress" data-nav="progress" data-feature="progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Progress</span></a>
     </nav>
     <div class="top-right" id="top-right" hidden>
@@ -157,15 +158,6 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div id="resume-banner" hidden><span id="resume-title"></span><span id="resume-sub"></span><button id="resume-btn"></button></div>
     </section>
 
-    <div class="others marking" data-feature="automark">
-      <details class="other">
-        <summary><strong>Auto-mark a paper</strong><span class="muted small" id="mark-left">Upload your working</span></summary>
-        <div class="other-body">
-          <select id="mark-paper" aria-label="Which paper"><option value="">Pick the paper</option></select>
-          <button class="secondary" id="mark-go">Upload</button>
-        </div>
-      </details>
-    </div>
     <!-- removed from the dashboard (timed papers live on each paper's page); kept in the page because the code still wires these controls -->
     <div class="others" style="display:none" aria-hidden="true">
       <details class="other" data-feature="exam">
@@ -330,6 +322,27 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </section>
 
   <!-- ===== one paper ===== -->
+  <!-- ===== marking: balance, the shared pool, and uploading a paper ===== -->
+  <section id="view-mark" class="view" hidden>
+    <h1>Auto-marking</h1>
+    <p class="muted mk-lede">Sit a paper on paper, take photos of your working, and get every question marked against the marking guidelines.</p>
+    <div class="card mk-balance" id="mk-balance"><p class="muted">Loading your marks…</p></div>
+    <div class="card mk-upload">
+      <h2>Mark a paper</h2>
+      <p class="small muted">Pick the paper you sat, then upload photos of your working. One mark covers the whole paper.</p>
+      <div class="mk-row">
+        <select id="mark-paper" aria-label="Which paper"><option value="">Pick the paper</option></select>
+        <button class="primary" id="mark-go">Upload my working</button>
+      </div>
+      <p class="error" id="mk-error" hidden></p>
+    </div>
+    <ol class="mk-how">
+      <li><b>Sit it</b><span>Do a full paper on paper, ideally on the clock.</span></li>
+      <li><b>Snap it</b><span>Photograph each page of your working.</span></li>
+      <li><b>Get marked</b><span>Marks and feedback for every question, plus where you lost marks.</span></li>
+    </ol>
+  </section>
+
   <section id="view-paper" class="view" hidden>
     <a class="back small" href="#papers">‹ All papers</a>
     <h1 id="paper-title"></h1>
