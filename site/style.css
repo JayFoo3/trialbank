@@ -1739,3 +1739,14 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .pace-ok { color: var(--muted); }
 .pace-warn { color: var(--warn); font-weight: 600; }
 .pace-out { color: var(--bad); font-weight: 600; }
+
+/* tutor: send a whole paper to Auto-mark */
+.tu-offer { align-self: stretch; padding: 14px 16px; border-radius: var(--r); background: var(--paper); box-shadow: var(--shadow); }
+.tu-offer-h { font-weight: 700; margin: 0 0 4px; }
+.tu-offer p { margin: 0 0 10px; }
+.tu-offer-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.tu-marked { max-width: 100%; }
+.tu-am { text-align: left; }
+.tu-am-f { display: grid; gap: 6px; margin: 12px 0; font-weight: 600; }
+.tu-am-f em { font-weight: 400; font-style: normal; }
+.tu-am-chk { display: flex; gap: 8px; align-items: center; margin: -4px 0 6px; }

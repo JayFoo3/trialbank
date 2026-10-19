@@ -1737,12 +1737,8 @@
 
   // ---------- marking any paper: the student uploads the paper, their working and the solutions ----------
   const OWN_KEY = () => 'tb_own_marks_' + (state.user?.id || '');
-  async function runOwnMark() {
-    const say = (t, err) => { $('own-status').textContent = t; $('own-status').className = 'small ' + (err ? 'error' : 'muted'); };
-    const P = $('own-paper').files, W = $('own-work').files, S = $('own-sol').files;
-    if (!P.length) return say('Add the paper first.', true);
-    if (!W.length) return say('Add your working.', true);
-    const btn = $('own-go'); btn.disabled = true; $('own-result').innerHTML = '';
+  // marks a paper the student uploaded: P paper pages, W their working, S solutions (optional). Used by the Marking page and the tutor.
+  async function ownMark(P, W, S, say) {
     const run = Date.now().toString(36), uid = state.user.id, paths = [];
     const session = (crypto.randomUUID ? crypto.randomUUID() : run + Math.random().toString(36).slice(2)).replace(/[^\w-]/g, '');
     try {
@@ -1765,10 +1761,19 @@
       if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
       const rec = { at: Date.now(), subject: state.subject, title: data.title || 'Your uploaded paper', results: data.results, sol: !!sol_pages.length };
       const hist = (lsGet(OWN_KEY()) || []).filter(Boolean); hist.unshift(rec); lsSet(OWN_KEY(), hist.slice(0, 12));
-      say(''); $('own-result').innerHTML = ''; $('own-result').appendChild(ownResult(rec)); drawOwnHistory();
-      window.Juice?.sfx?.fanfare?.();
-    } catch (err) { say(err.message || String(err), true); }
-    finally { btn.disabled = false; drawMarkLeft(); if (paths.length) sb.storage.from('submissions').remove(paths).catch(() => {}); }
+      drawOwnHistory(); window.Juice?.sfx?.fanfare?.();
+      return rec;
+    } finally { drawMarkLeft(); if (paths.length) sb.storage.from('submissions').remove(paths).catch(() => {}); }
+  }
+  async function runOwnMark() {
+    const say = (t, err) => { $('own-status').textContent = t; $('own-status').className = 'small ' + (err ? 'error' : 'muted'); };
+    const P = $('own-paper').files, W = $('own-work').files, S = $('own-sol').files;
+    if (!P.length) return say('Add the paper first.', true);
+    if (!W.length) return say('Add your working.', true);
+    const btn = $('own-go'); btn.disabled = true; $('own-result').innerHTML = '';
+    try { const rec = await ownMark(P, W, S, say); say(''); $('own-result').appendChild(ownResult(rec)); }
+    catch (err) { say(err.message || String(err), true); }
+    finally { btn.disabled = false; }
   }
   $('own-go').onclick = runOwnMark;
   const LOST_NAME = { concept: "concept", method: 'method', algebra: 'algebra slip', careless: 'careless', time: 'unfinished', cfpe: 'CFPE' };
@@ -1779,7 +1784,7 @@
       <p class="small muted">${esc(rec.title)} · ${C.subjects[rec.subject] || ''}${rec.sol ? '' : ' · marked without solutions, so double-check anything surprising'}</p>
       <table class="own-tbl"><tbody>${rec.results.map(r => `<tr class="${r.awarded === r.out_of ? 'full' : r.awarded === 0 ? 'zero' : 'part'}">
         <td class="ol">${esc(r.label)}</td><td class="om">${r.awarded}/${r.out_of}${r.correct ? `<small>${esc(r.choice || '–')} → ${esc(r.correct)}</small>` : ''}</td>
-        <td class="of">${esc(r.feedback)}${r.lost.filter(l => l.reason !== 'cfpe').length ? `<small>Lost: ${r.lost.filter(l => l.reason !== 'cfpe').map(l => LOST_NAME[l.reason] || l.reason).join(', ')}</small>` : ''}</td></tr>`).join('')}</tbody></table>`;
+        <td class="of">${esc(r.feedback || '')}${(r.lost || []).filter(l => l.reason !== 'cfpe').length ? `<small>Lost: ${(r.lost || []).filter(l => l.reason !== 'cfpe').map(l => LOST_NAME[l.reason] || l.reason).join(', ')}</small>` : ''}</td></tr>`).join('')}</tbody></table>`;
     return c;
   }
   function drawOwnHistory() {
@@ -3854,10 +3859,61 @@
   }
   $('tu-qtoggle').onclick = () => { const f = $('tu-q').classList.toggle('folded'); $('tu-qtoggle').textContent = f ? 'Show question' : 'Hide'; };
 
+  // the tutor spotted a whole paper: offer to send it to Auto-mark, with a clear "this uses 1 mark" before anything happens
+  function tuOfferCard(m, i) {
+    const c = mk('div', 'tu-offer');
+    if (m.state === 'used') { c.innerHTML = '<p class="small muted">Sent to Auto-mark.</p>'; return c; }
+    c.innerHTML = `<p class="tu-offer-h">Mark the whole paper with Auto-mark?</p>
+      <p class="small muted" data-left>Checking how many marks you have…</p>
+      <div class="tu-offer-row"><button class="primary" data-go disabled>Auto-mark it</button><button class="link" data-no>No, one question at a time here</button></div>`;
+    markCounts().then(n => {
+      const left = c.querySelector('[data-left]'), go = c.querySelector('[data-go]');
+      if (n.unlimited) { left.textContent = 'Uses 1 auto-mark.'; go.disabled = false; return; }
+      if (n.total > 0) { left.innerHTML = `Uses <b>1</b> of your <b>${n.total}</b> auto-mark${n.total === 1 ? '' : 's'}. The tutor doesn't use any messages for it.`; go.disabled = false; return; }
+      left.textContent = "You're out of auto-marks this month.";
+      if (n.canBuy) { go.textContent = 'Get more marks'; go.disabled = false; go.onclick = () => openBuy(); }
+    }).catch(() => { c.querySelector('[data-left]').textContent = 'Uses 1 auto-mark.'; c.querySelector('[data-go]').disabled = false; });
+    c.querySelector('[data-no]').onclick = () => { tu.msgs.splice(i, 1); tuDraw(); $('tu-text')?.focus(); };
+    c.querySelector('[data-go]').onclick = () => tuAutoMark(i);
+    return c;
+  }
+  function tuAutoMark(i) {
+    const work = tu.msgs.flatMap(x => x.files || []);
+    const m = mk('div', 'modal buy');
+    m.innerHTML = `<div class="modal-card buy-card tu-am" role="dialog" aria-modal="true" aria-labelledby="tu-am-h">
+      <button class="link buy-x" data-x aria-label="Close">✕</button>
+      <h2 id="tu-am-h">Auto-mark this paper</h2>
+      <p class="small muted">Your working: <b>${work.length}</b> photo${work.length === 1 ? '' : 's'} from this chat.</p>
+      <label class="tu-am-f"><span>The paper (questions)</span><input type="file" data-p accept="image/*,application/pdf" multiple></label>
+      <label class="tu-am-chk"><input type="checkbox" data-same> My photos already show the questions</label>
+      <label class="tu-am-f"><span>Solutions <em class="muted">(optional, makes marking more accurate)</em></span><input type="file" data-s accept="image/*,application/pdf" multiple></label>
+      <p class="small" data-say></p>
+      <button class="primary" data-go>Use 1 auto-mark</button>
+    </div>`;
+    const q = (k) => m.querySelector(k), say = (t, err) => { q('[data-say]').textContent = t; q('[data-say]').className = 'small ' + (err ? 'error' : 'muted'); };
+    const close = () => { if (!busy) m.remove(); };
+    let busy = false;
+    q('[data-x]').onclick = close; m.onclick = (ev) => { if (ev.target === m) close(); };
+    q('[data-go]').onclick = async () => {
+      const P = q('[data-same]').checked ? work : [...q('[data-p]').files];
+      if (!P.length) return say('Add the paper, or tick that your photos show the questions.', true);
+      busy = true; q('[data-go]').disabled = true;
+      try {
+        const rec = await ownMark(P, work, [...q('[data-s]').files], say);
+        m.remove(); tu.msgs[i] = { role: 'offer', state: 'used' };
+        const got = rec.results.reduce((a, r) => a + r.awarded, 0), of = rec.results.reduce((a, r) => a + r.out_of, 0);
+        tu.msgs.push({ role: 'result', rec }, { role: 'tutor', text: `Marked: ${got}/${of}. Pick a question where you lost marks and we'll go through it together.` });
+        tuDraw();
+      } catch (err) { say(err.message || String(err), true); busy = false; q('[data-go]').disabled = false; }
+    };
+    document.body.appendChild(m);
+  }
   function tuDraw() {
     const th = $('tu-thread'); th.innerHTML = '';
     tu.msgs.forEach((m, i) => {
       if (m.sys) { th.appendChild(mk('div', 'tu-sys', esc(m.text.replace(/^\(|\)$/g, '')))); return; }
+      if (m.role === 'offer') { th.appendChild(tuOfferCard(m, i)); return; }
+      if (m.role === 'result') { const w = mk('div', 'tu-msg tutor tu-marked'); w.appendChild(ownResult(m.rec)); th.appendChild(w); return; }
       const el = mk('div', 'tu-msg ' + m.role + (m.error ? ' err' : ''));
       if (m.thumbs?.length) { const ph = mk('div', 'tu-pics'); m.thumbs.forEach(u => { const im = mk('img'); im.src = u; im.alt = 'Your working'; ph.appendChild(im); }); el.appendChild(ph); }
       if (m.text) el.appendChild(mk('div', 'tu-text', m.role === 'tutor' ? tuRich(m.text) : `<p>${esc(m.text).replace(/\n/g, '<br>')}</p>`));
@@ -3946,17 +4002,18 @@
           if (error) throw error;
           tu.paths.push(path); imgs.push(path); thumbs.push(f.url);
         }
-        tu.msgs.push({ role: 'student', text, images: imgs, thumbs });
+        tu.msgs.push({ role: 'student', text, images: imgs, thumbs, files: files.map(f => f.file) });
         tuDraw();
       }
       const { data, error } = await sb.functions.invoke('tutor', { body: {
         subject: tu.subject || tuSubject(), mode: tu.mode, question_id: tu.q?.id || null, chunks: tu.chunks,
-        messages: tu.msgs.filter(m => !m.error).map(m => ({ role: m.role, text: m.text || '', images: m.images || [] })),
+        messages: tu.msgs.filter(m => !m.error && (m.role === 'student' || m.role === 'tutor')).map(m => ({ role: m.role, text: m.text || '', images: m.images || [] })),
       } });
       if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
       tu.msgs.push({ role: 'tutor', text: data.say, slip: data.slip?.what || null, learnt: data.learnt || null });
       if (data.left != null && tuLeft) { tuLeft.left = data.left; tuLeft.allowance = data.allowance || tuLeft.allowance; tuLeft.used = tuLeft.allowance - data.left; drawTuLeft(); }
       if (data.slip) tu.slipped = true;
+      if (data.full_paper && tu.msgs.some(m => m.files?.length)) tu.msgs.push({ role: 'offer' });
       if (data.done && !tu.done) await tuFinish(data);
     } catch (err) {
       tu.msgs.push({ role: 'tutor', error: true, text: err.message || String(err) });
