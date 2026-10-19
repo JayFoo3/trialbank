@@ -1666,3 +1666,28 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .calc-open-btn { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 .calc-open-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 @media (max-width: 640px) { .setbar .calc-open-btn span { display: none; } }
+
+/* marking: search for the paper, or upload any paper */
+.mk-find { margin-top: 10px; }
+.mk-find input { width: 100%; font-size: 1rem; }
+.mk-results { display: grid; gap: 6px; margin-top: 8px; }
+.mk-hit { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; text-align: left; gap: 0 10px; padding: 10px 14px; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); box-shadow: 0 2px 0 var(--rule); }
+.mk-hit b { font-size: 1rem; } .mk-hit span { color: var(--muted); font-size: .85rem; grid-column: 1; }
+.mk-hit em { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-style: normal; font-weight: 700; color: var(--biro); font-size: .9rem; }
+.mk-hit:hover { border-color: var(--biro); }
+.mk-upload > .link { margin-top: 12px; }
+.own-files { display: grid; gap: 8px; margin-top: 12px; }
+.own-f { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 12px 14px; border: 1px dashed var(--rule); border-radius: var(--r); background: var(--paper); margin: 0; }
+.own-f span { display: flex; flex-direction: column; } .own-f small { color: var(--muted); }
+.own-res { margin-top: 16px; }
+.own-total { display: flex; align-items: baseline; gap: 8px; }
+.own-total b { font-family: var(--display); font-size: 2.6rem; line-height: 1; }
+.own-total span { font-size: 1.2rem; font-weight: 700; color: var(--muted); }
+.own-total em { font-style: normal; margin-left: auto; font-weight: 800; font-size: 1.2rem; color: var(--biro); }
+.own-tbl { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .92rem; }
+.own-tbl td { padding: 8px 6px; border-top: 1px solid var(--rule); vertical-align: top; }
+.own-tbl .ol { font-weight: 700; white-space: nowrap; width: 1%; }
+.own-tbl .om { font-weight: 800; white-space: nowrap; width: 1%; }
+.own-tbl .om small, .own-tbl .of small { display: block; font-weight: 600; color: var(--muted); font-size: .78rem; }
+.own-tbl tr.full .om { color: #1a7f37; } .own-tbl tr.zero .om { color: #c0392b; } .own-tbl tr.part .om { color: #b7791f; }
+#own-history { margin-top: 18px; }

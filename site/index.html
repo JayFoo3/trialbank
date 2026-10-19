@@ -338,13 +338,27 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <div class="card mk-balance" id="mk-balance"><p class="muted">Loading…</p></div>
     <div class="card mk-upload">
       <h2>Mark a paper</h2>
-      <p class="small muted">Pick the paper you sat, then upload photos of your working. The whole paper counts as one.</p>
-      <div class="mk-row">
-        <select id="mark-paper" aria-label="Which paper"><option value="">Pick the paper</option></select>
-        <button class="primary" id="mark-go">Upload my working</button>
+      <p class="small muted">Find the paper you sat, then upload photos of your working. The whole paper counts as one.</p>
+      <div class="mk-find">
+        <input id="mark-search" type="search" placeholder="Search a school or year, e.g. Ruse 2023" autocomplete="off" aria-label="Search for the paper">
+        <div class="mk-results" id="mark-results" role="listbox"></div>
       </div>
+      <select id="mark-paper" hidden aria-hidden="true"><option value="">Pick the paper</option></select>
       <p class="error" id="mk-error" hidden></p>
+      <button class="link small" id="own-open">Paper not on Trialbank? Upload it yourself</button>
     </div>
+    <div class="card mk-own" id="mk-own" hidden>
+      <h2>Mark any paper</h2>
+      <p class="small muted">Upload the paper, your working, and the solutions if you have them. Without solutions, the marker works each question out itself first. Your pages are sent to Anthropic's Claude for marking, then deleted from Trialbank.</p>
+      <div class="own-files">
+        <label class="own-f"><span><b>1. The paper</b><small>PDF or photos</small></span><input type="file" id="own-paper" accept="application/pdf,image/*" multiple></label>
+        <label class="own-f"><span><b>2. Your working</b><small>PDF or photos, with your multiple choice answers</small></span><input type="file" id="own-work" accept="application/pdf,image/*" multiple></label>
+        <label class="own-f"><span><b>3. Solutions</b><small>Optional, but marking is more reliable with them</small></span><input type="file" id="own-sol" accept="application/pdf,image/*" multiple></label>
+      </div>
+      <div class="mk-row"><button class="primary" id="own-go">Mark it</button><span class="small muted" id="own-status"></span></div>
+      <div id="own-result"></div>
+    </div>
+    <div id="own-history"></div>
     <ol class="mk-how">
       <li><b>Sit it</b><span>Do a full paper on paper, ideally on the clock.</span></li>
       <li><b>Snap it</b><span>Photograph each page of your working.</span></li>

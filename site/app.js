@@ -1714,13 +1714,80 @@
     } else await drawDaily();
     drawFriends().then(checkLevelUp);
   }
-  $('mark-go').onclick = async () => {
-    const id = Number($('mark-paper').value);
-    const p = markPapers.find(x => x.id === id) || homePapers.find(x => x.id === id);
-    if (!p) { $('mark-paper').focus(); return; }
-    $('mark-go').disabled = true; $('mk-error').hidden = true;
-    try { await busy(() => startMarking(p)); } catch (err) { $('mk-error').textContent = err.message; $('mk-error').hidden = false; } finally { $('mark-go').disabled = false; }
-  };
+  // ---------- marking: search for the paper instead of scrolling a giant list ----------
+  async function markPaper(p) {
+    $('mk-error').hidden = true;
+    try { await busy(() => startMarking(p)); } catch (err) { $('mk-error').textContent = err.message; $('mk-error').hidden = false; }
+  }
+  function drawMarkSearch() {
+    const box = $('mark-results'), q = $('mark-search').value.trim().toLowerCase();
+    const words = q.split(/\s+/).filter(Boolean);
+    const list = words.length ? markPapers.filter(p => words.every(w => `${p.school} ${p.year} ${p.difficulty || ''}`.toLowerCase().includes(w))) : markPapers.slice(0, 6);
+    box.innerHTML = list.length ? list.slice(0, 8).map(p => `<button type="button" class="mk-hit" data-id="${p.id}"><b>${esc(p.school)}</b><span>${p.year}${p.difficulty ? ' · ' + esc(p.difficulty) : ''}</span><em>Upload working ›</em></button>`).join('')
+      + (list.length > 8 ? `<p class="small muted">${list.length - 8} more. Keep typing to narrow it down.</p>` : '') + (!words.length ? '<p class="small muted">Newest papers. Type to search all of them.</p>' : '')
+      : '<p class="small muted">No paper matches that. Check the spelling, or upload it yourself below.</p>';
+  }
+  $('mark-search').oninput = drawMarkSearch;
+  $('mark-results').onclick = (ev) => { const b = ev.target.closest('.mk-hit'); if (!b) return; const p = markPapers.find(x => x.id === Number(b.dataset.id)); if (p) markPaper(p); };
+  $('own-open').onclick = () => { $('mk-own').hidden = false; $('mk-own').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+
+  // ---------- marking any paper: the student uploads the paper, their working and the solutions ----------
+  const OWN_KEY = () => 'tb_own_marks_' + (state.user?.id || '');
+  async function runOwnMark() {
+    const say = (t, err) => { $('own-status').textContent = t; $('own-status').className = 'small ' + (err ? 'error' : 'muted'); };
+    const P = $('own-paper').files, W = $('own-work').files, S = $('own-sol').files;
+    if (!P.length) return say('Add the paper first.', true);
+    if (!W.length) return say('Add your working.', true);
+    const btn = $('own-go'); btn.disabled = true; $('own-result').innerHTML = '';
+    const run = Date.now().toString(36), uid = state.user.id, paths = [];
+    const session = (crypto.randomUUID ? crypto.randomUUID() : run + Math.random().toString(36).slice(2)).replace(/[^\w-]/g, '');
+    try {
+      const up = async (files, prefix, max, label) => {
+        const blobs = (await filesToPages([...files], (t) => say(`${label}: ${t}`), 1500)).slice(0, max), out = [];
+        for (let i = 0; i < blobs.length; i++) {
+          say(`Uploading ${label.toLowerCase()} ${i + 1} of ${blobs.length}…`);
+          const path = `${uid}/${run}/${prefix}${String(i + 1).padStart(2, '0')}.jpg`;
+          const { error } = await sb.storage.from('submissions').upload(path, blobs[i], { contentType: 'image/jpeg', upsert: true });
+          if (error) throw error;
+          paths.push(path); out.push(path);
+        }
+        return out;
+      };
+      const paper_pages = await up(P, 'q', 24, 'Paper');
+      const pages = await up(W, 'p', 30, 'Your working');
+      const sol_pages = S.length ? await up(S, 's', 24, 'Solutions') : [];
+      say('Marking the whole paper… this takes one to two minutes. Keep this page open.');
+      const { data, error } = await sb.functions.invoke('automark', { body: { custom: true, subject: state.subject, paper_pages, sol_pages, pages, session } });
+      if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
+      const rec = { at: Date.now(), subject: state.subject, title: data.title || 'Your uploaded paper', results: data.results, sol: !!sol_pages.length };
+      const hist = (lsGet(OWN_KEY()) || []).filter(Boolean); hist.unshift(rec); lsSet(OWN_KEY(), hist.slice(0, 12));
+      say(''); $('own-result').innerHTML = ''; $('own-result').appendChild(ownResult(rec)); drawOwnHistory();
+      window.Juice?.sfx?.fanfare?.();
+    } catch (err) { say(err.message || String(err), true); }
+    finally { btn.disabled = false; drawMarkLeft(); if (paths.length) sb.storage.from('submissions').remove(paths).catch(() => {}); }
+  }
+  $('own-go').onclick = runOwnMark;
+  const LOST_NAME = { concept: "concept", method: 'method', algebra: 'algebra slip', careless: 'careless', time: 'unfinished', cfpe: 'CFPE' };
+  function ownResult(rec) {
+    const got = rec.results.reduce((a, r) => a + r.awarded, 0), of = rec.results.reduce((a, r) => a + r.out_of, 0);
+    const c = mk('div', 'own-res');
+    c.innerHTML = `<div class="own-total"><b>${got}</b><span>/ ${of}</span><em>${of ? Math.round(100 * got / of) : 0}%</em></div>
+      <p class="small muted">${esc(rec.title)} · ${C.subjects[rec.subject] || ''}${rec.sol ? '' : ' · marked without solutions, so double-check anything surprising'}</p>
+      <table class="own-tbl"><tbody>${rec.results.map(r => `<tr class="${r.awarded === r.out_of ? 'full' : r.awarded === 0 ? 'zero' : 'part'}">
+        <td class="ol">${esc(r.label)}</td><td class="om">${r.awarded}/${r.out_of}${r.correct ? `<small>${esc(r.choice || '–')} → ${esc(r.correct)}</small>` : ''}</td>
+        <td class="of">${esc(r.feedback)}${r.lost.filter(l => l.reason !== 'cfpe').length ? `<small>Lost: ${r.lost.filter(l => l.reason !== 'cfpe').map(l => LOST_NAME[l.reason] || l.reason).join(', ')}</small>` : ''}</td></tr>`).join('')}</tbody></table>`;
+    return c;
+  }
+  function drawOwnHistory() {
+    const box = $('own-history'); if (!box) return;
+    const hist = (lsGet(OWN_KEY()) || []).filter(r => r && r.subject === state.subject);
+    if (!hist.length) { box.innerHTML = ''; return; }
+    box.innerHTML = `<h2 class="sec">Papers you uploaded</h2><div class="list">${hist.map((r, i) => {
+      const got = r.results.reduce((a, x) => a + x.awarded, 0), of = r.results.reduce((a, x) => a + x.out_of, 0);
+      return `<button class="li" data-i="${i}"><span><strong>${esc(r.title)}</strong><span class="small muted">${new Date(r.at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} · ${got}/${of}</span></span><span class="go" aria-hidden="true">›</span></button>`;
+    }).join('')}</div>`;
+    box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { $('mk-own').hidden = false; $('own-result').innerHTML = ''; $('own-result').appendChild(ownResult(hist[Number(b.dataset.i)])); $('own-result').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  }
   $('quick-set').onclick = async () => {
     $('quick-error').hidden = true; $('quick-set').disabled = true;
     try {
@@ -2440,6 +2507,7 @@
     const sel = $('mark-paper'), keep = sel.value;
     sel.innerHTML = '<option value="">Pick the paper</option>' + markPapers.map(p => `<option value="${p.id}">${esc(p.school)} ${p.year}</option>`).join('');
     sel.value = keep;
+    drawMarkSearch(); drawOwnHistory();
     const next = new Date(); next.setUTCMonth(next.getUTCMonth() + 1, 1);
     const reset = next.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
     const lite = state.release?.lite && !state.admin;
@@ -3366,12 +3434,12 @@
   }
   const LONG_SIDE = 1900, MAX_PAGES = 30;
   const toJpeg = (cv) => new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.75));
-  function fitCanvas(w, h) {
-    const k = Math.min(1, LONG_SIDE / Math.max(w, h));
+  function fitCanvas(w, h, side = LONG_SIDE) {
+    const k = Math.min(1, side / Math.max(w, h));
     const cv = document.createElement('canvas'); cv.width = Math.round(w * k); cv.height = Math.round(h * k);
     return { cv, k };
   }
-  async function filesToPages(files, step) {
+  async function filesToPages(files, step, side = LONG_SIDE) {
     const out = [];
     for (const f of files) {
       if (out.length >= MAX_PAGES) break;
@@ -3382,7 +3450,7 @@
           step(`Reading page ${out.length + 1}…`);
           const pg = await doc.getPage(i);
           const v = pg.getViewport({ scale: 1 });
-          const scale = LONG_SIDE / Math.max(v.width, v.height);
+          const scale = side / Math.max(v.width, v.height);
           const vp = pg.getViewport({ scale });
           const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
           const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -3394,7 +3462,7 @@
         let bmp;
         try { bmp = await createImageBitmap(f, { imageOrientation: 'from-image' }); }
         catch { throw new Error(`Couldn't read ${f.name}. Use JPEG/PNG photos or a PDF.`); }
-        const { cv, k } = fitCanvas(bmp.width, bmp.height);
+        const { cv, k } = fitCanvas(bmp.width, bmp.height, side);
         cv.getContext('2d').drawImage(bmp, 0, 0, bmp.width * k, bmp.height * k);
         out.push(await toJpeg(cv));
       }
