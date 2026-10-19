@@ -1467,3 +1467,26 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
   .tu-start-row .primary { flex: 1 1 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .tu-msg, .tu-msg.typing span { animation: none; } }
+/* header: wider than the page column so six tabs, the subject and the tools never crowd or spill */
+.top-in { max-width: 1240px; }
+.calc-btn { background: none !important; border-color: transparent; box-shadow: none !important; color: var(--muted); }
+.calc-btn:hover { color: var(--ink); background: var(--hover) !important; }
+@media (min-width: 961px) and (max-width: 1279px) {
+  .mainnav { gap: 2px; }
+  .mainnav a { padding: 6px 10px; }
+  .mainnav svg { display: none; }
+  .top-in { gap: 14px; }
+  .top-right { gap: 6px; }
+}
+@media (min-width: 641px) and (max-width: 960px) {
+  .mainnav a { padding: 6px 7px; font-size: .95rem; }
+  .top-right { gap: 4px; }
+  .subject .subj-btn { max-width: 118px; overflow: hidden; text-overflow: ellipsis; padding-left: 10px; padding-right: 8px; }
+  .calc-btn, .timer-btn { width: 36px; min-width: 36px; height: 36px; padding: 0; }
+}
+/* small tablets: tabs get their own row under the brand and tools */
+@media (min-width: 641px) and (max-width: 880px) {
+  .top-in { flex-wrap: wrap; row-gap: 4px; }
+  .mainnav { order: 3; flex-basis: 100%; justify-content: space-between; }
+  .mainnav a { flex: 1 1 0; justify-content: center; }
+}
