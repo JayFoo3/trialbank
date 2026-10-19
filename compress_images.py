@@ -87,7 +87,10 @@ def main():
             old = sizes.get(path) if not DRY else None
             if not DRY and old is None:
                 continue                                   # not uploaded under this name
-            new = encode(src)
+            try:
+                new = encode(src)
+            except Exception as ex:                        # a damaged local file: leave the stored image as it is
+                print(f'  skipped {path}: {ex}'); continue
             ref = old if old else len(new)
             if DRY:
                 b = io.BytesIO(); Image.open(src).convert('RGB').save(b, 'WEBP', quality=85, method=4); ref = b.tell()
