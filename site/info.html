@@ -42,6 +42,15 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   .policy p, .policy ul { margin: 0 0 8px; }
   .info-foot { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
   @media (max-width: 560px) { .free { grid-template-columns: 1fr; } }
+  .free-banner { margin: 18px 0 0; padding: 14px 18px; border-radius: var(--r); background: var(--good-soft); color: var(--good-dark); font-size: 1.05rem; }
+  .cmp { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-lg); overflow: hidden; }
+  .cmp th, .cmp td { padding: 11px 14px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+  .cmp tbody tr:last-child td { border-bottom: 0; }
+  .cmp thead th { font-family: var(--display); font-size: 1.05rem; }
+  .cmp .c-free, .cmp .c-pack { text-align: center; width: 28%; }
+  .cmp thead .c-free { color: var(--good-dark); background: var(--good-soft); }
+  .cmp tbody .c-free { color: var(--good-dark); font-weight: 700; }
+  .cmp tbody td:first-child { font-weight: 700; }
   .toc { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 22px 0 0; font-weight: 700; }
   .toc a { color: var(--biro); text-decoration: none; }
 </style>
@@ -50,30 +59,35 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 <main class="info">
   <div class="info-top">
     <a class="info-brand" href="./">trialbank</a>
-    <a class="open-btn" href="./">Open Trialbank</a>
+    <a class="open-btn" href="./">Sign up free</a>
   </div>
 
   <h1>HSC exam practice, built from past trial papers.</h1>
   <p class="lede">Trialbank sorts every question from past HSC and trial papers by topic, so you can practise exactly what you're weak at, sit full papers on the clock, and have your handwritten working marked.</p>
-  <nav class="toc" aria-label="On this page"><a href="#pricing">Pricing</a><a href="#contact">Contact</a><a href="#refunds">Refunds</a><a href="#terms">Terms of use</a><a href="#privacy">Privacy</a></nav>
+  <p class="free-banner"><b>Trialbank is free to use.</b> Creating an account costs nothing and needs no card. Marking packs are an optional extra.</p>
+  <nav class="toc" aria-label="On this page"><a href="#pricing">Marking packs</a><a href="#contact">Contact</a><a href="#refunds">Refunds</a><a href="#terms">Terms of use</a><a href="#privacy">Privacy</a></nav>
 
-  <h2>What's included</h2>
-  <ul class="free">
-    <li>Past papers<span>HSC and trial papers, viewable and downloadable</span></li>
-    <li>Topic practice<span>Questions sorted by syllabus topic, with worked solutions</span></li>
-    <li>Timed exams<span>Full papers under real exam timing</span></li>
-    <li>Auto-marking<span>Upload photos of your working and get it marked against the marking guidelines</span></li>
-  </ul>
-  <p class="fine">Which of these an account can use depends on its access level. Students at partner schools get free access; auto-marking also has a small free allowance each month.</p>
+  <h2>Free or paid?</h2>
+  <div class="tbl-wrap"><table class="cmp">
+    <thead><tr><th></th><th class="c-free">Free account</th><th class="c-pack">With a marking pack</th></tr></thead>
+    <tbody>
+      <tr><td>Create an account</td><td class="c-free"><b>Free</b></td><td class="c-pack">Free</td></tr>
+      <tr><td>Past HSC papers and topic practice</td><td class="c-free">✓</td><td class="c-pack">✓</td></tr>
+      <tr><td>Every past trial paper</td><td class="c-free">Partner schools</td><td class="c-pack">✓</td></tr>
+      <tr><td>Timed exams, weak spots and Progress</td><td class="c-free">Partner schools</td><td class="c-pack">✓</td></tr>
+      <tr><td>Auto-marking of your working</td><td class="c-free">Partner schools, small monthly allowance</td><td class="c-pack">✓ one mark per paper</td></tr>
+    </tbody>
+  </table></div>
+  <p class="fine">Partner schools get their students free access; which tools are switched on can change through the year. Buying any marking pack unlocks every paper and tool on your account, not just auto-marking.</p>
 
-  <h2 id="pricing">Pricing: marking packs</h2>
-  <p>Marking packs add auto-marks to your account. <b>One mark auto-marks one full paper you upload.</b> Packs are one-off purchases, not subscriptions, and bought marks never expire.</p>
+  <h2 id="pricing">Optional: marking packs</h2>
+  <p>You never have to buy anything to use Trialbank. If you want your papers auto-marked, a pack adds marks to your account: <b>one mark auto-marks one full paper you upload.</b> Packs are one-off purchases, not subscriptions, and bought marks never expire.</p>
   <div class="packs" id="packs">
     <div class="pack"><span class="tag"></span><div class="n">10</div><div class="u">marks</div><div class="price">$4.99</div><div class="each">50c a paper</div></div>
     <div class="pack best"><span class="tag">Most popular</span><div class="n">25</div><div class="u">marks</div><div class="price">$9.99</div><div class="each">40c a paper</div></div>
     <div class="pack"><span class="tag">Best value</span><div class="n">60</div><div class="u">marks</div><div class="price">$19.99</div><div class="each">33c a paper</div></div>
   </div>
-  <p class="fine">Prices are in Australian dollars. Payments are processed securely by Stripe; Trialbank never sees or stores your card details.</p>
+  <p class="fine">One-off payments in Australian dollars, processed securely by Stripe. Trialbank never sees or stores your card details. Nothing renews automatically.</p>
 
   <h2 id="contact">Contact</h2>
   <div class="policy">

@@ -217,9 +217,9 @@
   let signup = false;
   $('auth-toggle').onclick = () => {
     signup = !signup;
-    $('auth-title').textContent = signup ? 'Create account' : 'Sign in';
-    $('auth-submit').textContent = signup ? 'Create account' : 'Sign in';
-    $('auth-toggle').textContent = signup ? 'Already have an account? Sign in' : 'New here? Create an account';
+    $('auth-title').textContent = signup ? 'Create your free account' : 'Sign in';
+    $('auth-submit').textContent = signup ? 'Create free account' : 'Sign in';
+    $('auth-toggle').textContent = signup ? 'Already have an account? Sign in' : 'New here? Create a free account';
     $('invite-row').hidden = !signup;
   };
   $('auth-form').onsubmit = async (e) => {
@@ -1301,7 +1301,7 @@
     const n = pdf.getNumberOfPages();
     for (let p = 1; p <= n; p++) {
       pdf.setPage(p); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(130);
-      pdf.text(`Trialbank  ·  for study within our school only  ·  page ${p} of ${n}`, W / 2, H - 7, { align: 'center' });
+      pdf.text(`Trialbank  ·  for personal study  ·  page ${p} of ${n}`, W / 2, H - 7, { align: 'center' });
     }
     pdf.save(filename);
   }
