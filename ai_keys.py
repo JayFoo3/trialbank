@@ -40,7 +40,7 @@ if '--push' in sys.argv:   # (re)send every saved AI answer to Supabase, e.g. af
     for qid, ans in sorted(ai.items()):
         r = requests.patch(f'{URL}/rest/v1/questions?id=eq.{qid}&answer=is.null', headers=H, data=json.dumps({'answer': ans, 'answer_source': 'ai'}), timeout=60)
         if r.status_code >= 300: sys.exit(f'{qid}: {r.status_code} {r.text[:200]}')
-    sys.exit(f'pushed {len(ai)} saved AI answers (questions that already had a key were left alone)')
+    print(f'pushed {len(ai)} saved AI answers (questions that already had a key were left alone)'); sys.exit(0)
 added = 0
 for mp in sorted(glob.glob(os.path.join(HERE, 'output', '*', 'manifest.json'))):
     m = json.load(open(mp)); slug = m['slug']
