@@ -600,6 +600,8 @@
     $('star').textContent = '☆ Star';
     loadStars().then(s => { $('star').textContent = s.has(x.id) ? '★ Starred' : '☆ Star'; });
     $('star').onclick = () => toggleStar(x.id, $('star'));
+    $('ask-tutor').hidden = !(tuAllowed() && tuSubjects().includes(x.papers.subject) && x.image_path && !x.content);
+    $('ask-tutor').onclick = () => askTutor(x);
     $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true;
     $('next').hidden = true; $('skip').hidden = false;
     $('mcq-controls').hidden = x.type !== 'mcq' || !!x.syllabus_note;
@@ -3093,6 +3095,7 @@
     $('tu-sub').textContent = `${C.subjects[subj]} · prototype`;
     drawTuModes();
     $('tu-start').hidden = tu.active; $('tu-session').hidden = !tu.active; $('tu-end').hidden = !tu.active;
+    if (tu.handoff) { const q = tu.handoff; tu.handoff = null; tuStart(false, q); return; }
     if (tu.active) { tuDraw(); return; }
     const [{ data: tc }, { data: notes }] = await Promise.all([
       sb.from('topic_counts').select('topic, n, type').eq('subject', subj),
@@ -3167,28 +3170,52 @@
     const p = tu.paths.splice(0);
     if (p.length) sb.storage.from('submissions').remove(p).catch(() => {});
   }
-  async function tuStart(own = false) {
+  async function tuStart(own = false, given = null) {
     if (tu.busy) return;
     $('tu-error').hidden = true;
     const btn = $('tu-go'); btn.disabled = true;
     try {
-      await tuCleanup();
-      const subj = tuSubject();
-      tu.session = Date.now().toString(36); tu.msgs = []; tu.chunks = {}; tu.done = null; tu.slipped = false; tu.pending = []; tu.n = 0;
-      tu.q = own ? null : await tuPick(subj);
-      if (tu.q) {
-        await attachUrls([tu.q]);
-        tu.seen.add(tu.q.id); lsSet('tb_tu_seen', [...tu.seen].slice(-400));
-        tu.chunks = await sliceTallImages([tu.q], `${state.user.id}/tutor-${tu.session}`, () => {}, tu.paths);
-      }
-      tu.active = true;
-      $('tu-start').hidden = true; $('tu-session').hidden = false; $('tu-end').hidden = false;
-      tuDrawQuestion();
+      await tuLoad(given || (own ? null : await tuPick(tuSubject())));
+      if (given?.ask) { await tuSend(given.ask); return; }
       if (own) { tu.msgs.push({ role: 'tutor', text: "Send me the question you're stuck on: a photo is easiest, or type it out. Then tell me what you've tried so far." }); tuDraw(); }
       else await tuSend();
     } catch (err) {
       $('tu-error').textContent = err.message || String(err); $('tu-error').hidden = false;
     } finally { btn.disabled = false; }
+  }
+  // load a question (or none, for their own) as a fresh conversation
+  async function tuLoad(q) {
+    await tuCleanup();
+    tu.session = Date.now().toString(36); tu.msgs = []; tu.chunks = {}; tu.done = null; tu.slipped = false; tu.n = 0;
+    tu.q = q;
+    if (q) {
+      await attachUrls([q]);
+      tu.seen.add(q.id); lsSet('tb_tu_seen', [...tu.seen].slice(-400));
+      tu.chunks = await sliceTallImages([q], `${state.user.id}/tutor-${tu.session}`, () => {}, tu.paths);
+    }
+    tu.active = true;
+    $('tu-start').hidden = true; $('tu-session').hidden = false; $('tu-end').hidden = false;
+    tuDrawQuestion();
+  }
+  // "James Ruse 2025 11a", "HSC 2023 Q14(b)": find that question in the bank
+  let tuPapers = null;
+  async function tuFind(text, subj) {
+    const t = ' ' + String(text).toLowerCase().replace(/[^a-z0-9()]+/g, ' ') + ' ';
+    const y = t.match(/\b(20[0-3]\d)\b/); if (!y) return null;
+    const rest = t.replace(y[0], ' ');
+    const m = rest.match(/(?:^|\s)(?:q|question)?\s*(\d{1,2})\s*\(?\s*([a-h])?\s*\)?\s*(?:\(?\s*(iv|v|i{1,3})\s*\)?)?(?=\s)/);
+    if (!m) return null;
+    if (!tuPapers || tuPapers.subj !== subj) { const { data } = await sb.from('papers').select('id, slug, school, year, difficulty').eq('subject', subj); tuPapers = { subj, rows: data || [] }; }
+    const norm = (x) => String(x).toLowerCase().replace(/[^a-z]/g, ''), flat = norm(rest);
+    const p = tuPapers.rows.filter(r => r.year == y[1] && norm(r.school) && flat.includes(norm(r.school))).sort((a, b) => norm(b.school).length - norm(a.school).length)[0];
+    if (!p) return null;
+    const { data: qs } = await sb.from('questions').select('id, qid, number, part, type, marks, topic, image_path, solution_path, content').eq('paper_id', p.id);
+    const list = (qs || []).filter(q => q.image_path && !q.content).sort((a, b) => a.qid.localeCompare(b.qid));
+    const base = 'q' + m[1].padStart(2, '0'), part = (m[2] || '') + (m[3] || '');
+    const q = list.find(q => q.qid === base + part) || (m[2] && list.find(q => q.qid.startsWith(base + m[2]))) || list.find(q => q.qid === base) || list.find(q => q.qid.startsWith(base));
+    if (!q) return { missing: `${p.school} ${p.year} Q${m[1]}${m[2] || ''}` };
+    const ask = part && !q.part ? `I'm doing part (${m[2]})${m[3] ? `(${m[3]})` : ''}.` : null;   // the bank has the whole question: say which part
+    return { ...q, ask, papers: { subject: subj, school: p.school, year: p.year, difficulty: p.difficulty } };
   }
   function tuDrawQuestion() {
     const q = tu.q, card = $('tu-q');
@@ -3236,6 +3263,10 @@
   async function tuSend(text) {
     if (tu.busy) return;
     text = (text || '').trim();
+    if (text && /\b20[0-3]\d\b/.test(text)) {   // they named a question: switch to it
+      const f = await tuFind(text, tuSubject()).catch(() => null);
+      if (f && f.id && f.id !== tu.q?.id) { try { await tuLoad(f); } catch (err) { console.warn(err); } }
+    }
     const files = tu.pending.splice(0);
     tu.busy = true; tuDraw(); drawTuPending();
     try {
@@ -3303,6 +3334,15 @@
   $('tu-send').onclick = tuSubmit;
   $('tu-go').onclick = () => { tu.topic = $('tu-topic').value; tu.focus = null; tuStart(false); };
   $('tu-own').onclick = () => tuStart(true);
+  $('tu-ref').onsubmit = async (ev) => {
+    ev.preventDefault();
+    const v = $('tu-ref-in').value.trim(); if (!v) return;
+    $('tu-error').hidden = true;
+    const f = await tuFind(v, tuSubject()).catch(() => null);
+    if (!f || !f.id) { $('tu-error').textContent = f?.missing ? `${f.missing} isn't in the bank yet.` : "I couldn't find that one. Try it like: James Ruse 2025 11a"; $('tu-error').hidden = false; return; }
+    $('tu-ref-in').value = ''; tuStart(false, f);
+  };
+  function askTutor(q) { tu.handoff = q; if (location.hash === '#tutor') renderTutor(); else location.hash = '#tutor'; }
   $('tu-end').onclick = () => { tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; renderTutor(); };
   document.querySelectorAll('#tu-quick [data-say]').forEach(b => { b.onclick = () => tuSend(b.dataset.say); });
   $('tu-symbtn').onclick = () => { const s = $('tu-syms'); s.hidden = !s.hidden; $('tu-symbtn').setAttribute('aria-expanded', !s.hidden); };

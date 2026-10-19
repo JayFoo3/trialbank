@@ -1403,6 +1403,8 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .tu-start-row select { flex: 1 1 220px; min-width: 0; }
 .tu-start-row .primary { flex: 0 0 auto; padding-left: 28px; padding-right: 28px; font-size: 1.05rem; }
 #tu-own { margin-top: 12px; }
+.tu-ref { display: flex; gap: 8px; margin-top: 12px; }
+.tu-ref input { flex: 1; min-width: 0; }
 .tu-learnt { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--rule); }
 .tu-learnt ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
 

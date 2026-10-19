@@ -241,6 +241,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <button class="link" id="set-exit">✕ Exit</button>
       <span class="small" id="set-pos"></span>
       <button class="link" id="star">☆ Star</button>
+      <button class="link" id="ask-tutor" hidden>Ask the tutor</button>
     </div>
     <div class="progress"><div id="set-bar"></div></div>
     <p class="small muted" id="set-meta"></p>
@@ -358,7 +359,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
         <select id="tu-topic" aria-label="Topic"><option value="">My weak spots</option></select>
         <button class="primary" id="tu-go">Start</button>
       </div>
-      <button class="link small" id="tu-own" hidden>Or bring my own question</button>
+      <form class="tu-ref" id="tu-ref"><input id="tu-ref-in" placeholder="Or name one: James Ruse 2025 11a" aria-label="Name a question" autocomplete="off"><button>Go</button></form>
+      <button class="link small" id="tu-own" hidden>Or bring my own question (photo)</button>
       <p class="error" id="tu-error" hidden></p>
       <div class="small tu-learnt" id="tu-learnt"></div>
     </div>
