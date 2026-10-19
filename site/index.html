@@ -32,6 +32,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <a href="#home" data-nav="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></a>
       <a href="#practise" data-nav="practise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10"/></svg><span>Practise</span></a>
       <a href="#papers" data-nav="papers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/></svg><span>Papers</span></a>
+      <a href="#tutor" data-nav="tutor" id="nav-tutor" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10h6"/></svg><span>Tutor</span></a>
       <a href="#mark" data-nav="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="m8 14 3 3 5-6"/></svg><span>Marking</span><b class="nav-badge" id="nav-marks" hidden></b></a>
       <a href="#progress" data-nav="progress" data-feature="progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Progress</span></a>
     </nav>
@@ -341,6 +342,49 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <li><b>Snap it</b><span>Photograph each page of your working.</span></li>
       <li><b>Get marked</b><span>Marks and feedback for every question, plus where you lost marks.</span></li>
     </ol>
+  </section>
+
+  <section id="view-tutor" class="view" hidden>
+    <div class="tu-head">
+      <div><h1>Tutor</h1><p class="small muted" id="tu-sub"></p></div>
+      <button class="link small" id="tu-end" hidden>New session</button>
+    </div>
+    <div class="tu-modes" role="tablist" aria-label="How do you want to work?" id="tu-modes"></div>
+    <p class="small muted tu-modehint" id="tu-modehint"></p>
+    <div class="card tu-start" id="tu-start">
+      <h2>One step at a time, on real past questions</h2>
+      <p class="muted">I pick a question from your weak spots, check each step against the marking guidelines, and make the next one easier or harder depending on how you go.</p>
+      <div class="tu-start-row">
+        <select id="tu-topic" aria-label="Topic"><option value="">My weak spots</option></select>
+        <button class="primary" id="tu-go">Start</button>
+      </div>
+      <button class="link small" id="tu-own" hidden>Or bring my own question</button>
+      <p class="error" id="tu-error" hidden></p>
+      <div class="small tu-learnt" id="tu-learnt"></div>
+    </div>
+    <div id="tu-session" hidden>
+      <div class="card question tu-q" id="tu-q">
+        <div class="tu-qbar small"><span id="tu-qmeta"></span><button class="link small" id="tu-qtoggle">Hide</button></div>
+        <img id="tu-qimg" alt="The question">
+      </div>
+      <div class="tu-thread" id="tu-thread" aria-live="polite"></div>
+      <div class="tu-done" id="tu-done" hidden></div>
+      <div class="tu-compose">
+        <div class="tu-quick" id="tu-quick">
+          <button data-say="Can I have a hint?">Hint</button>
+          <button data-say="Can you explain that differently?">Explain it differently</button>
+          <button data-say="Can you show me just this step?">Show this step</button>
+          <button id="tu-symbtn" aria-expanded="false" aria-controls="tu-syms">Symbols</button>
+        </div>
+        <div class="tu-syms" id="tu-syms" hidden></div>
+        <div class="tu-photos" id="tu-photos" hidden></div>
+        <div class="tu-input">
+          <label class="tu-cam" title="Add a photo of your working" aria-label="Add a photo of your working"><input type="file" accept="image/*" id="tu-file" multiple hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></label>
+          <textarea id="tu-text" rows="1" placeholder="Your answer or working…" aria-label="Message the tutor"></textarea>
+          <button class="primary tu-send" id="tu-send" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section id="view-paper" class="view" hidden>

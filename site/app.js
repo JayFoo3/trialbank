@@ -25,7 +25,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { storage: durable, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
-  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark'];
+  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty)';
 
   document.title = C.name;
@@ -40,9 +40,9 @@
   };
 
   // ---------- routing ----------
-  const NAV = { mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers' };
+  const NAV = { tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers' };
   // page transitions: iOS-style push going deeper, pop going back, a quick fade between tabs
-  const DEPTH = { mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, paper: 1, set: 2, examrun: 2, summary: 3 };
+  const DEPTH = { tutor: 0, mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, paper: 1, set: 2, examrun: 2, summary: 3 };
   const canVT = !!document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (canVT) document.documentElement.classList.add('has-vt');
   let shown = null;
@@ -84,6 +84,7 @@
       if (h === 'summary' && state.set) return show('summary');
       if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
       if (h === 'mark') { show('mark'); await renderMark(); return; }
+      if (h === 'tutor' && tuAllowed()) { show('tutor'); await renderTutor(); return; }
       if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
       if (h === 'examrun' || h === 'exam') {
         if (state.exam) return show('examrun');
@@ -311,6 +312,7 @@
     if (state.user && !state.preview) { const { data: rel } = await sb.rpc('my_release'); if (rel) state.release = rel; }
     applyRelease();
     $('nav-admin').hidden = !state.admin;
+    $('nav-tutor').hidden = !tuAllowed();
     $('preview-new').hidden = !state.admin || state.preview;
     if (!state.admin) { state.preview = false; state.viewAs = null; }
     $('view-as-row').hidden = !state.admin; $('view-as').value = state.viewAs || '';
@@ -3040,6 +3042,276 @@
       e.ai[q.id] = { found: x.found, awarded: x.awarded, out_of: x.out_of, feedback: x.feedback };
     });
   }
+
+  // ---------- tutor (prototype): one step at a time on real past questions, adapting to each student ----------
+  const TU_MODES = {
+    quiz: ['Quiz me', 'One step at a time. You answer, I check, then we go on.'],
+    teach: ['Teach me', 'The idea behind it first, then you have a go.'],
+    stuck: ["I'm stuck", "Hints that only get stronger if you need them. Bring your own question if you like."],
+    check: ['Check my work', 'Do it on paper, send a photo, and I mark it against the guidelines.'],
+  };
+  const TU_LEVEL = { 1: [1, 2], 2: [2, 3], 3: [3, 6] };
+  const TU_LEVEL_NAME = { 1: 'warm-up', 2: 'standard', 3: 'harder' };
+  const TU_SYMS = ['²', '³', '√', 'π', 'θ', '∫', 'dx', '≤', '≥', '≠', '∞', 'ln', 'eˣ', '±', '°', '→'];
+  const tu = { mode: lsGet('tb_tu_mode') || 'quiz', level: lsGet('tb_tu_level') || 2, q: null, msgs: [], chunks: {}, paths: [], pending: [],
+    busy: false, done: null, active: false, session: null, topic: '', focus: null, slipped: false, seen: new Set(lsGet('tb_tu_seen') || []), n: 0 };
+  const tuAllowed = () => !!state.user && !state.preview && (state.admin || !!(C.tutor && C.tutor.open));
+  const tuSubjects = () => (C.tutor && C.tutor.subjects) || ['Adv'];
+  const tuSubject = () => tuSubjects().includes(state.subject) ? state.subject : tuSubjects()[0];
+
+  let katexP = null;
+  function loadKatex() {
+    if (window.katex) return Promise.resolve();
+    if (katexP) return katexP;
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css';
+    document.head.appendChild(css);
+    katexP = new Promise((res, rej) => {
+      const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js';
+      s.onload = res; s.onerror = () => { katexP = null; rej(new Error('maths renderer did not load')); };
+      document.head.appendChild(s);
+    });
+    return katexP;
+  }
+  // a little markdown (bold, italics, paragraphs) with LaTeX maths rendered by KaTeX
+  function tuRich(t) {
+    const math = [];
+    let s = String(t || '').replace(/\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\$([^$\n]+?)\$|\\\(([\s\S]+?)\\\)/g, (m, a, b, c, d) => {
+      math.push([a ?? b ?? c ?? d, a != null || b != null]); return `\u0000${math.length - 1}\u0000`;
+    });
+    s = esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1<i>$2</i>')
+      .replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>');
+    s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => {
+      const [tex, disp] = math[+i];
+      try { return window.katex ? katex.renderToString(tex, { displayMode: disp, throwOnError: false }) : esc(tex); } catch { return esc(tex); }
+    });
+    return `<p>${s}</p>`;
+  }
+
+  async function renderTutor() {
+    loadKatex().catch(() => {});
+    const subj = tuSubject();
+    $('tu-sub').textContent = `${C.subjects[subj]} · prototype`;
+    drawTuModes();
+    $('tu-start').hidden = tu.active; $('tu-session').hidden = !tu.active; $('tu-end').hidden = !tu.active;
+    if (tu.active) { tuDraw(); return; }
+    const [{ data: tc }, { data: notes }] = await Promise.all([
+      sb.from('topic_counts').select('topic, n, type').eq('subject', subj),
+      sb.from('tutor_notes').select('notes').eq('subject', subj).maybeSingle(),
+    ]);
+    const topics = [...new Set((tc || []).filter(r => r.type === 'short' && r.topic && r.n >= 5).map(r => r.topic))].sort((a, b) => topicName(a).localeCompare(topicName(b)));
+    $('tu-topic').innerHTML = '<option value="">My weak spots</option>' + topics.map(t => `<option value="${esc(t)}">${esc(topicName(t))}</option>`).join('');
+    $('tu-topic').value = tu.topic && topics.includes(tu.topic) ? tu.topic : '';
+    const n = notes?.notes || [];
+    $('tu-learnt').innerHTML = n.length ? `<b>What I've learnt about how you work</b><ul>${n.slice(-3).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`
+      : '<span class="muted">I learn how you like to work as we go, and remember it next time.</span>';
+  }
+  function drawTuModes() {
+    const box = $('tu-modes'); box.innerHTML = '';
+    Object.entries(TU_MODES).forEach(([k, [label]]) => {
+      const b = mk('button', k === tu.mode ? 'on' : '', esc(label));
+      b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', k === tu.mode);
+      b.onclick = () => tuSetMode(k);
+      box.appendChild(b);
+    });
+    $('tu-modehint').textContent = TU_MODES[tu.mode][1];
+    $('tu-go').textContent = tu.mode === 'check' ? 'Give me a question' : 'Start';
+    $('tu-own').hidden = tu.mode !== 'stuck';
+    $('tu-text').placeholder = tu.mode === 'check' ? 'Send a photo of your working, or type it…' : 'Your answer or working…';
+  }
+  function tuSetMode(k) {
+    if (k === tu.mode) return;
+    tu.mode = k; lsSet('tb_tu_mode', k); drawTuModes();
+    if (tu.active && !tu.busy) { tu.msgs.push({ role: 'student', sys: true, text: `(Switched to ${TU_MODES[k][0]} mode.)` }); tuSend(); }
+  }
+
+  async function tuPick(subj) {
+    const [{ data: stats }, { data: slips }, { data: tc }, { data: seen }] = await Promise.all([
+      sb.from('my_topic_stats').select('topic, attempts, score, out_of').eq('subject', subj),
+      sb.from('tutor_slips').select('topic, created_at').eq('subject', subj).order('created_at', { ascending: false }).limit(30),
+      sb.from('topic_counts').select('topic, n, type').eq('subject', subj),
+      sb.from('attempts').select('question_id').eq('user_id', state.user.id).order('created_at', { ascending: false }).limit(500),
+    ]);
+    const skip = skipped(subj);
+    const topics = [...new Set((tc || []).filter(r => r.type === 'short' && r.topic && r.n >= 5).map(r => r.topic))].filter(t => !skip.has(t));
+    let topic = tu.topic || tu.focus;
+    const order = [];
+    if (!topic || !topics.includes(topic)) {
+      // weak spots first: low accuracy, recent slips, and topics never tried all pull harder
+      const st = Object.fromEntries((stats || []).map(r => [r.topic, r]));
+      const sl = {}; (slips || []).forEach((r, i) => { if (r.topic) sl[r.topic] = (sl[r.topic] || 0) + (i < 10 ? 1 : 0.5); });
+      const w = topics.map(t => { const r = st[t], acc = r && r.out_of ? r.score / r.out_of : null; return [t, 0.4 + (acc == null ? 0.9 : (1 - acc) * 2.2) + (sl[t] || 0) * 0.7]; });
+      let x = Math.random() * w.reduce((a, [, v]) => a + v, 0);
+      topic = (w.find(([, v]) => (x -= v) <= 0) || w[0] || [null])[0];
+      order.push(...w.sort((a, c) => c[1] - a[1]).map(([t]) => t).filter(t => t !== topic));   // fallbacks, weakest first
+    }
+    if (!topic) throw new Error('No topics are ready for the tutor yet.');
+    for (const t of [topic, ...order.slice(0, 4)]) {
+      const q = await tuPickIn(subj, t, seen);
+      if (q) return q;
+    }
+    throw new Error('No questions on that topic yet. Pick another.');
+  }
+  async function tuPickIn(subj, topic, seen) {
+    const seenIds = new Set([...(seen || []).map(a => a.question_id), ...tu.seen]);
+    const [lo, hi] = TU_LEVEL[tu.level] || TU_LEVEL[2];
+    const base = () => sb.from('questions').select('id, qid, number, part, type, marks, topic, image_path, solution_path, papers!inner(subject, school, year, difficulty)')
+      .eq('papers.subject', subj).eq('topic', topic).eq('type', 'short').not('image_path', 'is', null).not('solution_path', 'is', null).is('syllabus_note', null).limit(300);
+    let { data, error } = await base().gte('marks', lo).lte('marks', hi);
+    if (error) throw error;
+    let pool = (data || []).filter(q => !seenIds.has(q.id));
+    if (!pool.length) { ({ data } = await base()); pool = (data || []).filter(q => !seenIds.has(q.id)); if (!pool.length) pool = data || []; }
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+  }
+
+  async function tuCleanup() {
+    const p = tu.paths.splice(0);
+    if (p.length) sb.storage.from('submissions').remove(p).catch(() => {});
+  }
+  async function tuStart(own = false) {
+    if (tu.busy) return;
+    $('tu-error').hidden = true;
+    const btn = $('tu-go'); btn.disabled = true;
+    try {
+      await tuCleanup();
+      const subj = tuSubject();
+      tu.session = Date.now().toString(36); tu.msgs = []; tu.chunks = {}; tu.done = null; tu.slipped = false; tu.pending = []; tu.n = 0;
+      tu.q = own ? null : await tuPick(subj);
+      if (tu.q) {
+        await attachUrls([tu.q]);
+        tu.seen.add(tu.q.id); lsSet('tb_tu_seen', [...tu.seen].slice(-400));
+        tu.chunks = await sliceTallImages([tu.q], `${state.user.id}/tutor-${tu.session}`, () => {}, tu.paths);
+      }
+      tu.active = true;
+      $('tu-start').hidden = true; $('tu-session').hidden = false; $('tu-end').hidden = false;
+      tuDrawQuestion();
+      if (own) { tu.msgs.push({ role: 'tutor', text: "Send me the question you're stuck on: a photo is easiest, or type it out. Then tell me what you've tried so far." }); tuDraw(); }
+      else await tuSend();
+    } catch (err) {
+      $('tu-error').textContent = err.message || String(err); $('tu-error').hidden = false;
+    } finally { btn.disabled = false; }
+  }
+  function tuDrawQuestion() {
+    const q = tu.q, card = $('tu-q');
+    card.hidden = !q;
+    if (!q) return;
+    $('tu-qmeta').textContent = `${q.papers.school} ${q.papers.year} ${label(q)} · ${marksText(q.marks)} · ${topicName(q.topic)}`;
+    const im = $('tu-qimg'); im.dataset.trimmed = ''; im.crossOrigin = 'anonymous'; im.onload = () => trimImg(im); im.src = q.imageUrl;
+    card.classList.remove('folded'); $('tu-qtoggle').textContent = 'Hide';
+  }
+  $('tu-qtoggle').onclick = () => { const f = $('tu-q').classList.toggle('folded'); $('tu-qtoggle').textContent = f ? 'Show question' : 'Hide'; };
+
+  function tuDraw() {
+    const th = $('tu-thread'); th.innerHTML = '';
+    tu.msgs.forEach((m, i) => {
+      if (m.sys) { th.appendChild(mk('div', 'tu-sys', esc(m.text.replace(/^\(|\)$/g, '')))); return; }
+      const el = mk('div', 'tu-msg ' + m.role + (m.error ? ' err' : ''));
+      if (m.thumbs?.length) { const ph = mk('div', 'tu-pics'); m.thumbs.forEach(u => { const im = mk('img'); im.src = u; im.alt = 'Your working'; ph.appendChild(im); }); el.appendChild(ph); }
+      if (m.text) el.appendChild(mk('div', 'tu-text', m.role === 'tutor' ? tuRich(m.text) : `<p>${esc(m.text).replace(/\n/g, '<br>')}</p>`));
+      if (m.slip) el.appendChild(mk('div', 'tu-note', `Noted: ${esc(m.slip)}`));
+      if (m.learnt) el.appendChild(mk('div', 'tu-note', `Learnt about you: ${esc(m.learnt)}`));
+      if (m.error) {
+        const retry = mk('button', 'link small', 'Try again');
+        retry.onclick = () => { tu.msgs.splice(i, 1); tuSend(); };
+        el.appendChild(retry);
+      }
+      th.appendChild(el);
+    });
+    if (tu.busy) th.appendChild(mk('div', 'tu-msg tutor typing', '<span></span><span></span><span></span>'));
+    const d = tu.done, box = $('tu-done');
+    box.hidden = !d;
+    if (d) {
+      const lvl = TU_LEVEL_NAME[tu.level];
+      const nextTopic = tu.topic ? topicName(tu.topic) : tu.focus ? `${topicName(tu.focus)} again, to lock in that slip` : 'your weak spots';
+      box.innerHTML = `${d.awarded != null && d.out_of ? `<div class="tu-score"><b>${d.awarded}<em>/${d.out_of}</em></b><span>on your own</span></div>` : ''}
+        <button class="primary" id="tu-next">Next question</button>
+        <p class="small muted">Next: ${esc(lvl)} · ${esc(nextTopic)}</p>`;
+      $('tu-next').onclick = () => tuStart(false);
+    }
+    $('tu-send').disabled = tu.busy;
+    const last = d ? box : th.lastElementChild;
+    if (!last) return;
+    requestAnimationFrame(() => last.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
+  }
+
+  async function tuSend(text) {
+    if (tu.busy) return;
+    text = (text || '').trim();
+    const files = tu.pending.splice(0);
+    tu.busy = true; tuDraw(); drawTuPending();
+    try {
+      if (text || files.length) {
+        const imgs = [], thumbs = [];
+        for (const f of files) {
+          const blob = await shrinkImage(f.file, 1600);
+          const path = `${state.user.id}/tutor-${tu.session}/s${String(++tu.n).padStart(2, '0')}.${blob.type === 'image/webp' ? 'webp' : 'jpg'}`;
+          const { error } = await sb.storage.from('submissions').upload(path, blob, { contentType: blob.type, upsert: true });
+          if (error) throw error;
+          tu.paths.push(path); imgs.push(path); thumbs.push(f.url);
+        }
+        tu.msgs.push({ role: 'student', text, images: imgs, thumbs });
+        tuDraw();
+      }
+      const { data, error } = await sb.functions.invoke('tutor', { body: {
+        subject: tuSubject(), mode: tu.mode, question_id: tu.q?.id || null, chunks: tu.chunks,
+        messages: tu.msgs.filter(m => !m.error).map(m => ({ role: m.role, text: m.text || '', images: m.images || [] })),
+      } });
+      if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
+      tu.msgs.push({ role: 'tutor', text: data.say, slip: data.slip?.what || null, learnt: data.learnt || null });
+      if (data.slip) tu.slipped = true;
+      if (data.done && !tu.done) await tuFinish(data);
+    } catch (err) {
+      tu.msgs.push({ role: 'tutor', error: true, text: err.message || String(err) });
+    } finally {
+      tu.busy = false; tuDraw();
+    }
+  }
+  async function tuFinish(d) {
+    if (d.next_level === 'harder') tu.level = Math.min(3, tu.level + 1);
+    if (d.next_level === 'easier') tu.level = Math.max(1, tu.level - 1);
+    lsSet('tb_tu_level', tu.level);
+    tu.focus = tu.slipped && tu.q ? tu.q.topic : null;   // slipped: the next question tests the same thing
+    tu.done = { awarded: d.awarded, out_of: d.out_of };
+    if (tu.q && d.awarded != null) {   // counts toward Progress and weak spots like any other attempt
+      const { error } = await sb.from('attempts').insert({ user_id: state.user.id, question_id: tu.q.id, score: d.awarded, out_of: tu.q.marks || d.out_of || 0 });
+      if (error) console.warn('tutor attempt not saved', error.message);
+    }
+  }
+
+  // composer: text, photos of working, maths symbols, quick replies
+  function drawTuPending() {
+    const box = $('tu-photos'); box.innerHTML = '';
+    tu.pending.forEach((f, i) => {
+      const t = mk('div', 'tu-thumb'); const im = mk('img'); im.src = f.url; im.alt = 'Photo to send';
+      const x = mk('button', 'tu-x', '×'); x.setAttribute('aria-label', 'Remove photo');
+      x.onclick = () => { tu.pending.splice(i, 1); drawTuPending(); };
+      t.append(im, x); box.appendChild(t);
+    });
+    box.hidden = !tu.pending.length;
+  }
+  $('tu-file').onchange = (ev) => {
+    [...ev.target.files].slice(0, 4 - tu.pending.length).forEach(f => tu.pending.push({ file: f, url: URL.createObjectURL(f) }));
+    ev.target.value = ''; drawTuPending();
+  };
+  const tuSubmit = () => {
+    const t = $('tu-text').value;
+    if (!t.trim() && !tu.pending.length) return;
+    $('tu-text').value = ''; tuGrow(); tuSend(t);
+  };
+  const tuGrow = () => { const ta = $('tu-text'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; };
+  $('tu-text').oninput = tuGrow;
+  $('tu-text').onkeydown = (ev) => { if (ev.key === 'Enter' && !ev.shiftKey && !matchMedia('(pointer: coarse)').matches) { ev.preventDefault(); tuSubmit(); } };
+  $('tu-send').onclick = tuSubmit;
+  $('tu-go').onclick = () => { tu.topic = $('tu-topic').value; tu.focus = null; tuStart(false); };
+  $('tu-own').onclick = () => tuStart(true);
+  $('tu-end').onclick = () => { tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; renderTutor(); };
+  document.querySelectorAll('#tu-quick [data-say]').forEach(b => { b.onclick = () => tuSend(b.dataset.say); });
+  $('tu-symbtn').onclick = () => { const s = $('tu-syms'); s.hidden = !s.hidden; $('tu-symbtn').setAttribute('aria-expanded', !s.hidden); };
+  $('tu-syms').innerHTML = TU_SYMS.map(s => `<button type="button">${s}</button>`).join('');
+  $('tu-syms').onclick = (ev) => {
+    const b = ev.target.closest('button'); if (!b) return;
+    const ta = $('tu-text'), ins = b.textContent === 'eˣ' ? 'e^' : b.textContent, a = ta.selectionStart ?? ta.value.length, z = ta.selectionEnd ?? a;
+    ta.value = ta.value.slice(0, a) + ins + ta.value.slice(z); ta.focus(); ta.selectionStart = ta.selectionEnd = a + ins.length; tuGrow();
+  };
 
   // ---------- boot ----------
   sb.auth.getSession().then(async ({ data }) => { state.user = data.session?.user || null; await checkAdmin(); route(); });
