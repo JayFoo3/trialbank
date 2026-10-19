@@ -1571,3 +1571,8 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .home-pet:hover { transform: scale(1.06) rotate(-3deg); }
 .home-pet .pet { --sz: 52px; }
 @media (max-width: 640px) { .home-pet .pet { --sz: 42px; } }
+
+/* calculator button inside questions and exams */
+.calc-open-btn { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.calc-open-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 640px) { .setbar .calc-open-btn span { display: none; } }

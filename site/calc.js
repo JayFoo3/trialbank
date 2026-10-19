@@ -240,6 +240,8 @@
     [['<i>x</i>', 'x'], ['<span class="cz-k-f">▭<br>▭</span>', 'frac('], ['√▭', 'sqrt(', '∛▭', 'cbrt('], ['<i>x</i><sup>2</sup>', '²', '<i>x</i><sup>3</sup>', '³'], ['<i>x</i><sup>▭</sup>', 'pow(', '<sup>▭</sup>√▭', 'root('], ['log<sub>▭</sub>▭', 'logb(']],
     [['log', 'log(', '10<sup>▭</sup>', 'exp10('], ['ln', 'ln(', '<i>e</i><sup>▭</sup>', 'expe('], ['(−)', 'neg'], ['sin', 'sin(', 'sin<sup>−1</sup>', 'asin('], ['cos', 'cos(', 'cos<sup>−1</sup>', 'acos('], ['tan', 'tan(', 'tan<sup>−1</sup>', 'atan(']],
     [['(', '('], [')', ')'], [',', ','], ['<i>x</i><sup>−1</sup>', '⁻¹', '<i>x</i>!', '!'], ['S⇔D', 'sd'], ['Abs', 'abs(']],
+    // the counting and constant keys, out in the open (on the real calculator they're SHIFT functions)
+    [['<i>n</i>C<i>r</i>', 'nCr'], ['<i>n</i>P<i>r</i>', 'nPr'], ['<i>x</i>!', '!'], ['π', 'π'], ['<i>e</i>', 'e'], ['∛▭', 'cbrt(']],
   ];
   const PAD = [
     [['7', '7'], ['8', '8'], ['9', '9'], ['DEL', 'del', 'INS', ''], ['AC', 'ac']],
@@ -261,7 +263,7 @@
   function build() {
     panel = document.createElement('div'); panel.className = 'cz'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Calculator');
     panel.innerHTML = `
-      <div class="cz-top"><span class="cz-brand">CASIO-style · fx-8200 AU layout</span><button type="button" class="cz-x" aria-label="Close calculator">×</button></div>
+      <div class="cz-top"><span class="cz-brand">fx-8200 AU style · SHIFT for the yellow keys</span><button type="button" class="cz-x" aria-label="Close calculator">×</button></div>
       <div class="cz-screen" aria-live="polite"><div class="cz-status"></div><div class="cz-body"></div></div>
       <div class="cz-keys">${keyHTML(KEYS, 'fn')}${keyHTML(PAD, 'num')}</div>`;
     document.body.appendChild(panel);

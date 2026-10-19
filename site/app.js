@@ -266,6 +266,7 @@
   }
   $('signout').onclick = () => sb.auth.signOut();
   $('calc-btn').onclick = () => window.Calc && Calc.toggle();
+  document.querySelectorAll('[data-calc]').forEach(b => { b.onclick = () => window.Calc && Calc.toggle(); });   // inside questions and exams, where the top bar is hidden
   const drawSound = () => { if (window.Juice) $('sound-toggle').textContent = `Sounds: ${Juice.soundLabel()}`; };
   $('sound-toggle').onclick = () => { if (window.Juice) { Juice.cycleSound(); drawSound(); } };
   drawSound();
