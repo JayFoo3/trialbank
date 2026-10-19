@@ -1165,9 +1165,8 @@
   async function examWithBooklets(p, btn, errEl) {
     const old = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…'; if (errEl) errEl.hidden = true;
     try {
-      const [L, { data, error }] = await Promise.all([loadPdfLib(), sb.storage.from('questions').createSignedUrl(p.pdf_path, 300)]);
-      if (error) throw error;
-      const doc = await L.PDFDocument.load(await (await fetch(data.signedUrl)).arrayBuffer());
+      const [L, url] = await Promise.all([loadPdfLib(), pdfLink(p.pdf_path, 300)]);
+      const doc = await L.PDFDocument.load(await (await fetch(url)).arrayBuffer());
       // laid out like NESA's current (2025) HSC writing booklet, with plenty of room
       const LAST = 16;                                             // pages per booklet
       const hv = await doc.embedFont(L.StandardFonts.Helvetica), hb = await doc.embedFont(L.StandardFonts.HelveticaBold);
@@ -1303,6 +1302,21 @@
     catch (err) { if (errEl) { errEl.textContent = err.message; errEl.hidden = false; } }
     finally { btn.textContent = old; btn.disabled = false; }
   }
+  // a short-lived link to a paper PDF: from Backblaze B2 once config.pdfStore = 'b2', otherwise Supabase storage
+  async function pdfLink(path, secs = 300, filename) {
+    if (C.pdfStore === 'b2') {
+      const { data, error } = await sb.functions.invoke('pdf-url', { body: { path, secs, filename } });
+      if (error || !data?.url) {
+        let msg = data?.error;
+        try { msg = msg || (await error.context.json()).error; } catch { /* no body */ }
+        throw new Error(msg || 'Could not get the PDF. Try again in a moment.');
+      }
+      return data.url;
+    }
+    const { data, error } = await sb.storage.from('questions').createSignedUrl(path, secs, filename ? { download: filename } : undefined);
+    if (error) throw error;
+    return data.signedUrl;
+  }
   // original PDF from the private bucket; falls back to a rebuilt PDF if the file isn't uploaded
   async function officialPdf(btn, p, key, opts, errEl) {
     const path = p && p[key];
@@ -1310,9 +1324,8 @@
     const old = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…';
     if (errEl) errEl.hidden = true;
     try {
-      const { data, error } = await sb.storage.from('questions').createSignedUrl(path, 300, { download: opts.filename });
-      if (error) throw error;
-      const a = document.createElement('a'); a.href = data.signedUrl; a.download = opts.filename; document.body.appendChild(a); a.click(); a.remove();
+      const url = await pdfLink(path, 300, opts.filename);
+      const a = document.createElement('a'); a.href = url; a.download = opts.filename; document.body.appendChild(a); a.click(); a.remove();
     } catch (err) { if (errEl) { errEl.textContent = err.message; errEl.hidden = false; } }
     finally { setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 800); }
   }
@@ -1462,9 +1475,9 @@
     view.innerHTML = '<p class="muted pdf-wait">Loading the paper…</p>'; $(countId).textContent = '';
     if (!p[key]) { view.innerHTML = `<p class="muted pdf-wait">${key === 'pdf_sol_path' ? 'No solutions PDF for this paper yet.' : 'No PDF for this paper yet. Use the Practise tab.'}</p>`; return; }
     try {
-      const [lib, { data, error }] = await Promise.all([loadPdfJs(), sb.storage.from('questions').createSignedUrl(p[key], 3600)]);
-      if (error) throw error;
-      const doc = await lib.getDocument({ url: data.signedUrl }).promise;
+      const [lib, url] = await Promise.all([loadPdfJs(), pdfLink(p[key], 3600)]);
+      // one plain download (B2 links don't take the partial requests pdf.js would otherwise make)
+      const doc = await lib.getDocument({ url, disableRange: true, disableStream: true }).promise;
       if (view.dataset.for !== id) return;
       pdfState[viewId] = { doc, i: 1, n: doc.numPages, countId, cache: new Map() };
       view.innerHTML = '<div class="pdfstage"><button class="pdfhit prev" data-go="-1" aria-label="Previous page"></button><button class="pdfhit next" data-go="1" aria-label="Next page"></button></div>';

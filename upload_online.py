@@ -4,6 +4,7 @@ and the printable PDFs. Reads online/<slug>.json, online/<slug>-paper.pdf and on
 Run supabase/online.sql once first.
 Usage: SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python3 upload_online.py trialbank-se-2026-a [more slugs]"""
 import json, os, sys, requests
+import b2
 URL = os.environ.get('SUPABASE_URL', '').rstrip('/'); KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 if not URL or not KEY: sys.exit('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
 H = {'apikey': KEY, 'Authorization': f'Bearer {KEY}', 'Content-Type': 'application/json'}
@@ -27,6 +28,7 @@ for slug in sys.argv[1:]:
     print(f'{slug}: {len(rows)} questions, {sum(q["marks"] for q in rows)} marks')
     for part, name in (('paper', 'paper.pdf'), ('full', 'full.pdf')):
         with open(os.path.join(HERE, 'online', f'{slug}-{part}.pdf'), 'rb') as f:
+            if b2.ready(): b2.put(f'{slug}/{name}', f.read()); continue   # PDFs live in Backblaze B2
             ok(requests.post(f'{URL}/storage/v1/object/questions/{slug}/{name}', headers={**H, 'Content-Type': 'application/pdf', 'x-upsert': 'true'}, data=f.read(), timeout=120), name)
     th = os.path.join(HERE, 'online', f'{slug}-thumb.webp')
     if os.path.exists(th):

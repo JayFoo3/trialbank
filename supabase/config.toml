@@ -10,3 +10,7 @@ verify_jwt = true
 # Stripe calls this one directly, so it checks Stripe's signature instead of a sign-in
 [functions.stripe-webhook]
 verify_jwt = false
+
+# signed-in students only: hands out short-lived B2 links to paper PDFs
+[functions.pdf-url]
+verify_jwt = true

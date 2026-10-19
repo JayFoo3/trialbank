@@ -6,6 +6,7 @@ then records the paths on the papers table.
 Usage: SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python3 upload_pdfs.py [--root DIR] [--only SLUG]"""
 import argparse, shutil, time, glob, hashlib, json, os, subprocess, sys, tempfile
 import requests
+import b2
 
 URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
 KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
@@ -15,6 +16,8 @@ BUCKET = 'questions'
 
 
 def put(path, data, tries=5, ctype='application/pdf'):
+    if ctype == 'application/pdf' and b2.ready():   # PDFs live in Backblaze B2 once its keys are set
+        return b2.put(path, data)
     for i in range(tries):
         try:
             r = requests.post(f'{URL}/storage/v1/object/{BUCKET}/{path}', headers={**H, 'Content-Type': ctype, 'x-upsert': 'true'}, data=data, timeout=120)

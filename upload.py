@@ -9,7 +9,7 @@ Needs two environment variables (Supabase dashboard -> Project Settings -> API):
 
 Usage:  python3 upload.py [--only ext1-gosford-2026] [--force] [--dry]
 """
-import argparse, glob, io, json, os, sys
+import time, argparse, glob, io, json, os, sys
 import requests
 from PIL import Image
 
@@ -40,7 +40,13 @@ def to_webp(png_path, quality):
 
 
 def put_object(path, data):
-    r = requests.post(f'{URL}/storage/v1/object/{BUCKET}/{path}', headers={**H, 'Content-Type': 'image/webp', 'x-upsert': 'true'}, data=data)
+    for attempt in range(5):   # the connection sometimes drops mid-upload: wait and try again
+        try:
+            r = requests.post(f'{URL}/storage/v1/object/{BUCKET}/{path}', headers={**H, 'Content-Type': 'image/webp', 'x-upsert': 'true'}, data=data, timeout=60)
+            if r.status_code < 500: break
+        except requests.exceptions.RequestException as e:
+            if attempt == 4: die(f'upload {path} failed: {e}')
+        time.sleep(2 * (attempt + 1))
     if r.status_code >= 300:
         die(f'upload {path} -> {r.status_code}: {r.text[:300]}')
 
