@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
   let body: { path?: string; secs?: number; filename?: string };
   try { body = await req.json(); } catch { return json({ error: 'Bad request' }, 400); }
   const path = String(body.path ?? '');
-  if (!/^[\w.-]+\/(paper|full)\.pdf$/.test(path)) return json({ error: 'Bad path' }, 400);
+  if (!/^[\w.-]+\/[\w-]+\.pdf$/.test(path)) return json({ error: 'Bad path' }, 400);
   const secs = Math.max(60, Math.min(3600, Math.round(Number(body.secs) || 300)));
 
   // ask as the student: row-level security only returns papers they're allowed to open

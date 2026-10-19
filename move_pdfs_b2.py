@@ -49,6 +49,7 @@ def main():
     paths = pdf_paths()
     print(f'{len(paths)} PDFs listed on papers')
     sb = supabase_sizes(paths)
+    paths = sorted(set(paths) | set(sb))     # also carry spare PDFs no paper points to, so nothing is lost
     have = b2.listing()
     gone = [p for p in paths if p not in sb and p not in have]
     if gone: print(f'  {len(gone)} listed on papers but in neither store (already missing): {gone[:5]}')
