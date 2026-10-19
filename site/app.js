@@ -25,7 +25,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { storage: durable, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
-  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor'];
+  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty), level';
 
   document.title = C.name;
@@ -42,7 +42,7 @@
   // ---------- routing ----------
   const NAV = { tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers' };
   // page transitions: iOS-style push going deeper, pop going back, a quick fade between tabs
-  const DEPTH = { tutor: 0, mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, paper: 1, set: 2, examrun: 2, summary: 3 };
+  const DEPTH = { tutor: 0, mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, profile: 1, paper: 1, set: 2, examrun: 2, summary: 3 };
   const canVT = !!document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (canVT) document.documentElement.classList.add('has-vt');
   let shown = null;
@@ -82,6 +82,7 @@
       if (h === 'practise') { show('practise'); await renderBuild(); return; }
       if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
       if (h === 'admin' && state.admin) { show('admin'); await renderAdmin(); return; }
+      if (h === 'profile') { show('profile'); await renderProfile(); return; }
       if (h === 'set' && state.set) return show('set');
       if (h === 'summary' && state.set) return show('summary');
       if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
@@ -787,7 +788,7 @@
       busy(async () => {
         const st = await finishDaily().catch(e => { console.warn('daily', e.message); return null; });
         renderSummary(s.title); location.hash = '#summary';
-        if (st) dailyPopup(st);
+        if (st) dailyPopup(st).result.then(() => checkLevelUp());
       });
     }
     else { renderSummary(s.title || 'Set done'); location.hash = '#summary'; }
@@ -1710,7 +1711,7 @@
       go.textContent = left > 0 ? 'Continue' : 'Mark it';
       go.onclick = () => $('resume-btn').click();
     } else await drawDaily();
-    drawFriends();
+    drawFriends().then(checkLevelUp);
   }
   $('mark-go').onclick = async () => {
     const id = Number($('mark-paper').value);
@@ -2270,8 +2271,12 @@
     return (((n[0] || '?')[0]) + (n[1] ? n[1][0] : '')).toUpperCase();
   }
   function drawAvatar() {
+    const pr = myProfile();
     const html = media.av ? `<img src="${media.av}" alt="">` : esc(initials());
-    ['account-btn', 'me-av'].forEach(id => { $(id).innerHTML = html; });
+    $('me-av').innerHTML = html;
+    $('account-btn').innerHTML = pr.pet ? petImg(pr.pet) : html;   // their pet, once picked, is who they are around the site
+    $('account-btn').classList.toggle('has-pet', !!pr.pet);
+    $('account-btn').style.setProperty('--pc', pr.pet ? colorCss(pr.color) : '');
     $('me-av-rm').hidden = !media.av;
   }
   async function savePrefs(p) {
@@ -2668,6 +2673,129 @@
   function dailyErr(err) { $('quick-error').textContent = err.message; $('quick-error').hidden = false; }
 
 
+
+  // ---------- profile: a pet, a banner colour and a border, unlocked by levelling up ----------
+  // pets are Microsoft's Fluent Emoji 3D (MIT licence), pinned to one commit so they never change under us
+  const EMOJI = 'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/';
+  const PETS = [   // key, name, emoji folder, file, level needed, pro only
+    ['cat', 'Cat', 'Cat face', 'cat_face', 1], ['dog', 'Dog', 'Dog face', 'dog_face', 1], ['fox', 'Fox', 'Fox', 'fox', 1],
+    ['hamster', 'Hamster', 'Hamster', 'hamster', 2], ['frog', 'Frog', 'Frog', 'frog', 3], ['rabbit', 'Rabbit', 'Rabbit face', 'rabbit_face', 4],
+    ['owl', 'Owl', 'Owl', 'owl', 5], ['penguin', 'Penguin', 'Penguin', 'penguin', 6], ['koala', 'Koala', 'Koala', 'koala', 7],
+    ['panda', 'Panda', 'Panda', 'panda', 8], ['kangaroo', 'Kangaroo', 'Kangaroo', 'kangaroo', 9], ['hedgehog', 'Hedgehog', 'Hedgehog', 'hedgehog', 10],
+    ['otter', 'Otter', 'Otter', 'otter', 11], ['sloth', 'Sloth', 'Sloth', 'sloth', 12], ['turtle', 'Turtle', 'Turtle', 'turtle', 13],
+    ['lion', 'Lion', 'Lion', 'lion', 14], ['tiger', 'Tiger', 'Tiger', 'tiger', 15], ['dolphin', 'Dolphin', 'Dolphin', 'dolphin', 16],
+    ['octopus', 'Octopus', 'Octopus', 'octopus', 18], ['shark', 'Shark', 'Shark', 'shark', 20],
+    ['unicorn', 'Unicorn', 'Unicorn', 'unicorn', 1, 1], ['dragon', 'Dragon', 'Dragon', 'dragon', 1, 1], ['phoenix', 'Phoenix', 'Phoenix bird', 'phoenix_bird', 1, 1],
+  ];
+  const EGG = ['egg', 'Egg', 'Hatching chick', 'hatching_chick', 1];   // until they pick one
+  const COLORS = [   // key, name, css, level, pro
+    ['blue', 'Blue', '#3b6cf6', 1], ['green', 'Green', '#1f9d63', 1], ['orange', 'Orange', '#f08c00', 1], ['pink', 'Pink', '#e64980', 2],
+    ['purple', 'Purple', '#7048e8', 3], ['teal', 'Teal', '#0c9a99', 4], ['red', 'Red', '#e03131', 6], ['sky', 'Sky', '#2ea8e6', 8],
+    ['night', 'Night', '#1f2a44', 10], ['sunset', 'Sunset', 'linear-gradient(135deg,#ff6b4a,#ffb000)', 12],
+    ['ocean', 'Ocean', 'linear-gradient(135deg,#0b7bd6,#14c3b5)', 16], ['aurora', 'Aurora', 'linear-gradient(135deg,#6d4aff,#16b6f5,#1fd39a)', 1, 1],
+  ];
+  const BORDERS = [   // key, name, level, pro
+    ['none', 'None', 1], ['bronze', 'Bronze', 3], ['silver', 'Silver', 6], ['gold', 'Gold', 10], ['flame', 'Flame', 14], ['diamond', 'Diamond', 20], ['pro', 'Pro', 1, 1],
+  ];
+  const isProUser = () => (state.admin && !state.viewAs) || (state.viewAs ? state.viewAs === 'pro' : state.release?.level === 'pro');
+  const myProfile = () => ({ pet: null, color: 'blue', border: 'none', ...(state.preview ? previewFlags.profile : state.user?.user_metadata?.profile) });
+  const petOf = (k) => PETS.find(p => p[0] === k) || EGG;
+  const petUrl = (k) => { const p = petOf(k); return `${EMOJI}${encodeURIComponent(p[2])}/3D/${p[3]}_3d.png`; };
+  const petImg = (k) => `<img src="${petUrl(k)}" alt="" loading="lazy" draggable="false">`;
+  const colorCss = (k) => (COLORS.find(c => c[0] === k) || COLORS[0])[2];
+  // a pet on its colour, inside its border; f is { pet, color, border }
+  const petBadge = (f, size = 'md') => `<span class="pet pet-${size} bd-${esc(f.border || 'none')}" style="--pc:${colorCss(f.color)}">${petImg(f.pet)}</span>`;
+  const locked = (lvl, pro) => pro ? !isProUser() : (state.lvl?.level || 1) < lvl;
+  const lockText = (lvl, pro) => pro ? 'Pro' : `Level ${lvl}`;
+  const xpFor = (L) => 50 * L * (L - 1);
+  async function myLevel() {
+    if (!state.user) return (state.lvl = { xp: 0, level: 1 });
+    if (state.preview) return (state.lvl = { xp: previewFlags.xp || 0, level: Math.max(1, Math.floor((1 + Math.sqrt(1 + 4 * (previewFlags.xp || 0) / 50)) / 2)) });
+    const { data, error } = await sb.rpc('my_level');
+    if (!error && data && data[0]) state.lvl = data[0];
+    return state.lvl || { xp: 0, level: 1 };
+  }
+  async function saveProfile(patch) {
+    const pr = { ...myProfile(), ...patch };
+    if (state.preview) previewFlags.profile = pr;
+    else { const { data, error } = await sb.auth.updateUser({ data: { profile: pr } }); if (!error && data?.user) state.user = data.user; else if (error) toast(esc(error.message)); }
+    drawAvatar();
+    return pr;
+  }
+  // everything that opens up between two levels, for the level-up card
+  function unlocksBetween(a, b) {
+    const out = [];
+    PETS.forEach(p => { if (!p[5] && p[4] > a && p[4] <= b) out.push(`${p[1]} pet`); });
+    COLORS.forEach(c => { if (!c[4] && c[3] > a && c[3] <= b) out.push(`${c[1]} banner`); });
+    BORDERS.forEach(x => { if (!x[3] && x[2] > a && x[2] <= b) out.push(`${x[1]} border`); });
+    return out;
+  }
+  let lvlChecking = false;
+  async function checkLevelUp() {
+    if (!state.user || lvlChecking) return;
+    lvlChecking = true;
+    try {
+      const { level } = await myLevel(), pr = myProfile();
+      if (pr.seen == null) {   // first visit since levels arrived: no fanfare for old levels, just point them at their profile
+        await saveProfile({ seen: level });
+        if (!pr.pet) toast(`<b>New:</b> pick a pet and level it up. <a href="#profile">Your profile</a>`, 7000);
+        return;
+      }
+      if (level <= pr.seen) return;
+      await saveProfile({ seen: level });
+      const items = unlocksBetween(pr.seen, level);
+      const extra = items.length ? `<ul class="tbp-list">${items.slice(0, 6).map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+      const box = celebrate({ kind: 'level', panel: panel({ kicker: 'Level up', big: String(pr.seen), cls: 'was', art: `<div class="tbp-mascot tbp-pet">${petBadge(pr, 'xl')}</div>` }),
+        title: `You're level ${level}!`, body: items.length ? 'Just unlocked:' : 'Keep going. More pets and borders are on the way.', extra, primary: items.length ? 'Show me' : 'Nice', secondary: items.length ? 'Later' : null });
+      payoff(box.card, { at: 600, swap: String(level), cheer: false });
+      box.result.then(k => { if (k === 'yes' && items.length) location.hash = '#profile'; });
+    } finally { lvlChecking = false; }
+  }
+  async function renderProfile() {
+    const [lv] = await Promise.all([myLevel(), loadFriends()]);
+    const pr = myProfile(), st = streakData(), L = lv.level, lo = xpFor(L), hi = xpFor(L + 1);
+    const pct = L >= 50 ? 100 : Math.round(100 * (lv.xp - lo) / (hi - lo));
+    const nm = (myName() || 'You').split(/\s+/)[0];
+    const el = $('profile-body');
+    el.innerHTML = `
+      <section class="pf-hero" style="--pc:${colorCss(pr.color)}">
+        <div class="pf-pet">${petBadge(pr, 'xl')}</div>
+        <div class="pf-who">
+          <h1>${esc(nm)}</h1>
+          <p class="pf-lv"><b>Level ${L}</b><span>${lv.xp} XP${L < 50 ? ` · ${hi - lv.xp} to level ${L + 1}` : ''}</span></p>
+          <div class="pf-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
+          <p class="pf-stats"><span><span class="fr-fl">${flame(liveStreak(st))}</span>${liveStreak(st)} day streak</span><span>Best ${st.best || 0}</span><span>${state.friends.length} friend${state.friends.length === 1 ? '' : 's'}</span></p>
+        </div>
+      </section>
+      <p class="small muted pf-earn">Earn XP: 2 for every question, 10 for every mark, 50 for finishing your Daily 5.</p>
+      <h2 class="sec">Pet</h2>
+      <div class="pf-grid pets" id="pf-pets">${PETS.map(p => tile('pet', p[0], `${petImg(p[0])}<span>${p[1]}</span>`, p[4], p[5], pr.pet === p[0])).join('')}</div>
+      <h2 class="sec">Banner</h2>
+      <div class="pf-grid colors" id="pf-colors">${COLORS.map(c => tile('color', c[0], `<i style="background:${c[2]}"></i><span>${c[1]}</span>`, c[3], c[4], pr.color === c[0])).join('')}</div>
+      <h2 class="sec">Border</h2>
+      <div class="pf-grid borders" id="pf-borders">${BORDERS.map(x => tile('border', x[0], `${petBadge({ ...pr, border: x[0] }, 'sm')}<span>${x[1]}</span>`, x[2], x[3], (pr.border || 'none') === x[0])).join('')}</div>
+      <div class="sec-head"><h2 class="sec">Friends</h2><button class="link small" id="pf-fr">Add a friend</button></div>
+      <div class="friends pf-friends" id="pf-friends">${state.friends.length ? [meRow(), ...state.friends].sort((a, b) => (b.level || 1) - (a.level || 1) || b.streak - a.streak).map(friendChip).join('')
+        : '<p class="small muted">Add friends to see their pets, levels and streaks here.</p>'}</div>`;
+    $('pf-fr').onclick = () => openFriends().then(() => {});
+    el.querySelectorAll('.pf-tile').forEach(b => b.onclick = async () => {
+      const { kind, k, lvl, pro } = b.dataset;
+      if (b.classList.contains('locked')) {
+        window.Juice?.sfx?.bad?.();
+        b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+        return toast(pro ? `${esc(b.querySelector('span').textContent)} comes with Pro.` : `Reach level ${lvl} to unlock ${esc(b.querySelector('span').textContent)}.`);
+      }
+      await saveProfile({ [kind]: k });
+      window.Juice?.sfx?.good?.(2);
+      renderProfile();
+    });
+  }
+  function tile(kind, k, inner, lvl, pro, on) {
+    const lock = locked(lvl, pro);
+    return `<button class="pf-tile${on ? ' on' : ''}${lock ? ' locked' : ''}${pro ? ' pro' : ''}" data-kind="${kind}" data-k="${k}" data-lvl="${lvl}" ${pro ? 'data-pro="1"' : ''}
+      aria-pressed="${on}" title="${lock ? lockText(lvl, pro) : ''}">${inner}${lock ? `<em>${lockText(lvl, pro)}</em>` : ''}</button>`;
+  }
+
   // ---------- friends: add each other by code, see who has done today's 5 ----------
   state.friends = [];
   async function loadFriends() {
@@ -2684,9 +2812,11 @@
     return (myCode = data);
   }
   const inviteLink = (code) => location.origin + location.pathname + '#friend=' + code;
-  const meRow = () => { const st = streakData(); return { friend_id: 'me', name: 'You', streak: liveStreak(st), done_today: st.last === dayOf(), me: true }; };
-  const friendChip = (f) => `<div class="fr${f.done_today ? ' done' : ''}${f.me ? ' me' : ''}" title="${esc(f.name)}: ${f.streak} day streak${f.done_today ? ', done today' : ''}">
-      <span class="fr-flame">${flame(f.streak)}</span><b>${esc(f.name)}</b><small>${f.done_today ? 'Done today' : 'Not yet'}</small></div>`;
+  const meRow = () => { const st = streakData(), pr = myProfile(); return { friend_id: 'me', name: 'You', streak: liveStreak(st), done_today: st.last === dayOf(), me: true, level: state.lvl?.level || 1, ...pr }; };
+  const friendChip = (f) => `<div class="fr${f.done_today ? ' done' : ''}${f.me ? ' me' : ''}" title="${esc(f.name)}: level ${f.level || 1}, ${f.streak} day streak${f.done_today ? ', done today' : ''}">
+      ${petBadge(f, 'md')}<b>${esc(f.name)}</b>
+      <small class="fr-meta"><span class="fr-fl">${flame(f.streak)}</span>${f.streak} · Lv ${f.level || 1}</small>
+      <small class="fr-st">${f.done_today ? 'Done today' : 'Not yet'}</small></div>`;
   async function drawFriends() {
     const box = $('friends'), head = $('friends-head');
     if (state.preview || !state.user) { box.hidden = head.hidden = true; return; }
@@ -2699,6 +2829,7 @@
       return;
     }
     box.className = 'friends';
+    await myLevel();
     const all = [meRow(), ...fs].sort((a, b) => b.done_today - a.done_today || b.streak - a.streak);
     box.innerHTML = all.map(friendChip).join('');
   }
@@ -2714,14 +2845,14 @@
       <p class="error small" id="fr-err" hidden></p>
       <div class="fr-list" id="fr-list"></div>
       <div class="row confirm-row"><button class="link" data-x>Done</button></div></div>`;
-    const close = () => { m.remove(); document.removeEventListener('keydown', k); drawFriends(); };
+    const close = () => { m.remove(); document.removeEventListener('keydown', k); if (location.hash === '#profile') renderProfile(); else drawFriends(); };
     const k = (ev) => { if (ev.key === 'Escape') close(); };
     m.onclick = (ev) => { if (ev.target === m || ev.target.closest('[data-x]')) close(); };
     document.addEventListener('keydown', k); document.body.appendChild(m);
     const err = (msg) => { $('fr-err').textContent = msg; $('fr-err').hidden = !msg; };
     const list = async () => {
       const fs = await loadFriends();
-      $('fr-list').innerHTML = fs.length ? fs.map(f => `<div class="fr-li"><span class="fr-flame">${flame(f.streak)}</span><b>${esc(f.name)}</b><span class="small muted">${f.done_today ? 'Done today' : 'Not yet today'}</span><button class="link small" data-rm="${f.friend_id}" data-n="${esc(f.name)}">Remove</button></div>`).join('')
+      $('fr-list').innerHTML = fs.length ? fs.map(f => `<div class="fr-li">${petBadge(f, 'sm')}<b>${esc(f.name)} <span class="small muted">Lv ${f.level || 1} · ${f.streak} day streak</span></b><span class="small muted">${f.done_today ? 'Done today' : 'Not yet today'}</span><button class="link small" data-rm="${f.friend_id}" data-n="${esc(f.name)}">Remove</button></div>`).join('')
         : '<p class="small muted">No friends added yet.</p>';
     };
     $('fr-list').onclick = async (ev) => {

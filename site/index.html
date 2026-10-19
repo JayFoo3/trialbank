@@ -47,7 +47,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
         <button class="avatar" id="account-btn" aria-haspopup="true" aria-expanded="false" title="Account">?</button>
         <div class="menu" id="account-menu" hidden>
           <p class="menu-email small muted" id="account-email"></p>
-          <button class="menu-item" id="open-me">Personalise</button>
+          <a class="menu-item" href="#profile" id="open-profile">Profile and pets</a>
+          <button class="menu-item" id="open-me">Theme and background</button>
           <button class="menu-item" id="buy-marks" hidden>Buy marking packs</button>
           <a href="#admin" id="nav-admin" hidden>Admin</a>
           <button class="menu-item" id="preview-new" hidden>Test as new user</button>
@@ -178,7 +179,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </div>
 
     <!-- friends: who's done today's 5, and their streaks -->
-    <div class="sec-head" id="friends-head" hidden><h2 class="sec">Friends</h2><button class="link small" id="fr-open">Add a friend</button></div>
+    <div class="sec-head" id="friends-head" hidden><h2 class="sec">Friends</h2><span class="sec-links"><a class="link small" href="#profile">Profile</a><button class="link small" id="fr-open">Add a friend</button></span></div>
     <div class="friends" id="friends" hidden></div>
 
     <h2 class="sec" data-feature="weak">Weak spots</h2>
@@ -439,6 +440,11 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </section>
 
   <!-- ===== admin ===== -->
+  <!-- ===== profile: pet, banner, border, level, friends ===== -->
+  <section id="view-profile" class="view" hidden>
+    <div id="profile-body"></div>
+  </section>
+
   <section id="view-admin" class="view" hidden>
     <a class="back small" href="#home">‹ Home</a>
     <h1>Admin</h1>
