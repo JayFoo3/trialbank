@@ -55,9 +55,10 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   .info-brandrow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .info-by { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-weight: 700; font-size: .92rem; text-decoration: none; }
   .info-by img { width: 16px; height: auto; align-self: center; }
-  .about { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 22px; text-align: center; }
-  .about-logo { width: min(360px, 100%); height: auto; margin: 4px auto 10px; display: block; }
-  .about p { max-width: 520px; margin: 0 auto 8px; }
+  .about { display: flex; gap: 22px; align-items: center; }
+  .about-logo { width: 200px; height: auto; flex: none; }
+  @media (max-width: 560px) { .about { flex-direction: column; align-items: flex-start; } .about-logo { width: 170px; } }
+  .about p { margin: 0 0 6px; color: var(--muted); }
   .toc { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 22px 0 0; font-weight: 700; }
   .toc a { color: var(--biro); text-decoration: none; }
 </style>
@@ -65,7 +66,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 <body>
 <main class="info">
   <div class="info-top">
-    <span class="info-brandrow"><a class="info-brand" href="./">trialbank</a><a class="info-by" href="https://jaiops.com.au" target="_blank" rel="noopener">by <img src="brand/jaiops-icon-64.png" alt="" width="16" height="19"> JAI-OPS</a></span>
+    <span class="info-brandrow"><a class="info-brand" href="./">trialbank</a><a class="info-by" href="https://jaiops.com.au" target="_blank" rel="noopener">by JAI-OPS</a></span>
     <a class="open-btn" href="./">Sign up free</a>
   </div>
 
@@ -144,9 +145,9 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 
   <h2 id="about">About JAI-OPS</h2>
   <div class="about">
-    <img class="about-logo" src="brand/jaiops-lockup.webp" alt="JAI-OPS: Efficient. Intelligent. Operations." width="360" height="145">
-    <p>Trialbank is designed, built and run by <b>JAI-OPS</b> (Jay's AI Operations), a small AI studio in New South Wales that builds websites, dashboards and tools with AI at the core. Trialbank started as a study tool for one HSC cohort and grew from there.</p>
-    <p><a href="https://jaiops.com.au" target="_blank" rel="noopener">jaiops.com.au</a></p>
+    <img class="about-logo" src="brand/jaiops-lockup.webp" alt="JAI-OPS: Efficient. Intelligent. Operations." width="220" height="89">
+    <div><p>Trialbank is designed, built and run by <b>JAI-OPS</b> (Jay's AI Operations), a small AI studio in New South Wales that builds websites, dashboards and tools with AI at the core. Trialbank started as a study tool for one HSC cohort and grew from there.</p>
+    <p><a href="https://jaiops.com.au" target="_blank" rel="noopener">jaiops.com.au</a></p></div>
   </div>
 
   <p class="info-foot">Trialbank is a JAI-OPS product. Last updated 19 October 2026 · <a href="./">Back to Trialbank</a></p>
