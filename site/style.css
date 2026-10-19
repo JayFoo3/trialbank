@@ -1828,3 +1828,21 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 }
 .atar-hint { margin: -2px 0 12px; color: var(--biro-dark); }
 .atar-mark span { white-space: nowrap; }
+
+/* admin: AI spending and Pro */
+.au-hero { margin: 6px 0 16px; }
+.au-hero-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; font-size: 15px; }
+.au-hero-top b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.au-bar { height: 12px; }
+.au-hero.low .au-bar i { background: linear-gradient(90deg, var(--warn), #f5b84a); }
+.au-hero p { margin: 8px 0 0; }
+.au-tiles .stat-tile em { display: block; font-style: normal; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.au-tiles .stat-tile.warn b { color: var(--warn); }
+.au-controls { display: grid; gap: 10px; margin: 18px 0 6px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.au-cap { display: inline-flex; align-items: center; gap: 6px; }
+.au-cap input { width: 90px; }
+.au-h3 { margin: 18px 0 8px; font-size: 16px; }
+.au-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.au-table th, .au-table td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--rule); white-space: nowrap; }
+.au-table td.warn { color: var(--warn); font-weight: 700; }
+.table-wrap { overflow-x: auto; }

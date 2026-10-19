@@ -503,6 +503,11 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div class="row stats-foot"><label class="small"><input type="checkbox" id="st-admins"> Include admin accounts</label><button class="link small" id="st-csv">Download daily CSV</button><span class="muted small" id="st-since"></span></div>
     </div>
 
+    <div class="card au" id="usage-card">
+      <div class="between"><h2>AI spending and Pro</h2><span class="small muted" id="au-since"></span></div>
+      <div id="au-body"><p class="muted small">Loading…</p></div>
+    </div>
+
     <div class="card release" id="release-card">
       <h2>Release dial</h2>
       <p class="small muted">How much of Trialbank each group gets. Admins always get everything. HSC papers are always visible; trial papers open oldest and easiest first, Smiths Hill's last.</p>

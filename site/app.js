@@ -1112,8 +1112,56 @@
     return sel;
   }
   let adminSettings = {}, adminUsers = [];
+  // ---------- admin: AI spending, Pro numbers, switches, heaviest users ----------
+  async function renderUsage() {
+    const box = $('au-body'); if (!box) return;
+    const { data: u, error } = await sb.rpc('admin_usage');
+    if (error) { box.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
+    const t = u.tutor, a = u.automark, p = u.pro, st = u.settings || {};
+    $('au-since').textContent = `Since ${new Date(u.since).toLocaleDateString('en-AU', { day: 'numeric', month: 'long' })} (UTC month)`;
+    const left = Math.max(0, t.cap - t.spent), pct = t.cap ? Math.min(100, 100 * t.spent / t.cap) : 0;
+    const subs = p.monthly + p.annual, mrr = p.monthly * PRO.monthly + p.annual * PRO.annual / 12;
+    const seg = (key, opts) => `<div class="seg" data-au="${key}">${opts.map(([v, l]) => `<button data-v="${v}"${(st[key] || 'admin') === v ? ' class="on"' : ''}>${l}</button>`).join('')}</div>`;
+    box.innerHTML = `
+      <div class="au-hero ${pct >= 90 ? 'low' : ''}">
+        <div class="au-hero-top"><span><b>US$${t.spent.toFixed(2)}</b> of US$${Number(t.cap).toFixed(2)} tutor budget used</span><span class="small muted">US$${left.toFixed(2)} left</span></div>
+        <div class="tu-meter-bar au-bar"><i style="width:${Math.max(1, pct)}%"></i></div>
+        <p class="small muted">${t.msgs.toLocaleString('en-AU')} messages · ${fmtTok(t.tokens)} tokens · ${t.users} student${t.users === 1 ? '' : 's'} · about US$${t.msgs ? (t.spent / t.msgs).toFixed(3) : '0.011'} a message</p>
+      </div>
+      <div class="stat-tiles au-tiles">
+        <div class="stat-tile"><b>${subs}</b><span>Pro subscribers</span><em>${p.monthly} monthly · ${p.annual} annual</em></div>
+        <div class="stat-tile"><b>${money(Math.round(mrr * 100) / 100)}</b><span>a month from Pro</span><em>before GST and Stripe fees</em></div>
+        <div class="stat-tile"><b>${p.on_pass}</b><span>on a free week now</span><em>${p.trials_month} trials started this month · ${p.trials} ever</em></div>
+        <div class="stat-tile"><b>${p.ref_rewarded}</b><span>referrals paid out</span><em>${p.ref_pending} waiting on 10 answers</em></div>
+        <div class="stat-tile"><b>US$${a.spent.toFixed(2)}</b><span>auto-marking</span><em>${a.runs} paper${a.runs === 1 ? '' : 's'} marked</em></div>
+        <div class="stat-tile ${t.off_topic ? 'warn' : ''}"><b>${t.off_topic}</b><span>off-topic requests</span><em>code, essays and so on, declined</em></div>
+      </div>
+      <div class="au-controls">
+        <div class="opt"><span>Pro sales</span>${seg('pro_sales', [['admin', 'Admins only'], ['on', 'On']])}</div>
+        <div class="opt"><span>Free week</span>${seg('pro_trials', [['off', 'Off'], ['admin', 'Admins only'], ['on', 'On']])}</div>
+        <div class="opt"><span>Tutor cap a month</span><span class="au-cap">US$<input id="au-cap" type="number" min="0" step="5" value="${Number(t.cap)}"><button class="secondary" id="au-cap-save">Save</button></span></div>
+      </div>
+      <h3 class="au-h3">Heaviest users this month</h3>
+      ${u.top.length ? `<div class="table-wrap"><table class="au-table"><thead><tr><th>Account</th><th>Level</th><th>Tutor msgs</th><th>Tutor $</th><th>Off-topic</th><th>Papers marked</th><th>Marking $</th></tr></thead><tbody>
+        ${u.top.map(r => `<tr><td>${esc(r.email)}</td><td>${esc(r.tier || '')}</td><td>${r.msgs}</td><td>${Number(r.tutor_usd).toFixed(2)}</td><td${r.off ? ' class="warn"' : ''}>${r.off}</td><td>${r.runs}</td><td>${Number(r.mark_usd).toFixed(2)}</td></tr>`).join('')}
+      </tbody></table></div>` : '<p class="muted small">No AI use yet this month.</p>'}`;
+    box.querySelectorAll('[data-au]').forEach(sg => sg.onclick = async (ev) => {
+      const b = ev.target.closest('button'); if (!b) return;
+      const { error } = await sb.from('settings').upsert([{ key: sg.dataset.au, value: b.dataset.v }], { onConflict: 'key' });
+      if (error) return toast(esc(error.message));
+      sg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      toast(`${sg.dataset.au === 'pro_sales' ? 'Pro sales' : 'Free week'}: <b>${esc(b.textContent)}</b>`);
+      const { data: pro } = await sb.rpc('my_pro'); if (pro) { state.pro = pro; state.proSale = pro.sale; applyRelease(); }
+    });
+    $('au-cap-save').onclick = async () => {
+      const v = Math.max(0, +$('au-cap').value || 0);
+      const { error } = await sb.from('settings').upsert([{ key: 'tutor_monthly_cap_usd', value: String(v) }], { onConflict: 'key' });
+      if (error) return toast(esc(error.message));
+      toast(`Tutor cap set to <b>US$${v}</b> a month.`); renderUsage();
+    };
+  }
   async function renderAdmin() {
-    renderStats();
+    renderStats(); renderUsage();
     const [{ data: settings }, { data: emails }, { data: users }, { data: roster }] = await Promise.all([
       sb.from('settings').select('*'),
       sb.from('allowed_emails').select('email').order('email'),
