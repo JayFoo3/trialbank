@@ -195,5 +195,5 @@
   }
   const soundLabel = () => SOUND_NAMES[kitName()];
 
-  window.Juice = { play: () => {}, aim: (el) => { if (el) lastTap = el; }, reward, partial, miss, resetCombo, countUp, stars, burst, pop, floatText, soundOn, cycleSound, soundLabel, curtain, tap: () => lastTap };
+  window.Juice = { sfx, buzz, play: () => {}, aim: (el) => { if (el) lastTap = el; }, reward, partial, miss, resetCombo, countUp, stars, burst, pop, floatText, soundOn, cycleSound, soundLabel, curtain, tap: () => lastTap };
 })();

@@ -2698,8 +2698,8 @@
 
   // ---------- celebration popups: Trialbank's own blue card (like Home's), one big word or number, the mascot ----------
   // kind: 'buy' | 'level' | 'pro' | 'subject'. panel() builds the top card; the rest is a title, a line and one button.
-  const panel = ({ kicker = '', big = '', sub = '', mood = 'cheer', art = '' }) =>
-    `<div class="tbp-big"><small>${kicker}</small><b>${big}</b><span>${sub}</span></div>` +
+  const panel = ({ kicker = '', big = '', sub = '', mood = 'cheer', art = '', cls = '' }) =>
+    `<div class="tbp-big"><small>${kicker}</small><b class="${cls}">${big}</b><span>${sub}</span></div>` +
     (art || `<div class="tbp-mascot">${Mascot(mood)}</div>`);
   function celebrate({ kind = 'level', panel: top = '', title, body = '', extra = '', primary = 'Nice', secondary = null }) {
     const m = mk('div', 'modal cele');
@@ -2717,10 +2717,35 @@
     const k = (ev) => { if (ev.key === 'Escape') close(null); };
     m.onclick = (ev) => { if (ev.target === m) close(null); const b = ev.target.closest('button[data-k]'); if (b) close(b.dataset.k); };
     document.addEventListener('keydown', k); document.body.appendChild(m);
+    window.Juice?.sfx?.whoosh();
     card.tabIndex = -1; card.focus({ preventScroll: true });   // the dialog, not the button, so no focus ring on open
     return { result, card, set(t, b2, btn, kicker) {
       if (t != null) card.querySelector('h2').innerHTML = t; if (b2 != null) card.querySelector('.tbp-body').innerHTML = b2;
       if (btn) card.querySelector('.primary').textContent = btn; if (kicker != null) card.querySelector('.tbp-big small').textContent = kicker; } };
+  }
+  // the payoff: a count-up or a swap, then the big word slams in with a flash, a fanfare, confetti and the mascot's jump;
+  // then each unlock ticks in on a rising note, and the button nudges to say "tap me"
+  function payoff(card, { at = 280, count = null, fmt = (v) => v, swap = null, cheer = true } = {}) {
+    const J = window.Juice || {}, fx = J.sfx || {}, big = card.querySelector('.tbp-big b'), pan = card.querySelector('.tbp-panel');
+    const list = [...card.querySelectorAll('.tbp-list li')], btn = card.querySelector('.tbp-actions .primary');
+    const live = () => card.isConnected;
+    if (count != null) {   // count up with climbing notes
+      const steps = Math.min(8, Math.max(3, count)), ms = 900;
+      setTimeout(() => { if (live()) J.countUp ? J.countUp(big, count, fmt, ms) : (big.textContent = fmt(count)); }, at);
+      for (let i = 0; i < steps; i++) setTimeout(() => { if (live()) fx.good?.(i + 1); }, at + (ms / steps) * i);
+      at += ms;
+    }
+    setTimeout(() => {
+      if (!live()) return;
+      if (swap != null) { big.classList.remove('was'); big.textContent = swap; }
+      big.classList.remove('slam'); void big.offsetWidth; big.classList.add('slam');
+      pan.classList.remove('flash'); void pan.offsetWidth; pan.classList.add('flash');
+      if (cheer) { const mm = card.querySelector('.tbp-mascot'); if (mm) mm.innerHTML = Mascot('cheer'); }
+      fx.fanfare?.(); J.buzz?.([18, 40, 26]);
+      confetti(90); J.burst?.(big, 24, 130);
+    }, at);
+    list.forEach((li, i) => setTimeout(() => { if (live()) { li.classList.add('in'); fx.star?.(i); J.buzz?.(8); } }, at + 450 + i * 170));
+    setTimeout(() => { if (live()) btn?.classList.add('nudge'); }, at + 650 + list.length * 170);
   }
   // back from Stripe: the card shows what they bought while the payment lands, then counts it in
   function afterCheckout() {
@@ -2740,8 +2765,7 @@
         clearInterval(poll); const m = await loadMyMarks(); drawMarkLeft();
         box.card.classList.remove('pending');
         if (arrived) {
-          box.card.querySelector('.tbp-mascot').innerHTML = Mascot('cheer');
-          if (window.Juice) Juice.countUp(box.card.querySelector('.tbp-big b'), Number(n) || 0, (v) => '+' + v, 900);
+          payoff(box.card, { at: 120, count: Number(n) || 0, fmt: (v) => '+' + v });
           box.set(`${esc(n)} papers added`, `You can now get <b>${m.balance}</b> papers marked. They never expire.`, 'Mark a paper', 'All set');
           box.result.then(k => { if (k === 'yes') location.hash = '#mark'; });
         } else box.set('Thanks, payment received', "Your papers are taking a little longer than usual to arrive. They'll appear on their own; if they're not here in a few minutes, contact Jayden.", 'OK', 'Almost there');
@@ -2764,13 +2788,13 @@
   function levelPopup(from, to) {
     const items = unlocksFor(from, to);
     const extra = items.length ? `<ul class="tbp-list">${items.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '';
-    const was = LEVEL_NAME[from] ? `Upgraded from ${LEVEL_NAME[from]}` : 'Upgraded';
-    if (to === 'pro') return celebrate({ kind: 'pro', panel: panel({ kicker: was, big: 'Pro', mood: 'cheer' }),
-      title: 'Welcome to Pro', body: 'Everything in Full, plus:', extra, primary: "Let's go" });
-    if (to === 'lite') return celebrate({ kind: 'level', panel: panel({ kicker: 'Access unlocked', big: 'Lite', mood: 'wave' }),
-      title: 'Welcome to Trialbank Lite', body: 'You now have:', extra, primary: 'Start practising' });
-    return celebrate({ kind: 'level', panel: panel({ kicker: was, big: LEVEL_NAME[to], mood: 'cheer' }),
-      title: `You're on ${LEVEL_NAME[to]} now`, body: 'Just unlocked:', extra, primary: "Let's go" });
+    const old = LEVEL_NAME[from] || '', kicker = old ? `Upgraded from ${old}` : 'Upgraded';
+    const top = (k) => panel({ kicker: k, big: old, cls: old ? 'was' : '', mood: 'happy' });   // the old level, struck out, until the new one slams in
+    const box = to === 'pro' ? celebrate({ kind: 'pro', panel: top(kicker), title: 'Welcome to Pro', body: 'Everything in Full, plus:', extra, primary: "Let's go" })
+      : to === 'lite' ? celebrate({ kind: 'level', panel: top('Access unlocked'), title: 'Welcome to Trialbank Lite', body: 'You now have:', extra, primary: 'Start practising' })
+      : celebrate({ kind: 'level', panel: top(kicker), title: `You're on ${LEVEL_NAME[to]} now`, body: 'Just unlocked:', extra, primary: "Let's go" });
+    payoff(box.card, { at: old ? 650 : 300, swap: LEVEL_NAME[to] });
+    return box;
   }
   async function subjectPopup(x, count, have) {
     let covers = '';
@@ -2781,9 +2805,12 @@
     } catch { /* plain sheets instead */ }
     if (!covers) covers = [0, 1, 2].map(i => `<span style="--i:${i}"></span>`).join('');
     const name = C.subjects[x] || x;
-    return celebrate({ kind: 'subject', panel: panel({ kicker: `New: ${esc(shortName(name))}`, big: esc(count), sub: 'papers ready to practise', art: `<div class="tbp-fan" aria-hidden="true">${covers}</div>` }),
+    const box = celebrate({ kind: 'subject', panel: panel({ kicker: `New: ${esc(shortName(name))}`, big: '0', sub: 'papers ready', art: `<div class="tbp-fan" aria-hidden="true">${covers}</div>` }),
       title: `${esc(name)} is here`, body: 'Past HSC papers and the hardest trials, sorted by topic.',
-      primary: have ? 'Open it' : 'Add to my subjects', secondary: 'Not now' }).result;
+      primary: have ? 'Open it' : 'Add to my subjects', secondary: 'Not now' });
+    [0, 1, 2].forEach(i => setTimeout(() => window.Juice?.sfx?.tick(), 260 + i * 130));   // the covers dealt in
+    payoff(box.card, { at: 650, count: Number(count) || 0, cheer: false });
+    return box.result;
   }
   let noticing = false;
   async function noticeChanges() {
