@@ -8,7 +8,7 @@ window.APP_CONFIG = {
   // subjects to announce with a "New on Trialbank" popup the first time each student sees them
   announce: ['Ext2', 'Bio', 'Econ'],
   // AI tutor (prototype, Pro only): which subjects it works in
-  tutor: { subjects: ['Adv'] },
+  tutor: { subjects: ['Ext2', 'Ext1', 'Adv', 'Std2', 'Physics', 'Eng', 'SE', 'Bio', 'Econ'] },
   // paper PDFs are served from Backblaze B2 (supabase/functions/pdf-url)
   pdfStore: 'b2',
   schoolDomain: 'education.nsw.gov.au',

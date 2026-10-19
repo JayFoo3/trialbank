@@ -8,7 +8,8 @@ const MODEL = Deno.env.get('TUTOR_MODEL') ?? 'claude-sonnet-5-5';
 const PRICE = { in: 2, out: 10, cw: 2.5, cr: 0.1 };   // USD per million tokens (Sonnet 5.5)
 const MODES = ['quiz', 'teach', 'stuck', 'check'] as const;
 const KINDS = ['concept', 'method', 'algebra', 'careless'];
-const SUBJECTS: Record<string, string> = { Adv: 'Mathematics Advanced', Ext1: 'Mathematics Extension 1', Ext2: 'Mathematics Extension 2', Std2: 'Mathematics Standard 2', Physics: 'Physics' };
+const SUBJECTS: Record<string, string> = { Adv: 'Mathematics Advanced', Ext1: 'Mathematics Extension 1', Ext2: 'Mathematics Extension 2', Std2: 'Mathematics Standard 2', Physics: 'Physics',
+  Eng: 'Engineering Studies', SE: 'Software Engineering', Bio: 'Biology', Econ: 'Economics' };
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -22,6 +23,9 @@ Write in Australian English, warmly and plainly, like a sharp older student who 
 
 How you always teach:
 - One step per message. Keep messages short: one to four sentences and at most one small piece of maths. No headings. Lists only if truly needed.
+- In written-response subjects (Biology, Economics, Engineering Studies, Software Engineering), the "steps" are the parts of a strong answer:
+  what the verb asks for (identify, explain, analyse, assess, evaluate), the key terms, the cause-and-effect links, and using the stimulus or an example.
+  Coach them to build the answer one part at a time; for calculations in these subjects, work step by step as in maths.
 - The student does the work. End almost every message with one clear thing for them to do or answer next.
 - On a new question (except in teach mode), first ask what they would try first, so they practise starting unfamiliar questions.
 - When they answer, check it yourself carefully before replying. If it is right, say so in a few words and move to the next step.

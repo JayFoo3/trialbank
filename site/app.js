@@ -3540,7 +3540,7 @@
     busy: false, done: null, active: false, session: null, topic: '', focus: null, slipped: false, seen: new Set(lsGet('tb_tu_seen') || []), n: 0 };
   // Pro only (plus admins); an admin viewing as a level sees exactly what that level gets. The server checks too.
   const tuAllowed = () => !!state.user && !state.preview && ((state.admin && !state.viewAs) || (state.viewAs ? state.viewAs === 'pro' : state.release?.level === 'pro'));
-  const tuSubjects = () => (C.tutor && C.tutor.subjects) || ['Adv'];
+  const tuSubjects = () => (C.tutor && C.tutor.subjects) || Object.keys(C.subjects);
   const tuSubject = () => tuSubjects().includes(state.subject) ? state.subject : tuSubjects()[0];
 
   let katexP = null;
@@ -3574,6 +3574,7 @@
   async function renderTutor() {
     loadKatex().catch(() => {});
     const subj = tuSubject();
+    if (tu.active && tu.subject && tu.subject !== subj) { tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; tu.topic = ''; }   // switched subject: start fresh in the new one
     $('tu-sub').textContent = `${C.subjects[subj]} · prototype`;
     drawTuModes();
     $('tu-start').hidden = tu.active; $('tu-session').hidden = !tu.active; $('tu-end').hidden = !tu.active;
@@ -3669,7 +3670,7 @@
   async function tuLoad(q) {
     await tuCleanup();
     tu.session = Date.now().toString(36); tu.msgs = []; tu.chunks = {}; tu.done = null; tu.slipped = false; tu.n = 0;
-    tu.q = q;
+    tu.q = q; tu.subject = tuSubject();
     if (q) {
       await attachUrls([q]);
       tu.seen.add(q.id); lsSet('tb_tu_seen', [...tu.seen].slice(-400));
@@ -3765,7 +3766,7 @@
         tuDraw();
       }
       const { data, error } = await sb.functions.invoke('tutor', { body: {
-        subject: tuSubject(), mode: tu.mode, question_id: tu.q?.id || null, chunks: tu.chunks,
+        subject: tu.subject || tuSubject(), mode: tu.mode, question_id: tu.q?.id || null, chunks: tu.chunks,
         messages: tu.msgs.filter(m => !m.error).map(m => ({ role: m.role, text: m.text || '', images: m.images || [] })),
       } });
       if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
