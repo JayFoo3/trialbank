@@ -26,7 +26,7 @@
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
   const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor'];
-  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty)';
+  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty)';
 
   document.title = C.name;
   $('brand').textContent = C.name;
@@ -560,7 +560,7 @@
     if (!data.length) throw new Error('No questions match that. Widen the filters.');
 
     const tooHard = hardQs();
-    let pool = data.filter(x => !tooHard.has(x.id) && !x.syllabus_note);
+    let pool = data.filter(x => !tooHard.has(x.id) && !x.syllabus_note && hasKey(x));
     if (!pool.length) throw new Error('No questions match that. Widen the filters.');
     if (o.fresh) {
       const { data: seen } = await sb.from('attempts').select('question_id').eq('user_id', state.user.id);
@@ -575,6 +575,8 @@
     window.Juice && Juice.resetCombo();
     renderQuestion();
   }
+  // only questions students can check themselves: multiple choice with an answer key, written ones with a worked solution
+  const hasKey = (q) => !!q.content || (q.type === 'mcq' ? !!q.answer : !!q.solution_path);
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
   // ---------- set ----------
@@ -641,7 +643,8 @@
       if (o === b) o.classList.add('picked');
     });
     record(ok ? 1 : 0, 1, pick);
-    verdict(ok === null ? 'No answer key for this one.' : ok ? 'Correct.' : `Not quite. Answer: ${x.answer}.`, ok === null ? 'warn' : ok ? 'good' : 'bad');
+    const ai = x.answer_source === 'ai' ? ' (This paper has no official key, so this answer was worked out by AI.)' : '';
+    verdict(ok === null ? 'No answer key for this one.' : (ok ? 'Correct.' : `Not quite. Answer: ${x.answer}.`) + ai, ok === null ? 'warn' : ok ? 'good' : 'bad');
   });
   $('show-sol').onclick = () => {
     const x = state.set.qs[state.set.i];
@@ -2020,9 +2023,10 @@
     if (!ids.length) return false;
     const { data, error } = await sb.from('questions').select(QCOLS).in('id', ids.slice(0, 100)).eq('papers.subject', state.subject).or('image_path.not.is.null,content.not.is.null');
     if (error) throw error;
-    if (!data.length) return false;
-    shuffle(data);
-    await startSet(data.slice(0, n));
+    const ok = data.filter(hasKey);
+    if (!ok.length) return false;
+    shuffle(ok);
+    await startSet(ok.slice(0, n));
     return true;
   }
   $('drill-weak').onclick = async () => {

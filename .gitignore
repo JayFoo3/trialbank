@@ -12,3 +12,5 @@ reader/tmp/
 reader/tmp-hsc/
 keyfix/
 keyfix*.tgz
+aikeys/
+aikeys*.tgz

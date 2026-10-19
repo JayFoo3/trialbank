@@ -62,6 +62,8 @@ def main():
 
     existing = set() if a.dry else {p['slug'] for p in rest('GET', 'papers?select=slug,questions(count)') if p['questions'][0]['count']}   # papers with questions already (an HSC paper uploaded as a PDF alone still gets its questions)
     manifests = sorted(glob.glob(os.path.join(HERE, 'output', '*', 'manifest.json')))
+    aik = os.path.join(HERE, 'ai_keys.json')   # answers worked out by AI for papers with no key (ai_keys.py)
+    ai = json.load(open(aik)) if os.path.exists(aik) else {}
     total_bytes = 0
     for mpath in manifests:
         m = json.load(open(mpath))
@@ -98,7 +100,8 @@ def main():
             rows.append(dict(
                 id=f'{slug}/{qid}', paper_id=paper['id'], qid=qid, number=q['number'], part=q.get('part'),
                 type=q['type'], marks=q.get('marks'), topic=q.get('topic'), topics=q.get('topics') or ([q['topic']] if q.get('topic') else []),
-                subparts=q.get('subparts') or [], answer=q.get('answer'),
+                subparts=q.get('subparts') or [], answer=q.get('answer') or ai.get(f'{slug}/{qid}'),
+                answer_source=None if q.get('answer') or f'{slug}/{qid}' not in ai else 'ai',
                 image_path=uploaded.get(q.get('image')), solution_path=uploaded.get(q.get('solution')),
                 coarse=bool(q.get('coarse')), text=(q.get('text') or '')[:4000], pages=q.get('pages') or None))
         rest('POST', 'questions', headers={'Prefer': 'resolution=merge-duplicates'}, data=json.dumps(rows))
