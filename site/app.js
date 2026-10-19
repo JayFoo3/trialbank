@@ -322,7 +322,7 @@
       const [{ data: rel }, { data: pro }] = await Promise.all([sb.rpc('my_release'), sb.rpc('my_pro')]);
       if (rel) state.release = rel; if (pro) { state.pro = pro; state.proSale = pro.sale; }
       sb.rpc('settle_referral').then(({ data }) => {   // a friend's link brought them here: once they've studied a bit, both get a free week
-        if (data?.rewarded) { toast(`Your friend's invite paid off: <b>${data.days} days of Pro</b> for both of you.`, 7000); checkAdmin(); }
+        if (data?.rewarded) { toast(`Your friend's invite paid off: <b>${data.days} days of Pro Mini</b> for both of you.`, 7000); checkAdmin(); }
       }).catch(() => {});
     }
     drawProMenu();
@@ -1554,18 +1554,16 @@
     await attachUrls(full);
     return { qs: full, marks: full.reduce((a, q) => a + (q.type === 'mcq' ? 1 : q.marks || 0), 0), mins };
   }
-  function cpAllowed() {
-    if (tuAllowed()) return true;   // Pro: as many as you like
-    const used = lsGet(CP_FREE_KEY()) || 0;
-    return Date.now() - used > 7 * 864e5;   // everyone else: one a week
-  }
+  const cpWeekly = () => tuAllowed() ? (state.pro?.mini && !state.admin ? 3 : Infinity) : 1;   // Pro unlimited, Pro Mini 3 a week, free 1
+  const cpUsed = () => { const v = lsGet(CP_FREE_KEY()); return (Array.isArray(v) ? v : v ? [v] : []).filter(t => Date.now() - t < 7 * 864e5); };
+  function cpAllowed() { return cpUsed().length < cpWeekly(); }
   function drawCpCard() {
     if (!$('cp-card')) return;
-    const pro = tuAllowed(), free = cpAllowed();
-    $('cp-pro').hidden = pro;
-    $('cp-sub').textContent = pro ? 'A fresh paper built around your weak spots, with ruled lines to write on and the solutions at the back.'
-      : free ? 'A fresh paper built around your weak spots. One free paper a week; Pro makes as many as you like.'
-      : 'You\'ve used this week\'s free paper. Pro makes as many as you like.';
+    const cap = cpWeekly(), left = cap - cpUsed().length;
+    $('cp-pro').hidden = cap === Infinity;
+    $('cp-sub').textContent = cap === Infinity ? 'A fresh paper built around your weak spots, with ruled lines to write on and the solutions at the back.'
+      : left > 0 ? `A fresh paper built around your weak spots. ${left} of ${cap} paper${cap === 1 ? '' : 's'} left this week; Pro makes as many as you like.`
+      : `You've used this week's ${cap === 1 ? 'free paper' : `${cap} papers`}. Pro makes as many as you like.`;
   }
   document.querySelectorAll('[data-cp]').forEach(seg => seg.onclick = (ev) => {
     const b = ev.target.closest('button'); if (!b) return;
@@ -1573,12 +1571,12 @@
     cpOpt[seg.dataset.cp] = seg.dataset.cp === 'mins' ? +b.dataset.v : b.dataset.v;
   });
   async function cpRun(mode) {
-    if (!cpAllowed()) return proOpen() ? openPro('paper') : toast("You've used this week's free paper.");
+    if (!cpAllowed()) return proOpen() ? openPro('paper') : toast("You've used this week's papers.");
     const btn = $(mode === 'pdf' ? 'cp-pdf' : 'cp-now'), say = (t) => { $('cp-status').textContent = t; };
     btn.disabled = true; say('Picking questions…');
     try {
       const p = await buildCustomPaper();
-      if (!tuAllowed()) lsSet(CP_FREE_KEY(), Date.now());
+      if (cpWeekly() !== Infinity) lsSet(CP_FREE_KEY(), [...cpUsed(), Date.now()]);
       const name = C.subjects[state.subject] || state.subject;
       if (mode === 'pdf') {
         await makePdf({ title: `${name} practice paper`, sub: `${p.mins} minutes · ${p.marks} marks · ${cpOpt.focus === 'weak' ? 'built around your weak spots' : cpOpt.focus === 'picked' ? 'your picked topics' : 'mixed topics'} · made ${new Date().toLocaleDateString('en-AU')}`,
@@ -2727,7 +2725,7 @@
     m.innerHTML = `<div class="modal-card buy-card pro-card" role="dialog" aria-modal="true" aria-labelledby="pro-h">
       <button class="link buy-x" data-k="" aria-label="Close">✕</button>
       <p class="pro-kick">Trialbank Pro</p>
-      <h2 id="pro-h">${active ? "You're on Pro" : pass ? `Free Pro until ${shortDay(pro.pass_end)}` : from === 'tutor' ? 'The tutor comes with Pro' : from === 'mistake' ? 'Pro explains every mistake' : from === 'paper' ? 'Unlimited practice papers with Pro' : from === 'band' ? 'See what\'s holding your band back' : 'Study with your own tutor'}</h2>
+      <h2 id="pro-h">${active ? "You're on Pro" : pass ? `${pro.mini ? 'Pro Mini' : 'Free Pro'} until ${shortDay(pro.pass_end)}` : from === 'tutor' ? 'The tutor comes with Pro' : from === 'mistake' ? 'Pro explains every mistake' : from === 'paper' ? 'Unlimited practice papers with Pro' : from === 'band' ? 'See what\'s holding your band back' : 'Study with your own tutor'}</h2>
       <ul class="pro-feats">
         <li><b>AI tutor in every subject</b><span>One step at a time on real past questions. 300 messages a month.</span></li>
         <li><b>Explain my mistake</b><span>One tap from any wrong answer into the tutor, on that exact question.</span></li>
@@ -2738,7 +2736,7 @@
       </ul>
       ${canTrial ? `<button class="primary pro-trial" data-k="trial">Try Pro free for ${pro.trial_days || 7} days</button>
         <p class="small muted pro-trial-note">No card needed. Your free week has 60 tutor messages and 1 marked paper.</p>` : ''}
-      ${pass ? `${usage}${onSale ? '<p class="pro-keep">Keep Pro after your free week</p>' : ''}` : ''}
+      ${pass ? `${pro.mini ? `<p class="small muted pro-mini-note">Pro Mini is every Pro feature in small amounts. Go Pro for 10 times the tutor, 5 marked papers a month, unlimited practice papers and the Pro looks.</p>` : ''}${usage}${onSale ? `<p class="pro-keep">${pro.mini ? 'Get the full thing' : 'Keep Pro after your free week'}</p>` : ''}` : ''}
       ${active ? `${usage}<p class="pro-status">${pro.plan === 'annual' ? 'Annual' : 'Monthly'} plan · ${pro.cancel_at_period_end ? `ends ${end}` : `renews ${end}`}</p>
         <button class="primary" data-k="portal">Manage subscription</button>`
       : onSale ? `<div class="pro-plans${canTrial ? ' after-trial' : ''}">
@@ -2747,9 +2745,10 @@
         </div><p class="small muted">Secure payment with Stripe. Card or Apple Pay. Cancel any time from your profile.</p>`
       : (canTrial || pass) ? '' : '<p class="pro-status">Pro opens soon.</p>'}
       ${link ? `<div class="pro-ref">
-        <p class="pro-ref-h">Invite friends, get Pro free</p>
-        <ol class="pro-ref-steps"><li>Send a friend your link.</li><li>They sign up and answer 10 questions.</li><li><b>You both get ${pro.referral_days || 7} days of Pro, free.</b></li></ol>
-        <p class="small muted">Works for up to 10 friends (${10 * (pro.referral_days || 7)} free days). Free days stack on top of any you already have.${pro.referred || pro.referral_pending ? ` <b class="pro-ref-n">${pro.referred} of 10 friends done${pro.referral_pending ? `, ${pro.referral_pending} still answering` : ''}.</b>` : ''}</p>
+        <p class="pro-ref-h">Invite friends, get Pro Mini free</p>
+        <ol class="pro-ref-steps"><li>Send a friend your link.</li><li>They sign up and answer 10 questions.</li><li><b>You both get ${pro.referral_days || 7} days of Pro Mini, free.</b></li></ol>
+        <p class="small muted"><b>Pro Mini</b> is every Pro feature in small amounts: ${pro.referral_msgs || 30} tutor messages and 1 marked paper a month, 3 practice papers a week, Explain my mistake and your full band breakdown.</p>
+        <p class="small muted">Up to ${pro.referral_max || 3} friends (${(pro.referral_max || 3) * (pro.referral_days || 7)} free days). ${(pro.referred || 0) >= (pro.referral_max || 3) ? '<b>You\'ve earned them all.</b> Friends who join still get their week.' : 'Free days stack on top of any you already have.'}${pro.referred || pro.referral_pending ? ` <b class="pro-ref-n">${pro.referred} of ${pro.referral_max || 3} friends done${pro.referral_pending ? `, ${pro.referral_pending} still answering` : ''}.</b>` : ''}</p>
         <div class="pro-ref-row"><input readonly value="${esc(link)}" aria-label="Your invite link"><button class="ghost" data-k="copy">Copy link</button></div></div>` : ''}
     </div>`;
     const done = () => { m.classList.add('out'); setTimeout(() => m.remove(), 180); document.removeEventListener('keydown', k); };
@@ -2785,7 +2784,7 @@
   function drawProMenu() {
     const b = $('open-pro'); if (!b) return;
     const p = state.pro;
-    b.textContent = p?.pass && !p?.active && p.pass_end ? `Trialbank Pro · free until ${shortDay(p.pass_end)}` : 'Trialbank Pro';
+    b.textContent = p?.pass && !p?.active && p.pass_end ? `${p.mini ? 'Pro Mini' : 'Trialbank Pro'} · free until ${shortDay(p.pass_end)}` : 'Trialbank Pro';
   }
   // back from Stripe after subscribing: wait for the webhook to switch the account to Pro, then celebrate
   function afterPro() {
@@ -3132,7 +3131,7 @@
   const BORDERS = [   // key, name, level, pro
     ['none', 'None', 1], ['bronze', 'Bronze', 3], ['silver', 'Silver', 6], ['gold', 'Gold', 10], ['flame', 'Flame', 14], ['diamond', 'Diamond', 20], ['pro', 'Pro', 1, 1],
   ];
-  const isProUser = () => (state.admin && !state.viewAs) || (state.viewAs ? state.viewAs === 'pro' : state.release?.level === 'pro');
+  const isProUser = () => ((state.admin && !state.viewAs) || (state.viewAs ? state.viewAs === 'pro' : state.release?.level === 'pro')) && !(state.pro?.mini && !state.viewAs);   // Pro looks are full Pro only, not Pro Mini
   const myProfile = () => ({ pet: null, color: 'blue', border: 'none', ...(state.preview ? previewFlags.profile : state.user?.user_metadata?.profile), self: true });
   const petOf = (k) => PETS.find(p => p[0] === k) || EGG;
   const petUrl = (k) => { const p = petOf(k); return `${EMOJI}${encodeURIComponent(p[2])}/Flat/${p[3]}_flat.svg`; };   // the simple flat style
@@ -3342,7 +3341,7 @@
     const { data, error } = await sb.rpc('add_friend', { friend_code: code });
     if (error) { if (!/own code/.test(error.message)) toast(esc(error.message.replace(/^.*?: /, ''))); return; }
     const { data: ref } = await sb.rpc('claim_referral', { friend_code: code }).catch(() => ({ data: false }));
-    toast(`You and <b>${esc(data)}</b> are now friends.` + (ref ? ` Answer 10 questions and you'll <b>both get 7 days of Pro free</b>.` : ' Do your Daily 5 together.'), 7000);
+    toast(`You and <b>${esc(data)}</b> are now friends.` + (ref ? ` Answer 10 questions and you'll <b>both get 7 days of Pro Mini free</b>.` : ' Do your Daily 5 together.'), 7000);
     if (location.hash === '#home' || !location.hash) drawFriends();
   }
 
