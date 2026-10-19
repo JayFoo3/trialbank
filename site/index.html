@@ -48,6 +48,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
         <div class="menu" id="account-menu" hidden>
           <p class="menu-email small muted" id="account-email"></p>
           <a class="menu-item" href="#profile" id="open-profile">Profile and pets</a>
+          <a class="menu-item" href="#hsc" id="open-hsc">HSC band and ATAR</a>
           <button class="menu-item menu-pro" id="open-pro">Trialbank Pro</button>
           <button class="menu-item" id="open-me">Theme and background</button>
           <button class="menu-item" id="buy-marks" hidden>Buy marking packs</button>
@@ -316,8 +317,16 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </section>
 
   <!-- ===== progress ===== -->
+  <section id="view-hsc" class="view" hidden>
+    <h1>Your HSC estimate</h1>
+    <p class="muted small hsc-lead">From your answers on Trialbank, with recent work counting more. It's an estimate, not a promise.</p>
+    <div class="card hsc-band" id="hsc-band"></div>
+    <div class="card hsc-atar" id="hsc-atar"></div>
+  </section>
+
   <section id="view-progress" class="view" hidden>
     <h1>Progress</h1>
+    <a class="card hsc-teaser" id="hsc-teaser" href="#hsc" hidden></a>
     <div class="card">
       <h2>By topic</h2>
       <div class="bars" id="my-bars"></div>
@@ -591,6 +600,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 <script src="juice.js?v=dev"></script>
 <script src="annotate.js?v=dev"></script>
 <script src="calc.js?v=dev"></script>
+<script src="hsc.js?v=dev"></script>
 <script src="app.js?v=dev"></script>
 </body>
 </html>

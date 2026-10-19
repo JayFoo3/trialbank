@@ -25,7 +25,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { storage: durable, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
-  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile'];
+  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile', 'hsc'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty), level';
 
   document.title = C.name;
@@ -40,7 +40,7 @@
   };
 
   // ---------- routing ----------
-  const NAV = { tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers' };
+  const NAV = { tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers', hsc: 'progress' };
   // page transitions: iOS-style push going deeper, pop going back, a quick fade between tabs
   const DEPTH = { tutor: 0, mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, profile: 1, paper: 1, set: 2, examrun: 2, summary: 3 };
   const canVT = !!document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -83,6 +83,7 @@
       if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
       if (h === 'admin' && state.admin) { show('admin'); await renderAdmin(); return; }
       if (h === 'profile') { show('profile'); await renderProfile(); return; }
+      if (h === 'hsc') { show('hsc'); await renderHsc(); return; }
       if (h === 'set' && state.set) return show('set');
       if (h === 'summary' && state.set) return show('summary');
       if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
@@ -847,8 +848,99 @@
       sb.rpc('cohort_topic_stats', { subj: state.subject }),
     ]);
     bars($('my-bars'), mine || [], 'Nothing attempted yet in this subject.');
+    hscPredictions().then(p => {   // a one-line teaser for the HSC estimate page
+      const x = p[state.subject], t = $('hsc-teaser'); if (!t) return;
+      t.hidden = false;
+      t.innerHTML = x?.ready ? `<span class="small muted">Predicted in ${esc(C.subjects[state.subject])}</span><b>${x.band}</b><span class="hsc-teaser-go">Your HSC estimate and ATAR →</span>`
+        : `<span class="small muted">Predicted band</span><b>${x ? `${Math.ceil(x.need)} more marks to go` : 'Answer some questions first'}</b><span class="hsc-teaser-go">HSC estimate and ATAR →</span>`;
+    }).catch(() => {});
     renderLostBars();
     bars($('cohort-bars'), (cohort || []).map(r => ({ ...r, extra: `${r.students} student${r.students == 1 ? '' : 's'}` })), 'No attempts yet.');
+  }
+  // ---------- predicted band and ATAR estimate (hsc.js; HSC is already the list of course names above) ----------
+  const HSCX = window.HSC;
+  let hscCache = null;
+  async function hscPredictions(force) {
+    if (hscCache && !force && Date.now() - hscCache.at < 60e3) return hscCache.p;
+    const { data, error } = await sb.from('attempts').select('score, out_of, created_at, questions!inner(topic, papers!inner(subject))')
+      .eq('user_id', state.user.id).order('created_at', { ascending: false }).limit(3000);
+    if (error) throw error;
+    const by = {};
+    (data || []).forEach(a => { const sub = a.questions?.papers?.subject; if (!sub) return; (by[sub] = by[sub] || []).push({ score: a.score, out_of: a.out_of, created_at: a.created_at, topic: a.questions.topic }); });
+    const p = {};
+    Object.keys(C.subjects).forEach(sub => { if (by[sub]) p[sub] = HSCX.predict(sub, by[sub]); });
+    hscCache = { at: Date.now(), p };
+    return p;
+  }
+  const ATAR_KEY = () => `tb_atar_${state.user?.id}`;
+  const HSC_CODE = (sub) => HSCX.SCALING[sub] ? sub : null;   // our subject codes match the scaling table's
+  async function renderHsc() {
+    const pro = tuAllowed();
+    const preds = await hscPredictions(true).catch(() => ({}));
+    const subj = state.subject, x = preds[subj], name = C.subjects[subj];
+    const outOf = HSCX.EXT(subj) ? 50 : 100;
+    const others = Object.entries(preds).filter(([s, p]) => s !== subj && p.ready);
+    const box = $('hsc-band');
+    if (!x || !x.ready) {
+      box.innerHTML = `<p class="hsc-kick">Predicted band · ${esc(name)}</p><h2 class="hsc-big muted">Not enough yet</h2>
+        <p>Answer about <b>${Math.max(1, Math.ceil(x?.need ?? 40))} more marks</b> of questions in ${esc(name)} and your predicted band appears here.</p>
+        <button class="primary" onclick="location.hash='#home'">Do today's Daily 5</button>`;
+    } else {
+      const range = x.bandLo === x.bandHi ? `Very likely ${x.band}` : `Somewhere from ${x.bandLo} to ${x.bandHi}`;
+      box.innerHTML = `<p class="hsc-kick">Predicted band · ${esc(name)}</p>
+        <div class="hsc-head"><h2 class="hsc-big">${x.band}</h2>
+          <div class="hsc-meta">${pro ? `<b>About ${x.mark}/${outOf}</b> <span class="muted">(${x.lo} to ${x.hi})</span><br>` : ''}<span class="muted small">${range} · from ${x.marks} marks of questions, about ${x.raw}% raw</span></div></div>
+        <h3 class="hsc-h3">What's holding you back</h3>
+        <div class="hsc-hold ${pro ? '' : 'locked'}">${(pro ? x.holding : [{ topic: 'Topic one', pct: 48, gain: 3.1 }, { topic: 'Topic two', pct: 55, gain: 2.2 }, { topic: 'Topic three', pct: 61, gain: 1.4 }]).map(h => `
+          <div class="hsc-row"><span class="hsc-t">${esc(pro ? topicName(h.topic) : h.topic)}</span><span class="muted small">${h.pct}% right</span><b>+${h.gain.toFixed(1)}%</b>${pro ? `<button class="link small" data-topic="${esc(h.topic)}">Practise</button>` : ''}</div>`).join('') || '<p class="muted small">Nothing stands out: your topics are all close to your average.</p>'}
+          ${pro ? (x.holding.length ? '<p class="small muted">Lifting each topic to your average raises your raw mark by about this much. <button class="link small" id="hsc-paper">Make me a paper on these</button></p>' : '') : '<div class="hsc-lock"><b>See exactly which topics are costing you marks</b><span>and how much each one is worth.</span><button class="primary" id="hsc-pro">Unlock with Pro</button></div>'}
+        </div>
+        ${others.length ? `<div class="hsc-others">${others.map(([s, p]) => `<span class="chip">${esc(C.subjects[s])} <b>${p.band}</b></span>`).join('')}</div>` : ''}`;
+      box.querySelectorAll('[data-topic]').forEach(b => b.onclick = async () => {
+        state.topics = new Set([b.dataset.topic]); location.hash = '#practise';
+      });
+      if ($('hsc-paper')) $('hsc-paper').onclick = () => { cpOpt.focus = 'weak'; location.hash = '#practise'; setTimeout(() => $('cp-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 400); };
+      if ($('hsc-pro')) $('hsc-pro').onclick = () => openPro('band');
+    }
+    drawAtar(preds);
+  }
+  function drawAtar(preds) {
+    const box = $('hsc-atar');
+    let rows = lsGet(ATAR_KEY());
+    if (!Array.isArray(rows) || !rows.length) {   // first visit: start from the subjects you've practised, plus English
+      rows = Object.entries(preds).filter(([s, p]) => HSC_CODE(s) && p.ready).map(([s, p]) => ({ code: s, mark: p.mark, auto: true }));
+      rows.unshift({ code: 'EngAdv', mark: '' });
+    }
+    const save = () => lsSet(ATAR_KEY(), rows);
+    const opts = (cur) => Object.entries(HSCX.SCALING).map(([k, c]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(c.name)}${c.units === 1 ? ' (1 unit)' : ''}</option>`).join('');
+    const paint = () => {
+      const r = HSCX.atar(rows);
+      box.innerHTML = `<div class="atar-top"><div><p class="hsc-kick">ATAR estimate</p>
+          <div class="atar-big${r.ok ? '' : ' muted'}">${r.ok ? (r.atar == null ? 'Below 47' : r.atar.toFixed(2)) : '??.??'}</div>
+          <p class="small muted">${r.ok ? `Aggregate ${r.aggregate} of 500 · best 10 units, including 2 of English` : esc(r.why)}</p></div></div>
+        <div class="atar-rows">${rows.map((row, i) => { const c = HSCX.SCALING[row.code]; return `
+          <div class="atar-row"><select data-i="${i}" data-k="code" aria-label="Course">${opts(row.code)}</select>
+            <label class="atar-mark"><input data-i="${i}" data-k="mark" type="number" inputmode="decimal" min="0" max="${c?.max || 100}" step="1" value="${row.mark ?? ''}" placeholder="–"><span class="muted small">/ ${c?.max || 100}</span></label>
+            <span class="atar-sc small">${r.perUnit?.[row.code] != null ? `<b>${r.perUnit[row.code]}</b> scaled${r.counted?.[row.code] ? '' : ' · <span class="muted">not counted</span>'}` : row.auto ? '<span class="muted">predicted</span>' : ''}</span>
+            <button class="link small atar-x" data-x="${i}" aria-label="Remove">✕</button></div>`; }).join('')}</div>
+        ${rows.some(x => x.code === 'Ext1') && !rows.some(x => x.code === 'Adv' || x.code === 'Ext2') ? '<p class="small atar-hint">Doing Extension 1? Add <b>Mathematics Advanced</b> too: you get a mark in both.</p>' : ''}
+        <div class="atar-foot"><button class="secondary" id="atar-add">Add a course</button>
+          ${Object.values(preds).some(p => p.ready) ? '<button class="link small" id="atar-fill">Use my predicted marks</button>' : ''}</div>
+        <p class="small muted atar-note">Enter the HSC mark you expect in each course (extension courses out of 50). Scaling from ${esc(HSCX.YEAR)}${rows.some(x => HSCX.SCALING[x.code]?.approx) ? '; Physics, Software Engineering and Music 1 are approximate' : ''}. A guide only: real scaling changes every year.</p>`;
+      box.querySelectorAll('select[data-k]').forEach(el => el.onchange = () => { rows[+el.dataset.i].code = el.value; rows[+el.dataset.i].auto = false; save(); paint(); });
+      box.querySelectorAll('input[data-k]').forEach(el => el.oninput = () => {
+        const i = +el.dataset.i; rows[i].mark = el.value === '' ? '' : +el.value; rows[i].auto = false; save();
+        clearTimeout(paint.t);
+        paint.t = setTimeout(() => { paint(); const f = box.querySelector(`input[data-i="${i}"]`); if (f) { f.focus(); const v = f.value; f.value = ''; f.value = v; } }, 450);
+      });
+      box.querySelectorAll('[data-x]').forEach(b => b.onclick = () => { rows.splice(+b.dataset.x, 1); save(); paint(); });
+      $('atar-add').onclick = () => { const used = new Set(rows.map(x => x.code)); rows.push({ code: Object.keys(HSCX.SCALING).find(k => !used.has(k)) || 'Chem', mark: '' }); save(); paint(); };
+      if ($('atar-fill')) $('atar-fill').onclick = () => {
+        Object.entries(preds).forEach(([s, p]) => { if (!p.ready || !HSC_CODE(s)) return; const r0 = rows.find(x => x.code === s); if (r0) r0.mark = p.mark; else rows.push({ code: s, mark: p.mark }); });
+        save(); paint();
+      };
+    };
+    paint();
   }
   function bars(el, rows, empty) {
     el.innerHTML = '';
@@ -2587,7 +2679,7 @@
     m.innerHTML = `<div class="modal-card buy-card pro-card" role="dialog" aria-modal="true" aria-labelledby="pro-h">
       <button class="link buy-x" data-k="" aria-label="Close">✕</button>
       <p class="pro-kick">Trialbank Pro</p>
-      <h2 id="pro-h">${active ? "You're on Pro" : pass ? `Free Pro until ${shortDay(pro.pass_end)}` : from === 'tutor' ? 'The tutor comes with Pro' : from === 'mistake' ? 'Pro explains every mistake' : from === 'paper' ? 'Unlimited practice papers with Pro' : 'Study with your own tutor'}</h2>
+      <h2 id="pro-h">${active ? "You're on Pro" : pass ? `Free Pro until ${shortDay(pro.pass_end)}` : from === 'tutor' ? 'The tutor comes with Pro' : from === 'mistake' ? 'Pro explains every mistake' : from === 'paper' ? 'Unlimited practice papers with Pro' : from === 'band' ? 'See what\'s holding your band back' : 'Study with your own tutor'}</h2>
       <ul class="pro-feats">
         <li><b>AI tutor in every subject</b><span>One step at a time on real past questions. 300 messages a month.</span></li>
         <li><b>5 papers marked every month</b><span>On top of anything you've bought.</span></li>
