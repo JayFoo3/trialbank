@@ -5,8 +5,10 @@
   const HL = 'rgba(255, 210, 63, 0.38)';
   let active = null;                     // the one card being annotated right now
   let bar = null;
-  const tool = { kind: 'pen', colour: COLOURS[0][0], finger: false };
+  const tool = { kind: 'pen', colour: COLOURS[0][0], touch: 'scroll' };   // touch: scroll | pencil (fingers ignored) | draw
   try { Object.assign(tool, JSON.parse(localStorage.getItem('tb_ann_tool') || '{}')); } catch { /* defaults */ }
+  if (tool.finger === true) { tool.touch = 'draw'; delete tool.finger; }
+  const TOUCH = { scroll: ['Fingers scroll', 'Pencil draws. One finger scrolls or taps an answer.'], pencil: ['Pencil only', 'Fingers and palm are ignored. Scroll with two fingers.'], draw: ['Fingers draw', 'Fingers and Pencil both draw.'] };
   const saveTool = () => { try { localStorage.setItem('tb_ann_tool', JSON.stringify(tool)); } catch { /* blocked */ } };
 
   const load = (key) => { try { return JSON.parse(localStorage.getItem(key) || 'null') || { s: [], space: 1 }; } catch { return { s: [], space: 1 }; } };
@@ -64,7 +66,10 @@
       if (cur) drawStroke(ctx, cur, w);
     }
     const pos = (ev) => { const r = canvas.getBoundingClientRect(); return [(ev.clientX - r.left) / w, (ev.clientY - r.top) / w, ev.pressure || 0.5]; };
-    const draws = (ev) => ev.pointerType === 'pen' || ev.pointerType === 'mouse' || tool.finger;
+    const draws = (ev) => ev.pointerType === 'pen' || ev.pointerType === 'mouse' || tool.touch === 'draw';
+    const capture = (ev) => { try { canvas.setPointerCapture(ev.pointerId); } catch { /* pointer already gone */ } };
+    const touches = new Map();             // pencil-only mode: two fingers together scroll
+    let pinchY = null;
 
     function eraseAt(x, y) {
       const r = 14 / w, before = data.s.length;
@@ -72,14 +77,24 @@
       if (keep.length !== before) { undo.push(data.s); redo.length = 0; data.s = keep; redraw(); store(key, data); }
     }
     canvas.addEventListener('pointerdown', (ev) => {
-      if (!draws(ev)) { scrollY = ev.clientY; tap = [ev.clientX, ev.clientY]; canvas.setPointerCapture(ev.pointerId); return; }   // a finger scrolls the page
-      ev.preventDefault(); canvas.setPointerCapture(ev.pointerId);
+      if (!draws(ev) && tool.touch === 'pencil') {             // palm and single fingers do nothing
+        ev.preventDefault(); touches.set(ev.pointerId, ev.clientY); capture(ev);
+        if (touches.size >= 2) pinchY = [...touches.values()].reduce((a, b) => a + b, 0) / touches.size;
+        return;
+      }
+      if (!draws(ev)) { scrollY = ev.clientY; tap = [ev.clientX, ev.clientY]; capture(ev); return; }   // a finger scrolls the page
+      ev.preventDefault(); capture(ev);
       const [x, y, pr] = pos(ev);
       if (tool.kind === 'eraser') { cur = { erase: true }; eraseAt(x, y); return; }
       cur = { t: tool.kind === 'hl' ? 'hl' : 'pen', c: tool.colour, p: [x, y, pr] };
       redraw();
     });
     canvas.addEventListener('pointermove', (ev) => {
+      if (touches.has(ev.pointerId)) {
+        touches.set(ev.pointerId, ev.clientY);
+        if (touches.size >= 2) { const y = [...touches.values()].reduce((a, b) => a + b, 0) / touches.size; if (pinchY != null) window.scrollBy(0, pinchY - y); pinchY = y; }
+        return;
+      }
       if (scrollY != null) { if (tap && Math.hypot(ev.clientX - tap[0], ev.clientY - tap[1]) > 8) tap = null; window.scrollBy(0, scrollY - ev.clientY); scrollY = ev.clientY; return; }
       if (!cur) return;
       ev.preventDefault();
@@ -110,8 +125,9 @@
       }
       cur = null; redraw();
     };
-    canvas.addEventListener('pointerup', end);
-    canvas.addEventListener('pointercancel', end);
+    const lift = (ev) => { if (touches.delete(ev.pointerId)) { if (touches.size < 2) pinchY = null; return true; } return false; };
+    canvas.addEventListener('pointerup', (ev) => { if (!lift(ev)) end(); });
+    canvas.addEventListener('pointercancel', (ev) => { if (!lift(ev)) end(); });
     const ro = new ResizeObserver(size); ro.observe(card);
     size();
     // images inside the card can finish loading after we start
@@ -152,13 +168,16 @@
       <button class="ann-t" data-a="undo" title="Undo">${svg('undo')}</button>
       <button class="ann-t" data-a="redo" title="Redo">${svg('redo')}</button>
       <button class="ann-t" data-a="clear" title="Clear this question">${svg('clear')}</button>
-      <button class="ann-t${tool.finger ? ' on' : ''}" data-a="finger" title="${tool.finger ? 'Fingers draw (tap to scroll with fingers instead)' : 'Fingers scroll, pencil draws (tap to draw with fingers)'}">${svg('hand')}</button>
+      <button class="ann-mode${tool.touch === 'pencil' ? ' on' : ''}" data-a="touch" title="${TOUCH[tool.touch][1]}">${svg(tool.touch === 'draw' ? 'hand' : 'pen')}<span>${TOUCH[tool.touch][0]}</span></button>
       <button class="ann-done" data-a="done">Done</button>`;
     bar.onclick = (ev) => {
       const b = ev.target.closest('button'); if (!b || !active) return;
       if (b.dataset.c) { tool.kind = 'pen'; tool.colour = b.dataset.c; }
       else if (b.dataset.k) tool.kind = b.dataset.k;
-      else if (b.dataset.a === 'finger') tool.finger = !tool.finger;
+      else if (b.dataset.a === 'touch') {
+        tool.touch = { scroll: 'pencil', pencil: 'draw', draw: 'scroll' }[tool.touch] || 'scroll';
+        hint(TOUCH[tool.touch][1]);
+      }
       else if (b.dataset.a === 'done') { stop(); return; }
       else if (b.dataset.a === 'clear') { if (active.api.count() && !confirm('Clear everything you wrote on this question?')) return; active.api.clear(); }
       else if (active.api[b.dataset.a]) active.api[b.dataset.a]();
@@ -166,6 +185,11 @@
     };
     bar.hidden = false;
     document.body.classList.add('annotating');
+  }
+  function hint(t) {
+    let el = document.querySelector('.ann-hint');
+    if (!el) { el = document.createElement('div'); el.className = 'ann-hint'; document.body.appendChild(el); }
+    el.textContent = t; el.classList.add('on'); clearTimeout(hint.t); hint.t = setTimeout(() => el.classList.remove('on'), 2600);
   }
   function stop() {
     if (!active) return;
