@@ -2522,72 +2522,58 @@
   // pick today's five: up to 2 questions they got wrong, then topics due back, then new topics, each at the student's level for that topic
   async function buildDaily(subj = state.subject) {
     const today = dayOf(), skip = skipped(subj), tooHard = hardQs();
-    const [srs, { data: att }, counts] = await Promise.all([
+    // three requests at once: where they are on each topic, what they've answered, and a random sample of every question they can see
+    const [srs, { data: att }, { data: poolRows, error: poolErr }] = await Promise.all([
       loadSrs(subj),
       sb.from('attempts').select('question_id, score, out_of, created_at, questions!inner(topic, papers!inner(subject))')
         .eq('user_id', state.user.id).eq('questions.papers.subject', subj).order('created_at', { ascending: false }).limit(1000)
         .then(r => state.preview ? { data: [] } : r),
-      loadTopicCounts(),
+      sb.rpc('daily_pool', { subj }),
     ]);
+    if (poolErr) throw poolErr;
     const seen = new Set(), wrongIds = [];
     (att || []).forEach(a => {
       if (seen.has(a.question_id)) return; seen.add(a.question_id);
       if (a.score < a.out_of && a.created_at.slice(0, 10) <= addDays(today, -2) && !skip.has(a.questions.topic)) wrongIds.push(a.question_id);
     });
-    const ok = (x) => hasKey(x) && !x.syllabus_note && !tooHard.has(x.id) && !skip.has(x.topic) && (x.marks || 1) <= 3 && (x.image_path || x.content);
+    const ok = (x) => !tooHard.has(x.id) && !skip.has(x.topic);
     const mode = dailyMode(), want = (x) => mode === 'mix' || (mode === 'mcq') === (x.type === 'mcq');   // the student's choice of question types
     const pickIds = new Set(), out = [];
-    const take = (x, kind) => { if (x && !pickIds.has(x.id) && out.length < 5) { pickIds.add(x.id); out.push({ x, kind }); return true; } return false; };
+    const take = (x, kind) => { if (x && !pickIds.has(x.id) && out.length < 5) { pickIds.add(x.id); out.push({ id: x.id, topic: x.topic, kind }); return true; } return false; };
     // 1. redo: wrong at least two days ago, a topic that's due first
     if (wrongIds.length) {
       const { data } = await sb.from('questions').select(QCOLS).in('id', wrongIds.slice(0, 100)).eq('papers.subject', subj);
       const due = (x) => (srs[x.topic]?.due || today) <= today;
-      const redo = shuffle((data || []).filter(x => ok(x) && want(x))).sort((a, b) => due(b) - due(a));
+      const redo = shuffle((data || []).filter(x => hasKey(x) && !x.syllabus_note && (x.marks || 1) <= 3 && ok(x) && want(x))).sort((a, b) => due(b) - due(a));
       const used = new Set();
       for (const x of redo) { if (out.length >= 2) break; if (!used.has(x.topic) && take(x, 'redo')) used.add(x.topic); }
     }
+    // the sample, grouped by topic
+    const byTopic = {};
+    (poolRows || []).filter(ok).forEach(x => { (byTopic[x.topic] = byTopic[x.topic] || []).push(x); });
+    const pick = (t, lvl) => (byTopic[t] || []).filter(x => !pickIds.has(x.id))
+      .sort((a, b) => (want(b) - want(a)) || Math.abs(qLevel(a) - lvl) - Math.abs(qLevel(b) - lvl) || seen.has(a.id) - seen.has(b.id))[0];
     // 2. topics due back today, most overdue and most often wrong first; 3. new topics; 4. whatever comes back soonest
-    const allTopics = [...new Set((counts || []).filter(r => r.subject === subj).map(r => r.topic))].filter(t => !skip.has(t));
-    const dueT = Object.values(srs).filter(r => r.due <= today && !skip.has(r.topic)).sort((a, b) => a.due.localeCompare(b.due) || b.wrong_n - a.wrong_n).map(r => r.topic);
+    const allTopics = Object.keys(byTopic);
+    const dueT = Object.values(srs).filter(r => r.due <= today && byTopic[r.topic]).sort((a, b) => a.due.localeCompare(b.due) || b.wrong_n - a.wrong_n).map(r => r.topic);
     const newT = shuffle(allTopics.filter(t => !srs[t]));
-    const laterT = Object.values(srs).filter(r => r.due > today && !skip.has(r.topic)).sort((a, b) => a.due.localeCompare(b.due)).map(r => r.topic);
-    const used = new Set(out.map(o => o.x.topic));
-    const plan = [];
+    const laterT = Object.values(srs).filter(r => r.due > today && byTopic[r.topic]).sort((a, b) => a.due.localeCompare(b.due)).map(r => r.topic);
+    const used = new Set(out.map(o => o.topic));
     const nNew = Math.min(newT.length, Object.keys(srs).length ? 1 : 5);   // one new topic a day once they've started, all new on day one
-    dueT.filter(t => !used.has(t)).forEach(t => plan.push([t, 'review']));
     const room = 5 - out.length;
-    const reviews = plan.splice(0, Math.max(0, room - nNew));
-    const fresh = newT.slice(0, Math.max(nNew, room - reviews.length)).map(t => [t, 'new']);
-    // anything else to fall back on: due topics left over, topics coming back later, then every other new topic
-    // (on Free, many topics have no questions in the free papers, so the first picks can come up empty)
-    const rest = [...plan, ...laterT.filter(t => !used.has(t)).map(t => [t, 'review']), ...newT.slice(fresh.length).map(t => [t, 'new'])];
-    const queue = [...reviews, ...fresh, ...rest];
-    const seenSet = seen;
-    const pool = async (t, lvl) => {
-      const lo = Math.max(1, lvl - 1), hi = Math.min(5, lvl + 1);
-      let { data } = await sb.from('questions').select(QCOLS).eq('papers.subject', subj).eq('topic', t).gte('level', lo).lte('level', hi).limit(120);
-      if (!data || !data.filter(ok).length) ({ data } = await sb.from('questions').select(QCOLS).eq('papers.subject', subj).eq('topic', t).limit(120));
-      const c = shuffle((data || []).filter(ok));
-      return c.filter(x => !seenSet.has(x.id)).concat(c.filter(x => seenSet.has(x.id)))
-        .sort((a, b) => Math.abs(qLevel(a) - lvl) - Math.abs(qLevel(b) - lvl) || seenSet.has(a.id) - seenSet.has(b.id));
-    };
-    let qi = 0; const spare = [];
-    while (out.length < 5 && qi < queue.length) {   // a few topics at a time, in parallel, until five are picked
-      const chunk = queue.slice(qi, qi + Math.max(5 - out.length, qi ? 8 : 0)); qi += chunk.length;   // after the first round, try more topics at once
-      const got = await Promise.all(chunk.map(([t, kind]) => pool(t, kind === 'new' ? 1 + (Math.random() < 0.5) : (srs[t]?.level || 1)).then(c => [c, kind])));
-      for (const [c, kind] of got) { take(c.find(x => want(x) && !pickIds.has(x.id)), kind); spare.push([c, kind]); }
-    }
-    for (const [c, kind] of spare) { if (out.length >= 5) break; take(c.find(x => want(x) && !pickIds.has(x.id)), kind); }   // few topics: a second from each
-    for (const [c, kind] of spare) { if (out.length >= 5) break; take(c.find(x => !pickIds.has(x.id)), kind); }   // still short of that type: top up with the other
-    if (out.length < 5) {   // last resort: any suitable questions in the subject
-      const { data } = await sb.from('questions').select(QCOLS).eq('papers.subject', subj).lte('marks', 3).limit(300);
-      const any = shuffle((data || []).filter(ok));
-      for (const x of [...any.filter(want), ...any]) { if (out.length >= 5) break; take(x, srs[x.topic] ? 'review' : 'new'); }
-    }
+    const reviews = dueT.filter(t => !used.has(t)).slice(0, Math.max(0, room - nNew)).map(t => [t, 'review']);
+    const queue = [...reviews, ...newT.map(t => [t, 'new']), ...dueT.map(t => [t, 'review']), ...laterT.map(t => [t, 'review'])];
+    const lvlFor = (t, kind) => kind === 'new' ? 1 + (Math.random() < 0.5) : (srs[t]?.level || 1);
+    for (const [t, kind] of queue) { if (out.length >= 5) break; if (!used.has(t) && take(pick(t, lvlFor(t, kind)), kind)) used.add(t); }   // one per topic first
+    for (const [t, kind] of queue) { if (out.length >= 5) break; take(pick(t, lvlFor(t, kind)), kind); }                                  // few topics: a second from each
     if (!out.length) throw new Error('No questions to pick from yet. Untick some "not learnt" topics.');
-    const row = { subject: subj, day: today, question_ids: out.map(o => o.x.id), kinds: out.map(o => o.kind), answered: [], score: 0, out_of: 0, finished_at: null };
+    const { data: full, error } = await sb.from('questions').select(QCOLS).in('id', out.map(o => o.id));
+    if (error) throw error;
+    const by = Object.fromEntries((full || []).map(x => [x.id, x]));
+    const keep = out.filter(o => by[o.id]);
+    const row = { subject: subj, day: today, question_ids: keep.map(o => o.id), kinds: keep.map(o => o.kind), answered: [], score: 0, out_of: 0, finished_at: null };
     await saveDaily(row);
-    return { row, qs: out.map(o => o.x) };
+    return { row, qs: keep.map(o => by[o.id]) };
   }
   async function startDaily(subj = state.subject) {
     let row = await getDaily(subj), qs;
