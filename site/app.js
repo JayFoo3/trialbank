@@ -2618,29 +2618,31 @@
   // ---------- automarker ----------
   const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  // ---------- celebration popup: purchases, level-ups, new subjects ----------
-  function celebrate({ title, body = '', primary = 'Nice', secondary = null }) {
+  // ---------- celebration popups: each kind has its own look ----------
+  // kind: 'buy' (gold coin), 'level' (tier flip + unlocks), 'pro' (dark and gold), 'subject' (fanned paper covers)
+  function celebrate({ kind = 'level', hero = '', title, body = '', extra = '', primary = 'Nice', secondary = null }) {
     const m = mk('div', 'modal cele');
-    m.innerHTML = `<div class="modal-card cele-card" role="dialog" aria-modal="true"><div class="cele-badge" aria-hidden="true"></div><h2>${title}</h2><p class="cele-body">${body}</p>` +
+    m.innerHTML = `<div class="modal-card cele-card cele-${kind}" role="dialog" aria-modal="true"><div class="cele-hero">${hero}</div><h2>${title}</h2><p class="cele-body">${body}</p>${extra}` +
       `<div class="row confirm-row">${secondary ? `<button class="secondary" data-k="no">${secondary}</button>` : ''}<button class="primary" data-k="yes">${primary}</button></div></div>`;
-    const card = m.firstElementChild, badge = card.querySelector('.cele-badge');
+    const card = m.firstElementChild, heroEl = card.querySelector('.cele-hero');
     let done;
     const result = new Promise(res => { done = res; });
     const close = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 200); document.removeEventListener('keydown', k); done(v); };
     const k = (ev) => { if (ev.key === 'Escape') close(null); };
     m.onclick = (ev) => { if (ev.target === m) close(null); const b = ev.target.closest('button[data-k]'); if (b) close(b.dataset.k); };
     document.addEventListener('keydown', k); document.body.appendChild(m);
-    const pop = () => { if (window.Juice) { Juice.burst(badge, 26, 150); setTimeout(() => Juice.burst(badge, 16, 90), 240); } };
-    setTimeout(pop, 120);
+    const pop = (n = 26) => { if (window.Juice) { Juice.burst(heroEl, n, 150); setTimeout(() => Juice.burst(heroEl, Math.round(n * 0.6), 90), 240); } };
+    if (kind !== 'buy') setTimeout(pop, 380);
     card.querySelector('.primary')?.focus();
-    return { result, pop, set(t, b2, btn) { card.querySelector('h2').innerHTML = t; if (b2 != null) card.querySelector('.cele-body').innerHTML = b2; if (btn) card.querySelector('.primary').textContent = btn; } };
+    return { result, pop, card, set(t, b2, btn) { if (t != null) card.querySelector('h2').innerHTML = t; if (b2 != null) card.querySelector('.cele-body').innerHTML = b2; if (btn) card.querySelector('.primary').textContent = btn; } };
   }
-  // back from Stripe: thank them straight away; the marks land a few seconds later, when Stripe tells the server
+  // back from Stripe: a gold coin spins while the payment lands, then settles on the number of marks
   function afterCheckout() {
     const n = new URLSearchParams(location.search).get('bought');
     if (!n) return;
     history.replaceState(null, '', location.pathname + location.hash);
-    const box = celebrate({ title: 'Thank you!', body: `Your payment went through. Adding your ${esc(n)} marks…`, primary: 'Done' });
+    const box = celebrate({ kind: 'buy', hero: `<div class="coin spin"><b>+${esc(n)}</b><small>marks</small></div>`,
+      title: 'Thank you!', body: 'Payment received. Adding your marks…', primary: 'Done' });
     const since = new Date(Date.now() - 15 * 60e3).toISOString();
     let tries = 0;
     const poll = setInterval(async () => {
@@ -2649,19 +2651,49 @@
       const arrived = !!(got && got.length);
       if (arrived || ++tries > 20) {
         clearInterval(poll); const m = await loadMyMarks(); drawMarkLeft();
-        if (arrived) { box.set(`${esc(n)} marks added`, `You now have <b>${m.balance}</b> marks. Upload a finished paper with <b>Mark my paper</b> to use one.`, 'Great'); box.pop(); }
-        else box.set('Thanks, your payment went through', "Your marks are taking a little longer than usual. They'll appear on their own; if they're not here in a few minutes, contact Jayden.", 'OK');
+        box.card.querySelector('.coin').classList.remove('spin');
+        if (arrived) {
+          box.card.querySelector('.coin').classList.add('landed');
+          box.set(`${esc(n)} marks are yours`, `That's <b>${m.balance}</b> in total. They never expire. Use one on any paper with <b>Mark my paper</b>.`, 'Mark a paper');
+          box.pop(30);
+          box.result.then(k => { if (k === 'yes') location.hash = '#home'; });
+        } else box.set('Thanks, payment received', "Your marks are taking a little longer than usual. They'll appear on their own; if they're not here in a few minutes, contact Jayden.", 'OK');
       }
     }, 2000);
   }
 
   // ---------- "you've been upgraded" and "new subject" popups ----------
   const LEVEL_RANK = { free: 0, lite: 1, full: 2, pro: 3 };
-  const LEVEL_POP = {
-    lite: ['Welcome to Trialbank Lite', 'Every paper and topic practice is open to you.'],
-    full: ["You've been upgraded to Full!", 'Timed exams, weak spots, Progress and auto-marking are now unlocked.'],
-    pro: ["You're now on Trialbank Pro!", 'Everything in Full, plus your own auto-marks every month that never come out of the shared pool.'],
-  };
+  const LEVEL_NAME = { free: 'Free', lite: 'Lite', full: 'Full', pro: 'Pro' };
+  const LEVEL_FEAT = { free: 0, lite: 20, full: 100, pro: 100 };
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  function unlocksFor(from, to) {
+    const list = [];
+    if (to !== 'free' && from === 'free') list.push('Every trial paper', 'Topic practice');
+    FEATURE_NAMES.forEach(([f, name]) => { if ((LEVEL_FEAT[from] ?? 0) < FEATURE_AT[f] && (LEVEL_FEAT[to] ?? 0) >= FEATURE_AT[f]) list.push(cap(name.replace(/^the /, ''))); });
+    if (to === 'pro') list.push('Your own auto-marks every month');
+    return list;
+  }
+  function levelPopup(from, to) {
+    const items = unlocksFor(from, to);
+    const extra = items.length ? `<ul class="cele-unlocks">${items.map((t, i) => `<li style="--i:${i}">${esc(t)}</li>`).join('')}</ul>` : '';
+    const hero = `<div class="tier"><span class="tier-old">${LEVEL_NAME[from] || ''}</span><span class="tier-arrow" aria-hidden="true"></span><span class="tier-new">${LEVEL_NAME[to]}</span></div>`;
+    if (to === 'pro') return celebrate({ kind: 'pro', hero, title: 'Welcome to Pro', body: 'You now have:', extra, primary: "Let's go" });
+    if (to === 'lite') return celebrate({ kind: 'level', hero, title: 'Welcome to Trialbank Lite', body: 'You now have:', extra, primary: 'Start practising' });
+    return celebrate({ kind: 'level', hero, title: `You've been upgraded to ${LEVEL_NAME[to]}!`, body: 'Just unlocked:', extra, primary: "Let's go" });
+  }
+  async function subjectPopup(x, count, have) {
+    let covers = '';
+    try {
+      const { data: ps } = await sb.from('papers').select('slug').eq('subject', x).neq('difficulty', 'HSC').order('year', { ascending: false }).limit(3);
+      const urls = await thumbUrls((ps || []).map(p => `${p.slug}/thumb.webp`));
+      covers = (ps || []).map((p, i) => urls[`${p.slug}/thumb.webp`] ? `<img src="${urls[`${p.slug}/thumb.webp`]}" alt="" style="--i:${i}">` : '').join('');
+    } catch { /* plain cards instead */ }
+    if (!covers) covers = [0, 1, 2].map(i => `<span class="fan-blank" style="--i:${i}"></span>`).join('');
+    return celebrate({ kind: 'subject', hero: `<div class="fan">${covers}<span class="fan-count">${count}</span></div>`,
+      title: `New: ${esc(C.subjects[x] || x)}`, body: `${count} papers are ready to practise, from HSC to the hardest trials.`,
+      primary: have ? 'Open it' : 'Add to my subjects', secondary: 'Not now' }).result;
+  }
   let noticing = false;
   async function noticeChanges() {
     if (noticing || !state.user || state.admin || state.preview || C.demo) return;
@@ -2672,7 +2704,7 @@
       if (lvl && seen.level !== lvl) {
         const up = seen.level && (LEVEL_RANK[lvl] ?? 0) > (LEVEL_RANK[seen.level] ?? 0);
         upd.level = lvl;
-        if (up && LEVEL_POP[lvl]) await celebrate({ title: LEVEL_POP[lvl][0], body: LEVEL_POP[lvl][1], primary: "Let's go" }).result;
+        if (up) await levelPopup(seen.level, lvl).result;
       }
       // subjects that have at least one paper this student can open
       const { data: ps } = await sb.from('papers').select('subject');
@@ -2685,15 +2717,14 @@
         for (const x of fresh) {
           const mine = mySubjects() || [];
           const have = mine.includes(x);
-          const k = await celebrate({ title: `New on Trialbank: ${esc(C.subjects[x])}`, body: `${count[x]} papers are ready to practise.`,
-            primary: have ? 'Open it' : 'Add to my subjects', secondary: 'Not now' }).result;
+          const k = await subjectPopup(x, count[x], have);
           if (k === 'yes') {
             if (!have) { const { data } = await sb.auth.updateUser({ data: { subjects: [...mine, x] } }); if (data?.user) state.user = data.user; }
             state.subject = x; state.topics.clear(); try { localStorage.setItem('tb_subject', x); } catch {}
             drawSubject(); route();
           }
         }
-        if (!seen.subjects || fresh.length || subs.some(x => !known.includes(x))) upd.subjects = subs;
+        if (!seen.subjects || fresh.length) upd.subjects = subs;
       }
       if (Object.keys(upd).length) {
         const { data } = await sb.auth.updateUser({ data: { seen: { ...seen, ...upd } } });

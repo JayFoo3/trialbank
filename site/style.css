@@ -1189,20 +1189,63 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .lv-pick.saved { background: color-mix(in srgb, var(--biro) 14%, transparent); }
 .levels .row { margin-top: .75rem; }
 
-/* ---------- celebration popup ---------- */
+/* ---------- celebration popups: one look per kind ---------- */
 .modal.cele { z-index: 2000; animation: cele-fade .2s ease-out; }
 .modal.cele.out { opacity: 0; transition: opacity .2s; }
-.cele-card { text-align: center; max-width: 380px; padding: 2rem 1.6rem 1.4rem; animation: cele-in .45s cubic-bezier(.2,1.4,.4,1); }
-.cele-card h2 { font-family: var(--display); font-size: 1.6rem; line-height: 1.15; margin: .9rem 0 .4rem; }
-.cele-body { color: var(--muted); margin: 0 0 1.2rem; }
-.cele-badge { width: 64px; height: 64px; margin: 0 auto; border-radius: 50%; background: var(--biro);
-  box-shadow: 0 6px 0 var(--biro-dark); position: relative; }
-.cele-badge::after { content: ''; position: absolute; left: 22px; top: 14px; width: 14px; height: 26px;
-  border: solid var(--on-ink); border-width: 0 5px 5px 0; transform: rotate(45deg); }
+.cele-card { text-align: center; max-width: 390px; padding: 1.8rem 1.6rem 1.4rem; animation: cele-in .45s cubic-bezier(.2,1.4,.4,1); }
+.cele-card h2 { font-family: var(--display); font-size: 1.55rem; line-height: 1.15; margin: 1rem 0 .35rem; }
+.cele-body { color: var(--muted); margin: 0 0 1.1rem; }
 .cele-card .confirm-row { justify-content: center; }
+.cele-hero { display: flex; justify-content: center; min-height: 96px; align-items: center; }
+
+/* buy: a gold coin that spins until the marks land */
+.coin { width: 104px; height: 104px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 35% 30%, #fff3b0, #ffd23f 45%, #e9b10c); box-shadow: 0 7px 0 #b8860b, inset 0 0 0 6px rgba(255,255,255,.35);
+  color: #5a3f00; }
+.coin b { font-family: var(--display); font-size: 2rem; line-height: 1; }
+.coin small { font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.coin.spin { animation: coin-spin 1.1s linear infinite; }
+.coin.landed { animation: coin-land .6s cubic-bezier(.2,1.6,.4,1); }
+@keyframes coin-spin { to { transform: rotateY(360deg); } }
+@keyframes coin-land { 0% { transform: scale(.6) rotate(-20deg); } 100% { transform: none; } }
+
+/* level: old tier crossed out, new tier flips in, then the unlocks pop in one by one */
+.tier { display: flex; align-items: center; gap: .7rem; font-family: var(--display); font-size: 1.25rem; }
+.tier-old { color: var(--muted); padding: .35em .8em; border-radius: 999px; background: var(--soft); text-decoration: line-through; text-decoration-thickness: 2px; }
+.tier-old:empty, .tier-old:empty + .tier-arrow { display: none; }
+.tier-arrow { width: 26px; height: 3px; background: var(--rule-strong); position: relative; }
+.tier-arrow::after { content: ''; position: absolute; right: -2px; top: -5px; border: 6px solid transparent; border-left-color: var(--rule-strong); border-right: 0; }
+.tier-new { color: #fff; padding: .45em 1.1em; border-radius: 999px; background: var(--good); box-shadow: 0 5px 0 var(--good-dark);
+  animation: tier-flip .7s .15s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes tier-flip { from { transform: rotateX(90deg) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.cele-unlocks { list-style: none; padding: 0; margin: -.4rem 0 1.2rem; display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; }
+.cele-unlocks li { padding: .3em .75em .3em 1.75em; border-radius: 999px; background: var(--good-soft); color: var(--good-dark); font-weight: 700; font-size: .88rem; position: relative;
+  animation: unlock-in .4s calc(.6s + var(--i) * .12s) cubic-bezier(.2,1.5,.4,1) both; }
+.cele-unlocks li::before { content: ''; position: absolute; left: .75em; top: .55em; width: .35em; height: .6em; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+@keyframes unlock-in { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* pro: dark card, gold trim */
+.cele-pro { background: #16181d; color: #f5f1e6; border: 1px solid #c9a227; }
+.cele-pro .cele-body { color: #b9b3a3; }
+.cele-pro .tier-old { background: #262932; color: #8d8a80; }
+.cele-pro .tier-new { background: linear-gradient(135deg, #f7d774, #c9a227); color: #2b2100; box-shadow: 0 5px 0 #8a6d12; }
+.cele-pro .cele-unlocks li { background: rgba(201,162,39,.16); color: #f2d67a; }
+.cele-pro .primary { background: linear-gradient(135deg, #f7d774, #c9a227); color: #2b2100; box-shadow: 0 5px 0 #8a6d12; }
+
+/* subject: the newest papers' covers fanned out, with the count */
+.fan { position: relative; width: 170px; height: 112px; }
+.fan img, .fan-blank { position: absolute; left: 50%; bottom: 0; width: 74px; height: 104px; object-fit: cover; object-position: top; border-radius: 6px;
+  background: var(--paper); border: 1px solid var(--rule); box-shadow: 0 4px 12px var(--shadow); transform-origin: 50% 100%;
+  transform: translateX(-50%) rotate(calc((var(--i) - 1) * 14deg)); animation: fan-in .55s calc(var(--i) * .08s) cubic-bezier(.2,1.4,.4,1) both; }
+.fan img:nth-child(2), .fan-blank:nth-child(2) { z-index: 2; }
+.fan-count { position: absolute; right: 2px; top: -4px; z-index: 3; min-width: 38px; height: 38px; padding: 0 8px; border-radius: 19px; background: var(--biro);
+  color: #fff; font-family: var(--display); font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 var(--biro-dark);
+  animation: unlock-in .4s .45s cubic-bezier(.2,1.5,.4,1) both; }
+@keyframes fan-in { from { transform: translateX(-50%) rotate(0) translateY(20px); opacity: 0; } }
+
 @keyframes cele-in { from { transform: scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes cele-fade { from { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .cele-card, .modal.cele { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cele-card, .modal.cele, .coin, .tier-new, .cele-unlocks li, .fan img, .fan-blank, .fan-count { animation: none !important; } }
 
 /* admin: view as a level */
 .view-as-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
