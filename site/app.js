@@ -297,6 +297,7 @@
   // papers a "Free" preview can open (the database lets the admin see everything, so this mirrors the dial)
   const seePaper = (p) => state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial;
   function applyRelease() {
+    $('nav-tutor').hidden = !tuAllowed();
     document.querySelectorAll('[data-feature]').forEach(el => el.classList.toggle('feature-off', !can(el.dataset.feature)));
     const d = state.viewAs === 'free' ? state.viewDial : state.viewAs ? 100 : state.release?.dial ?? 100, note = $('release-note');
     const lite = state.viewAs ? state.viewAs === 'lite' : state.release?.lite;
@@ -312,7 +313,6 @@
     if (state.user && !state.preview) { const { data: rel } = await sb.rpc('my_release'); if (rel) state.release = rel; }
     applyRelease();
     $('nav-admin').hidden = !state.admin;
-    $('nav-tutor').hidden = !tuAllowed();
     $('preview-new').hidden = !state.admin || state.preview;
     if (!state.admin) { state.preview = false; state.viewAs = null; }
     $('view-as-row').hidden = !state.admin; $('view-as').value = state.viewAs || '';
@@ -932,6 +932,7 @@
       ['Lost-mark tagging', tick('lost')],
       ['Auto-marking (shared free pool)', tick('automark')],
       ['Personal marked papers', (l) => l === 'pro' ? `<b>${pro} a month</b>` : no],
+      ['AI tutor', (l) => l === 'pro' ? yes : no],
       ['Bought marking packs', () => 'If bought'],
     ];
   }
@@ -2695,40 +2696,40 @@
   // ---------- automarker ----------
   const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  // ---------- celebration popups: each kind has its own look ----------
-  // kind: 'buy' (gold coin), 'level' (tier flip + unlocks), 'pro' (dark and gold), 'subject' (fanned paper covers)
-  function celebrate({ kind = 'level', eyebrow = '', hero = '', title, body = '', extra = '', primary = 'Nice', secondary = null }) {
+  // ---------- celebration popups: Trialbank's own blue card (like Home's), one big word or number, the mascot ----------
+  // kind: 'buy' | 'level' | 'pro' | 'subject'. panel() builds the top card; the rest is a title, a line and one button.
+  const panel = ({ kicker = '', big = '', sub = '', mood = 'cheer', art = '' }) =>
+    `<div class="tbp-big"><small>${kicker}</small><b>${big}</b><span>${sub}</span></div>` +
+    (art || `<div class="tbp-mascot">${Mascot(mood)}</div>`);
+  function celebrate({ kind = 'level', panel: top = '', title, body = '', extra = '', primary = 'Nice', secondary = null }) {
     const m = mk('div', 'modal cele');
-    const sparks = [0, 1, 2, 3, 4, 5].map(i => `<i class="spark" style="--i:${i}"></i>`).join('');
-    m.innerHTML = `<div class="modal-card cele-card cele-${kind}" role="dialog" aria-modal="true" aria-labelledby="cele-t">
-      <div class="cele-head"><span class="cele-rays" aria-hidden="true"></span>${sparks}<div class="cele-hero">${hero}</div></div>
-      <div class="cele-main">
-        <p class="cele-eyebrow">${eyebrow}</p>
+    m.innerHTML = `<div class="modal-card tbp tbp-${kind}" role="dialog" aria-modal="true" aria-labelledby="cele-t">
+      <div class="tbp-panel">${top}</div>
+      <div class="tbp-main">
         <h2 id="cele-t">${title}</h2>
-        <p class="cele-body">${body}</p>${extra}
-        <div class="cele-actions"><button class="primary wide" data-k="yes">${primary}</button>${secondary ? `<button class="link cele-skip" data-k="no">${secondary}</button>` : ''}</div>
+        <p class="tbp-body">${body}</p>${extra}
+        <div class="tbp-actions"><button class="primary" data-k="yes">${primary}</button>${secondary ? `<button class="link" data-k="no">${secondary}</button>` : ''}</div>
       </div></div>`;
-    const card = m.firstElementChild, heroEl = card.querySelector('.cele-hero');
+    const card = m.firstElementChild;
     let done;
     const result = new Promise(res => { done = res; });
-    const close = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 220); document.removeEventListener('keydown', k); done(v); };
+    const close = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 200); document.removeEventListener('keydown', k); done(v); };
     const k = (ev) => { if (ev.key === 'Escape') close(null); };
     m.onclick = (ev) => { if (ev.target === m) close(null); const b = ev.target.closest('button[data-k]'); if (b) close(b.dataset.k); };
     document.addEventListener('keydown', k); document.body.appendChild(m);
-    const pop = (n = 26) => { if (window.Juice) { Juice.burst(heroEl, n, 160); setTimeout(() => Juice.burst(heroEl, Math.round(n * 0.6), 100), 260); } };
-    if (kind !== 'buy') setTimeout(pop, 420);
-    card.querySelector('.primary')?.focus();
-    return { result, pop, card, set(t, b2, btn, eb) {
-      if (t != null) card.querySelector('h2').innerHTML = t; if (b2 != null) card.querySelector('.cele-body').innerHTML = b2;
-      if (btn) card.querySelector('.primary').textContent = btn; if (eb != null) card.querySelector('.cele-eyebrow').textContent = eb; } };
+    card.tabIndex = -1; card.focus({ preventScroll: true });   // the dialog, not the button, so no focus ring on open
+    return { result, card, set(t, b2, btn, kicker) {
+      if (t != null) card.querySelector('h2').innerHTML = t; if (b2 != null) card.querySelector('.tbp-body').innerHTML = b2;
+      if (btn) card.querySelector('.primary').textContent = btn; if (kicker != null) card.querySelector('.tbp-big small').textContent = kicker; } };
   }
-  // back from Stripe: a gold coin spins while the payment lands, then settles on the number of marks
+  // back from Stripe: the card shows what they bought while the payment lands, then counts it in
   function afterCheckout() {
     const n = new URLSearchParams(location.search).get('bought');
     if (!n) return;
     history.replaceState(null, '', location.pathname + location.hash);
-    const box = celebrate({ kind: 'buy', eyebrow: 'Payment received', hero: `<div class="coin spin"><b>+${esc(n)}</b><small>papers</small></div>`,
-      title: 'Thank you!', body: 'Adding your papers to your account…', primary: 'Done' });
+    const box = celebrate({ kind: 'buy', panel: panel({ kicker: 'Payment received', big: `+${esc(n)}`, sub: 'papers of marking', mood: 'happy' }),
+      title: 'Thank you!', body: 'Adding them to your account…', primary: 'Done' });
+    box.card.classList.add('pending');
     const since = new Date(Date.now() - 15 * 60e3).toISOString();
     let tries = 0;
     const poll = setInterval(async () => {
@@ -2737,12 +2738,11 @@
       const arrived = !!(got && got.length);
       if (arrived || ++tries > 20) {
         clearInterval(poll); const m = await loadMyMarks(); drawMarkLeft();
-        box.card.querySelector('.coin').classList.remove('spin');
+        box.card.classList.remove('pending');
         if (arrived) {
-          const coin = box.card.querySelector('.coin'); coin.classList.add('landed');
-          if (window.Juice) Juice.countUp(coin.querySelector('b'), Number(n) || 0, (v) => '+' + v, 900);
-          box.set(`${esc(n)} papers of marking are yours`, `You can now get <b>${m.balance}</b> papers marked. They never expire.`, 'Mark a paper', 'All set');
-          box.pop(30);
+          box.card.querySelector('.tbp-mascot').innerHTML = Mascot('cheer');
+          if (window.Juice) Juice.countUp(box.card.querySelector('.tbp-big b'), Number(n) || 0, (v) => '+' + v, 900);
+          box.set(`${esc(n)} papers added`, `You can now get <b>${m.balance}</b> papers marked. They never expire.`, 'Mark a paper', 'All set');
           box.result.then(k => { if (k === 'yes') location.hash = '#mark'; });
         } else box.set('Thanks, payment received', "Your papers are taking a little longer than usual to arrive. They'll appear on their own; if they're not here in a few minutes, contact Jayden.", 'OK', 'Almost there');
       }
@@ -2758,16 +2758,19 @@
     const list = [];
     if (to !== 'free' && from === 'free') list.push('Every trial paper', 'Topic practice');
     FEATURE_NAMES.forEach(([f, name]) => { if ((LEVEL_FEAT[from] ?? 0) < FEATURE_AT[f] && (LEVEL_FEAT[to] ?? 0) >= FEATURE_AT[f]) list.push(cap(name.replace(/^the /, ''))); });
-    if (to === 'pro') list.push('Your own marked papers every month');
+    if (to === 'pro') list.push('Your own marked papers every month', 'The AI tutor');
     return list;
   }
   function levelPopup(from, to) {
     const items = unlocksFor(from, to);
-    const extra = items.length ? `<ul class="cele-unlocks">${items.map((t, i) => `<li style="--i:${i}"><i aria-hidden="true"></i>${esc(t)}</li>`).join('')}</ul>` : '';
-    const hero = `<div class="tier"><span class="tier-old">${LEVEL_NAME[from] || ''}</span><span class="tier-arrow" aria-hidden="true"></span><span class="tier-new">${LEVEL_NAME[to]}</span></div>`;
-    if (to === 'pro') return celebrate({ kind: 'pro', eyebrow: 'Trialbank Pro', hero, title: 'Welcome to Pro', body: 'Everything in Full, and more:', extra, primary: "Let's go" });
-    if (to === 'lite') return celebrate({ kind: 'level', eyebrow: 'Access unlocked', hero, title: 'Welcome to Trialbank Lite', body: 'You now have:', extra, primary: 'Start practising' });
-    return celebrate({ kind: 'level', eyebrow: 'Level up', hero, title: `You've been upgraded to ${LEVEL_NAME[to]}`, body: 'Just unlocked:', extra, primary: "Let's go" });
+    const extra = items.length ? `<ul class="tbp-list">${items.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '';
+    const was = LEVEL_NAME[from] ? `Upgraded from ${LEVEL_NAME[from]}` : 'Upgraded';
+    if (to === 'pro') return celebrate({ kind: 'pro', panel: panel({ kicker: was, big: 'Pro', mood: 'cheer' }),
+      title: 'Welcome to Pro', body: 'Everything in Full, plus:', extra, primary: "Let's go" });
+    if (to === 'lite') return celebrate({ kind: 'level', panel: panel({ kicker: 'Access unlocked', big: 'Lite', mood: 'wave' }),
+      title: 'Welcome to Trialbank Lite', body: 'You now have:', extra, primary: 'Start practising' });
+    return celebrate({ kind: 'level', panel: panel({ kicker: was, big: LEVEL_NAME[to], mood: 'cheer' }),
+      title: `You're on ${LEVEL_NAME[to]} now`, body: 'Just unlocked:', extra, primary: "Let's go" });
   }
   async function subjectPopup(x, count, have) {
     let covers = '';
@@ -2775,10 +2778,11 @@
       const { data: ps } = await sb.from('papers').select('slug').eq('subject', x).neq('difficulty', 'HSC').order('year', { ascending: false }).limit(3);
       const urls = await thumbUrls((ps || []).map(p => `${p.slug}/thumb.webp`));
       covers = (ps || []).map((p, i) => urls[`${p.slug}/thumb.webp`] ? `<img src="${urls[`${p.slug}/thumb.webp`]}" alt="" style="--i:${i}">` : '').join('');
-    } catch { /* plain cards instead */ }
-    if (!covers) covers = [0, 1, 2].map(i => `<span class="fan-blank" style="--i:${i}"></span>`).join('');
-    return celebrate({ kind: 'subject', eyebrow: 'New on Trialbank', hero: `<div class="fan">${covers}<span class="fan-count">${count}</span></div>`,
-      title: esc(C.subjects[x] || x), body: `${count} papers are ready to practise, from HSC to the hardest trials.`,
+    } catch { /* plain sheets instead */ }
+    if (!covers) covers = [0, 1, 2].map(i => `<span style="--i:${i}"></span>`).join('');
+    const name = C.subjects[x] || x;
+    return celebrate({ kind: 'subject', panel: panel({ kicker: `New: ${esc(shortName(name))}`, big: esc(count), sub: 'papers ready to practise', art: `<div class="tbp-fan" aria-hidden="true">${covers}</div>` }),
+      title: `${esc(name)} is here`, body: 'Past HSC papers and the hardest trials, sorted by topic.',
       primary: have ? 'Open it' : 'Add to my subjects', secondary: 'Not now' }).result;
   }
   let noticing = false;
@@ -3057,7 +3061,8 @@
   const TU_SYMS = ['²', '³', '√', 'π', 'θ', '∫', 'dx', '≤', '≥', '≠', '∞', 'ln', 'eˣ', '±', '°', '→'];
   const tu = { mode: lsGet('tb_tu_mode') || 'quiz', level: lsGet('tb_tu_level') || 2, q: null, msgs: [], chunks: {}, paths: [], pending: [],
     busy: false, done: null, active: false, session: null, topic: '', focus: null, slipped: false, seen: new Set(lsGet('tb_tu_seen') || []), n: 0 };
-  const tuAllowed = () => !!state.user && !state.preview && (state.admin || !!(C.tutor && C.tutor.open));
+  // Pro only (plus admins); an admin viewing as a level sees exactly what that level gets. The server checks too.
+  const tuAllowed = () => !!state.user && !state.preview && ((state.admin && !state.viewAs) || (state.viewAs ? state.viewAs === 'pro' : state.release?.level === 'pro'));
   const tuSubjects = () => (C.tutor && C.tutor.subjects) || ['Adv'];
   const tuSubject = () => tuSubjects().includes(state.subject) ? state.subject : tuSubjects()[0];
 
