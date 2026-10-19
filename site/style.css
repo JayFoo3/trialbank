@@ -1253,3 +1253,12 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 
 /* sign-in: say plainly that signing up is free */
 .auth-free { display: inline-block; margin-top: 4px; padding: .35em .85em; border-radius: 999px; background: var(--good-soft); color: var(--good-dark); font-size: .95rem; }
+
+/* made by JAI-OPS: like "Claude by Anthropic" */
+.auth-by { margin: -6px 0 16px; }
+.by-jaiops { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-weight: 700; font-size: .9rem; text-decoration: none; }
+.by-jaiops img { width: 16px; height: auto; }
+.by-jaiops:hover { color: var(--ink); }
+.made-by { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 6px; color: var(--ink); text-decoration: none; font-size: .95rem; }
+.made-by img { width: 18px; height: auto; }
+.made-by b { letter-spacing: .02em; }
