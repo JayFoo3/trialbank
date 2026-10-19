@@ -43,6 +43,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   .info-foot { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
   @media (max-width: 560px) { .free { grid-template-columns: 1fr; } }
   .free-banner { margin: 18px 0 0; padding: 14px 18px; border-radius: var(--r); background: var(--good-soft); color: var(--good-dark); font-size: 1.05rem; }
+  .papers-note { margin: 12px 0 0; padding: 14px 18px; border-radius: var(--r); background: var(--paper); border: 1px solid var(--rule); }
   .cmp { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-lg); overflow: hidden; }
   .cmp th, .cmp td { padding: 11px 14px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
   .cmp tbody tr:last-child td { border-bottom: 0; }
@@ -65,6 +66,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <h1>HSC exam practice, built from past trial papers.</h1>
   <p class="lede">Trialbank sorts every question from past HSC and trial papers by topic, so you can practise exactly what you're weak at, sit full papers on the clock, and have your handwritten working marked.</p>
   <p class="free-banner"><b>Trialbank is free to use.</b> Creating an account costs nothing and needs no card. Marking packs are an optional extra.</p>
+  <p class="papers-note"><b>We never charge for papers.</b> Past HSC and trial papers aren't our property: they belong to NESA and the schools that wrote them, and they're freely available online. Trialbank just sorts them by topic so they're easier to study from. The only thing you can pay for is the auto-marking service.</p>
   <nav class="toc" aria-label="On this page"><a href="#pricing">Marking packs</a><a href="#contact">Contact</a><a href="#refunds">Refunds</a><a href="#terms">Terms of use</a><a href="#privacy">Privacy</a></nav>
 
   <h2>Free or paid?</h2>
@@ -81,7 +83,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <p class="fine">Partner schools get their students free access; which tools are switched on can change through the year. Buying any marking pack unlocks every paper and tool on your account, not just auto-marking.</p>
 
   <h2 id="pricing">Optional: marking packs</h2>
-  <p>You never have to buy anything to use Trialbank. If you want your papers auto-marked, a pack adds marks to your account: <b>one mark auto-marks one full paper you upload.</b> Packs are one-off purchases, not subscriptions, and bought marks never expire.</p>
+  <p>You never have to buy anything to use Trialbank, and you never pay for papers. A pack pays only for the auto-marking service. If you want your papers auto-marked, a pack adds marks to your account: <b>one mark auto-marks one full paper you upload.</b> Packs are one-off purchases, not subscriptions, and bought marks never expire.</p>
   <div class="packs" id="packs">
     <div class="pack"><span class="tag"></span><div class="n">10</div><div class="u">marks</div><div class="price">$4.99</div><div class="each">50c a paper</div></div>
     <div class="pack best"><span class="tag">Most popular</span><div class="n">25</div><div class="u">marks</div><div class="price">$9.99</div><div class="each">40c a paper</div></div>
@@ -111,7 +113,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <h3>Using Trialbank</h3>
     <p>Trialbank is a study tool for students preparing for the NSW HSC. Keep your login to yourself and don't share, resell or republish the papers or questions on the site.</p>
     <h3>Papers and copyright</h3>
-    <p>Past papers belong to NESA and to the schools that wrote them. They're provided here for personal study only. If you own a paper and would like it removed, contact us and we'll take it down.</p>
+    <p>Past papers belong to NESA and to the schools that wrote them, not to Trialbank, and they're freely available online. Trialbank never charges for access to papers; they're provided here, sorted by topic, for personal study only. If you own a paper and would like it removed, contact us and we'll take it down.</p>
     <h3>Auto-marking</h3>
     <p>Auto-marking uses AI (Anthropic's Claude) to read your working and mark it against the paper's marking guidelines. It's a study aid, not an official mark, and it can make mistakes; always check the feedback against the worked solutions.</p>
     <h3>Changes and availability</h3>
