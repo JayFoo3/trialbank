@@ -57,7 +57,7 @@
     } catch { showNow(name); delete document.documentElement.dataset.vt; }
   }
   function showNow(name) {
-    $('preview-bar').hidden = !(state.preview && state.user);
+    $('preview-bar').hidden = !(state.preview && state.user); drawBars();
     views.forEach(v => $('view-' + v).hidden = v !== name);
     $('nav').hidden = !state.user; $('top-right').hidden = !state.user;
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === NAV[name]));
@@ -287,13 +287,20 @@
   const FEATURE_NAMES = [['weak', 'weak spots and got-wrong drills'], ['exam', 'timed papers'], ['progress', 'the Progress page'], ['lost', 'lost-mark tagging'], ['automark', 'auto-marking']];
   state.release = { dial: 100, tier: 'admin' };
   // tools follow the feature level; Trialbank Lite keeps the cohort's tools off while its papers stay open
-  const can = (f) => state.admin || (state.release?.features ?? state.release?.dial ?? 100) >= (FEATURE_AT[f] ?? 0);
+  // an admin can "view as" a level (account menu) to see exactly what those students get
+  try { state.viewAs = sessionStorage.getItem('tb_viewas') || null; state.viewDial = +(sessionStorage.getItem('tb_viewdial') || 0); } catch { state.viewAs = null; }
+  const VIEW_FEAT = { lite: 20, full: 100, pro: 100 };
+  const featureLevel = () => state.viewAs ? (VIEW_FEAT[state.viewAs] ?? state.viewDial ?? 0) : (state.release?.features ?? state.release?.dial ?? 100);
+  const can = (f) => (state.admin && !state.viewAs) || featureLevel() >= (FEATURE_AT[f] ?? 0);
+  // papers a "Free" preview can open (the database lets the admin see everything, so this mirrors the dial)
+  const seePaper = (p) => state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial;
   function applyRelease() {
     document.querySelectorAll('[data-feature]').forEach(el => el.classList.toggle('feature-off', !can(el.dataset.feature)));
-    const d = state.release?.dial ?? 100, note = $('release-note');
+    const d = state.viewAs === 'free' ? state.viewDial : state.viewAs ? 100 : state.release?.dial ?? 100, note = $('release-note');
+    const lite = state.viewAs ? state.viewAs === 'lite' : state.release?.lite;
     if (note) {
-      note.hidden = state.admin || (d >= 100 && !state.release?.lite);
-      note.textContent = state.release?.lite ? 'You\'re on Trialbank Lite: every paper and topic practice. Auto-marking, timed exams and weak spots unlock after trials.'
+      note.hidden = (state.admin && !state.viewAs) || (d >= 100 && !lite);
+      note.textContent = lite ? 'You\'re on Trialbank Lite: every paper and topic practice. Auto-marking, timed exams and weak spots unlock after trials.'
         : 'Trialbank is opening up in stages: more papers and features are on the way.';
     }
   }
@@ -304,7 +311,10 @@
     applyRelease();
     $('nav-admin').hidden = !state.admin;
     $('preview-new').hidden = !state.admin || state.preview;
-    if (!state.admin) state.preview = false;
+    if (!state.admin) { state.preview = false; state.viewAs = null; }
+    $('view-as-row').hidden = !state.admin; $('view-as').value = state.viewAs || '';
+    drawBars();
+    if (state.user) setTimeout(noticeChanges, 600);
   }
 
   // ---------- home ----------
@@ -1373,10 +1383,11 @@
   async function renderPapers() {
     $('papers-list').innerHTML = '<p class="muted">Loading…</p>';
     const [{ data: papers }, { data: sums }, { data: exams }] = await Promise.all([
-      sb.from('papers').select('id, slug, subject, school, year, difficulty, scanned').eq('subject', state.subject),
+      sb.from('papers').select('id, slug, subject, school, year, difficulty, scanned, release_pct').eq('subject', state.subject),
       sb.from('paper_summary').select('*'),
       sb.from('exams').select('paper_id, score, out_of'),
     ]);
+    if (papers) papers.splice(0, papers.length, ...papers.filter(seePaper));
     const best = {};
     (exams || []).forEach(e => { if (e.out_of) best[e.paper_id] = Math.max(best[e.paper_id] || 0, Math.round(100 * e.score / e.out_of)); });
     const thumbs = await thumbUrls((papers || []).map(p => `${p.slug}/thumb.webp`)).catch(() => ({}));
@@ -1648,7 +1659,7 @@
       renderReview(),
       sb.from('papers').select('*').eq('subject', state.subject).order('school').order('year', { ascending: false }),
     ]);
-    homePapers = papers || [];
+    homePapers = (papers || []).filter(seePaper);
     if (saved) {
       const p = homePapers.find(x => x.id === saved.paperId) || null;
       const left = saved.finishedAt ? null : Math.round((saved.startedAt + (saved.readingSec + saved.workSec) * 1000 - Date.now()) / 60000);
@@ -2357,25 +2368,7 @@
     location.href = data.url;               // Stripe's own payment page; it sends them back here afterwards
   }
   $('buy-marks').onclick = () => { $('account-menu').hidden = true; openBuy(); };
-  // back from Stripe: the marks arrive a few seconds later, when Stripe tells the server
-  (function afterCheckout() {
-    const n = new URLSearchParams(location.search).get('bought');
-    if (!n) return;
-    history.replaceState(null, '', location.pathname + location.hash);
-    toast(`Payment received. Adding your ${esc(n)} marks…`);
-    const since = new Date(Date.now() - 15 * 60e3).toISOString();
-    let tries = 0;
-    const poll = setInterval(async () => {
-      if (!state.user) return;
-      const { data: got } = await sb.from('mark_ledger').select('id').eq('kind', 'purchase').gte('created_at', since).limit(1);
-      const arrived = !!(got && got.length);
-      if (arrived || ++tries > 15) {
-        clearInterval(poll); const m = await loadMyMarks(); drawMarkLeft();
-        if (arrived) { toast(`${m.balance} marks ready. Upload a paper with "Mark my paper".`); window.Juice && Juice.burst($('account-btn'), 16, 60); }
-        else toast('Your marks are taking a while. Refresh in a minute; if they still aren\'t there, contact Jayden.');
-      }
-    }, 2000);
-  })();
+  setTimeout(() => afterCheckout(), 0);   // back from Stripe (defined further down, once everything it uses exists)
   async function drawMarkLeft() {
     if (!state.user || state.preview) return;
     const [{ data, error }, m] = await Promise.all([sb.rpc('my_automark_usage'), loadMyMarks()]);
@@ -2624,6 +2617,143 @@
 
   // ---------- automarker ----------
   const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---------- celebration popup: purchases, level-ups, new subjects ----------
+  function celebrate({ title, body = '', primary = 'Nice', secondary = null }) {
+    const m = mk('div', 'modal cele');
+    m.innerHTML = `<div class="modal-card cele-card" role="dialog" aria-modal="true"><div class="cele-badge" aria-hidden="true"></div><h2>${title}</h2><p class="cele-body">${body}</p>` +
+      `<div class="row confirm-row">${secondary ? `<button class="secondary" data-k="no">${secondary}</button>` : ''}<button class="primary" data-k="yes">${primary}</button></div></div>`;
+    const card = m.firstElementChild, badge = card.querySelector('.cele-badge');
+    let done;
+    const result = new Promise(res => { done = res; });
+    const close = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 200); document.removeEventListener('keydown', k); done(v); };
+    const k = (ev) => { if (ev.key === 'Escape') close(null); };
+    m.onclick = (ev) => { if (ev.target === m) close(null); const b = ev.target.closest('button[data-k]'); if (b) close(b.dataset.k); };
+    document.addEventListener('keydown', k); document.body.appendChild(m);
+    const pop = () => { if (window.Juice) { Juice.burst(badge, 26, 150); setTimeout(() => Juice.burst(badge, 16, 90), 240); } };
+    setTimeout(pop, 120);
+    card.querySelector('.primary')?.focus();
+    return { result, pop, set(t, b2, btn) { card.querySelector('h2').innerHTML = t; if (b2 != null) card.querySelector('.cele-body').innerHTML = b2; if (btn) card.querySelector('.primary').textContent = btn; } };
+  }
+  // back from Stripe: thank them straight away; the marks land a few seconds later, when Stripe tells the server
+  function afterCheckout() {
+    const n = new URLSearchParams(location.search).get('bought');
+    if (!n) return;
+    history.replaceState(null, '', location.pathname + location.hash);
+    const box = celebrate({ title: 'Thank you!', body: `Your payment went through. Adding your ${esc(n)} marks…`, primary: 'Done' });
+    const since = new Date(Date.now() - 15 * 60e3).toISOString();
+    let tries = 0;
+    const poll = setInterval(async () => {
+      if (!state.user) return;
+      const { data: got } = await sb.from('mark_ledger').select('id').eq('kind', 'purchase').gte('created_at', since).limit(1);
+      const arrived = !!(got && got.length);
+      if (arrived || ++tries > 20) {
+        clearInterval(poll); const m = await loadMyMarks(); drawMarkLeft();
+        if (arrived) { box.set(`${esc(n)} marks added`, `You now have <b>${m.balance}</b> marks. Upload a finished paper with <b>Mark my paper</b> to use one.`, 'Great'); box.pop(); }
+        else box.set('Thanks, your payment went through', "Your marks are taking a little longer than usual. They'll appear on their own; if they're not here in a few minutes, contact Jayden.", 'OK');
+      }
+    }, 2000);
+  }
+
+  // ---------- "you've been upgraded" and "new subject" popups ----------
+  const LEVEL_RANK = { free: 0, lite: 1, full: 2, pro: 3 };
+  const LEVEL_POP = {
+    lite: ['Welcome to Trialbank Lite', 'Every paper and topic practice is open to you.'],
+    full: ["You've been upgraded to Full!", 'Timed exams, weak spots, Progress and auto-marking are now unlocked.'],
+    pro: ["You're now on Trialbank Pro!", 'Everything in Full, plus your own auto-marks every month that never come out of the shared pool.'],
+  };
+  let noticing = false;
+  async function noticeChanges() {
+    if (noticing || !state.user || state.admin || state.preview || C.demo) return;
+    noticing = true;
+    try {
+      const seen = state.user.user_metadata?.seen || {}, upd = {};
+      const lvl = state.release?.level;
+      if (lvl && seen.level !== lvl) {
+        const up = seen.level && (LEVEL_RANK[lvl] ?? 0) > (LEVEL_RANK[seen.level] ?? 0);
+        upd.level = lvl;
+        if (up && LEVEL_POP[lvl]) await celebrate({ title: LEVEL_POP[lvl][0], body: LEVEL_POP[lvl][1], primary: "Let's go" }).result;
+      }
+      // subjects that have at least one paper this student can open
+      const { data: ps } = await sb.from('papers').select('subject');
+      const count = {}; (ps || []).forEach(p => { if (C.subjects[p.subject]) count[p.subject] = (count[p.subject] || 0) + 1; });
+      const subs = Object.keys(count).sort();
+      if (subs.length) {
+        // first visit: remember what's there now, except subjects still being announced (config.announce)
+        const known = seen.subjects || subs.filter(x => !(C.announce || []).includes(x));
+        const fresh = subs.filter(x => !known.includes(x));
+        for (const x of fresh) {
+          const mine = mySubjects() || [];
+          const have = mine.includes(x);
+          const k = await celebrate({ title: `New on Trialbank: ${esc(C.subjects[x])}`, body: `${count[x]} papers are ready to practise.`,
+            primary: have ? 'Open it' : 'Add to my subjects', secondary: 'Not now' }).result;
+          if (k === 'yes') {
+            if (!have) { const { data } = await sb.auth.updateUser({ data: { subjects: [...mine, x] } }); if (data?.user) state.user = data.user; }
+            state.subject = x; state.topics.clear(); try { localStorage.setItem('tb_subject', x); } catch {}
+            drawSubject(); route();
+          }
+        }
+        if (!seen.subjects || fresh.length || subs.some(x => !known.includes(x))) upd.subjects = subs;
+      }
+      if (Object.keys(upd).length) {
+        const { data } = await sb.auth.updateUser({ data: { seen: { ...seen, ...upd } } });
+        if (data?.user) state.user = data.user;
+      }
+    } catch { /* never block the page over a popup */ }
+    finally { noticing = false; }
+  }
+
+  // ---------- admin: view as a level, and the test account ----------
+  function drawBars() {
+    const va = $('viewas-bar'); if (va) {
+      va.hidden = !(state.admin && state.viewAs && state.user);
+      $('viewas-name').textContent = { free: 'Free', lite: 'Lite', full: 'Full', pro: 'Pro' }[state.viewAs] || '';
+    }
+    const tb = $('test-bar'); if (tb) {
+      let back = null; try { back = JSON.parse(localStorage.getItem('tb_admin_return') || 'null'); } catch {}
+      tb.hidden = !(back && state.user && state.user.email !== back.email);
+    }
+  }
+  $('view-as').onchange = async () => {
+    const v = $('view-as').value || null;
+    if (v === 'free') {
+      const { data } = await sb.from('settings').select('value').eq('key', 'release_public').maybeSingle();
+      state.viewDial = +(data?.value ?? 10);
+    }
+    state.viewAs = v;
+    try { v ? sessionStorage.setItem('tb_viewas', v) : sessionStorage.removeItem('tb_viewas'); sessionStorage.setItem('tb_viewdial', String(state.viewDial || 0)); } catch {}
+    $('account-menu').hidden = true;
+    applyRelease(); drawBars(); route();
+  };
+  $('viewas-exit').onclick = () => { $('view-as').value = ''; $('view-as').onchange(); };
+  $('test-switch').onclick = async () => {
+    const btn = $('test-switch'); btn.disabled = true; $('test-msg').textContent = 'Switching…';
+    try {
+      const { data: cur } = await sb.auth.getSession();
+      const { data, error } = await sb.functions.invoke('test-account', { body: { action: 'switch' } });
+      if (error || !data?.token_hash) { let msg = data?.error; try { msg = msg || (await error.context.json()).error; } catch {} throw new Error(msg || 'Could not switch.'); }
+      localStorage.setItem('tb_admin_return', JSON.stringify({ email: state.user.email, access_token: cur.session.access_token, refresh_token: cur.session.refresh_token }));
+      const { error: e2 } = await sb.auth.verifyOtp({ token_hash: data.token_hash, type: 'magiclink' });
+      if (e2) { localStorage.removeItem('tb_admin_return'); throw e2; }
+      location.hash = '#home';
+    } catch (err) { $('test-msg').textContent = err.message; }
+    finally { btn.disabled = false; }
+  };
+  $('test-reset').onclick = async () => {
+    if (!await confirmBox('Reset the test account?<span class="cb-sub">Deletes it and everything on it: marks, purchases, attempts and its level. Switching to it again makes a fresh one.</span>', 'Reset', 'Cancel')) return;
+    const { data, error } = await sb.functions.invoke('test-account', { body: { action: 'reset' } });
+    let msg = data?.error; if (error) { try { msg = (await error.context.json()).error; } catch { msg = error.message; } }
+    $('test-msg').textContent = msg || 'Reset. The next switch makes a fresh test account.';
+    if (!msg) renderAdmin();
+  };
+  $('test-back').onclick = async () => {
+    let back = null; try { back = JSON.parse(localStorage.getItem('tb_admin_return') || 'null'); } catch {}
+    if (!back) return;
+    const { error } = await sb.auth.setSession({ access_token: back.access_token, refresh_token: back.refresh_token });
+    localStorage.removeItem('tb_admin_return');
+    if (error) { toast('Please sign in to your own account again.'); await sb.auth.signOut(); return; }
+    location.hash = '#admin';
+  };
   let pdfjsP = null;
   function loadPdfJs() {
     if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);

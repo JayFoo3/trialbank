@@ -14,3 +14,7 @@ verify_jwt = false
 # signed-in students only: hands out short-lived B2 links to paper PDFs
 [functions.pdf-url]
 verify_jwt = true
+
+# admins only: switch into, or reset, the test account
+[functions.test-account]
+verify_jwt = true

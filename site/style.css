@@ -1188,3 +1188,22 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .lv-pick.pinned { border-color: var(--biro); font-weight: 600; }
 .lv-pick.saved { background: color-mix(in srgb, var(--biro) 14%, transparent); }
 .levels .row { margin-top: .75rem; }
+
+/* ---------- celebration popup ---------- */
+.modal.cele { z-index: 2000; animation: cele-fade .2s ease-out; }
+.modal.cele.out { opacity: 0; transition: opacity .2s; }
+.cele-card { text-align: center; max-width: 380px; padding: 2rem 1.6rem 1.4rem; animation: cele-in .45s cubic-bezier(.2,1.4,.4,1); }
+.cele-card h2 { font-family: var(--display); font-size: 1.6rem; line-height: 1.15; margin: .9rem 0 .4rem; }
+.cele-body { color: var(--muted); margin: 0 0 1.2rem; }
+.cele-badge { width: 64px; height: 64px; margin: 0 auto; border-radius: 50%; background: var(--biro);
+  box-shadow: 0 6px 0 var(--biro-dark); position: relative; }
+.cele-badge::after { content: ''; position: absolute; left: 22px; top: 14px; width: 14px; height: 26px;
+  border: solid var(--on-ink); border-width: 0 5px 5px 0; transform: rotate(45deg); }
+.cele-card .confirm-row { justify-content: center; }
+@keyframes cele-in { from { transform: scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cele-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cele-card, .modal.cele { animation: none; } }
+
+/* admin: view as a level */
+.view-as-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.view-as-row select { font: inherit; padding: .15em .4em; border-radius: var(--r-sm); border: 1px solid var(--rule-strong); background: var(--paper); color: inherit; }

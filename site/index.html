@@ -49,6 +49,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
           <button class="menu-item" id="buy-marks" hidden>Buy marking packs</button>
           <a href="#admin" id="nav-admin" hidden>Admin</a>
           <button class="menu-item" id="preview-new" hidden>Test as new user</button>
+          <label class="menu-item view-as-row" id="view-as-row" hidden>View as <select id="view-as"><option value="">Admin</option><option value="free">Free</option><option value="lite">Lite</option><option value="full">Full</option><option value="pro">Pro</option></select></label>
           <button class="menu-item" id="sound-toggle">Sounds: On</button>
           <button class="menu-item" id="signout">Sign out</button>
         </div>
@@ -103,6 +104,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 </div>
 <div class="toast" id="toast" hidden></div>
 <div class="preview-bar" id="preview-bar" hidden>Viewing as a new user <button class="link" id="preview-exit">Exit</button></div>
+<div class="preview-bar" id="viewas-bar" hidden>Viewing as <b id="viewas-name"></b> <button class="link" id="viewas-exit">Exit</button></div>
+<div class="preview-bar" id="test-bar" hidden>Signed in as the test account <button class="link" id="test-back">Back to my account</button></div>
 
 <main id="app">
   <!-- ===== auth ===== -->
@@ -402,6 +405,12 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <p class="small muted">What each level gets right now. Change anyone's level from the Access column in Accounts below; Auto follows the dial and the Lite switch.</p>
       <div class="tbl-wrap"><table class="tbl lv-table" id="levels-table"></table></div>
       <div class="row"><label class="small inline">Pro auto-marks a month <input id="pro-marks" type="number" min="0" max="100" step="1"></label><button class="primary" id="pro-save">Save</button><span class="muted small" id="pro-msg"></span></div>
+    </div>
+
+    <div class="card">
+      <h2>Test account</h2>
+      <p class="small muted">Sign in as a dummy account to try buying marks, levels and auto-marking as a student would. Set its level from the Access column in Accounts; use the Stripe test card to buy. A bar at the top takes you back to your own account.</p>
+      <div class="row"><button class="primary" id="test-switch">Switch to test account</button><button class="link" id="test-reset">Reset test account</button><span class="muted small" id="test-msg"></span></div>
     </div>
 
     <div class="card">
