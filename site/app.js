@@ -1699,6 +1699,7 @@
     else if (!flag('tour_done') && !state.tourOn) { if (returning()) flag('tour_done', 1); else setTimeout(startTour, 350); }
     // the single next step: an unfinished exam, then a first set for new students, then a quick set
     const go = $('next-go');
+    ['daily-dots', 'daily-mode', 'daily-alt'].forEach(id => { $(id).hidden = true; });
     if (saved && homePapers.some(x => x.id === saved.paperId)) {
       const p = homePapers.find(x => x.id === saved.paperId);
       const left = saved.finishedAt ? null : Math.round((saved.startedAt + (saved.readingSec + saved.workSec) * 1000 - Date.now()) / 60000);
@@ -2524,13 +2525,14 @@
       if (a.score < a.out_of && a.created_at.slice(0, 10) <= addDays(today, -2) && !skip.has(a.questions.topic)) wrongIds.push(a.question_id);
     });
     const ok = (x) => hasKey(x) && !x.syllabus_note && !tooHard.has(x.id) && !skip.has(x.topic) && (x.marks || 1) <= 3 && (x.image_path || x.content);
+    const mode = dailyMode(), want = (x) => mode === 'mix' || (mode === 'mcq') === (x.type === 'mcq');   // the student's choice of question types
     const pickIds = new Set(), out = [];
     const take = (x, kind) => { if (x && !pickIds.has(x.id) && out.length < 5) { pickIds.add(x.id); out.push({ x, kind }); return true; } return false; };
     // 1. redo: wrong at least two days ago, a topic that's due first
     if (wrongIds.length) {
       const { data } = await sb.from('questions').select(QCOLS).in('id', wrongIds.slice(0, 100)).eq('papers.subject', subj);
       const due = (x) => (srs[x.topic]?.due || today) <= today;
-      const redo = shuffle((data || []).filter(ok)).sort((a, b) => due(b) - due(a));
+      const redo = shuffle((data || []).filter(x => ok(x) && want(x))).sort((a, b) => due(b) - due(a));
       const used = new Set();
       for (const x of redo) { if (out.length >= 2) break; if (!used.has(x.topic) && take(x, 'redo')) used.add(x.topic); }
     }
@@ -2561,9 +2563,10 @@
     while (out.length < 5 && qi < queue.length) {   // a few topics at a time, in parallel, until five are picked
       const chunk = queue.slice(qi, qi + 5 - out.length); qi += chunk.length;
       const got = await Promise.all(chunk.map(([t, kind]) => pool(t, kind === 'new' ? 1 + (Math.random() < 0.5) : (srs[t]?.level || 1)).then(c => [c, kind])));
-      for (const [c, kind] of got) { take(c.find(x => !pickIds.has(x.id)), kind); spare.push([c, kind]); }
+      for (const [c, kind] of got) { take(c.find(x => want(x) && !pickIds.has(x.id)), kind); spare.push([c, kind]); }
     }
-    for (const [c, kind] of spare) { if (out.length >= 5) break; take(c.find(x => !pickIds.has(x.id)), kind); }   // few topics: a second from each
+    for (const [c, kind] of spare) { if (out.length >= 5) break; take(c.find(x => want(x) && !pickIds.has(x.id)), kind); }   // few topics: a second from each
+    for (const [c, kind] of spare) { if (out.length >= 5) break; take(c.find(x => !pickIds.has(x.id)), kind); }   // still short of that type: top up with the other
     if (!out.length) throw new Error('No questions to pick from yet. Untick some "not learnt" topics.');
     const row = { subject: subj, day: today, question_ids: out.map(o => o.x.id), kinds: out.map(o => o.kind), answered: [], score: 0, out_of: 0, finished_at: null };
     await saveDaily(row);
@@ -2617,6 +2620,7 @@
   async function drawDaily() {
     const go = $('next-go'), dots = $('daily-dots'), alt = $('daily-alt');
     alt.hidden = true;
+    $('daily-mode').textContent = DAILY_MODES[dailyMode()]; $('daily-mode').hidden = false;
     let row = null;
     try { row = await getDaily(); } catch (_) {}
     const st = streakData(), streakLive = st.last === dayOf() || st.last === prevDay(dayOf());
@@ -2642,6 +2646,22 @@
       go.onclick = () => busy(async () => { try { await startDaily(); } catch (err) { dailyErr(err); } });
     }
   }
+  const DAILY_MODES = { mix: 'Mixed questions', mcq: 'Multiple choice only', short: 'Written answers only' };
+  const dailyMode = () => (state.preview ? previewFlags.dailyMode : state.user?.user_metadata?.daily_mode) || 'mix';
+  $('daily-mode').onclick = async () => {
+    const k = await choiceBox('Which questions in your Daily 5?', [['mix', 'Mixed', dailyMode() === 'mix' ? 'primary' : 'secondary'],
+      ['mcq', 'Multiple choice', dailyMode() === 'mcq' ? 'primary' : 'secondary'], ['short', 'Written answers', dailyMode() === 'short' ? 'primary' : 'secondary']]);
+    if (!k || k === dailyMode()) return;
+    if (state.preview) previewFlags.dailyMode = k;
+    else { const { data, error } = await sb.auth.updateUser({ data: { daily_mode: k } }); if (!error && data?.user) state.user = data.user; }
+    // today's set changes too if it hasn't been started; otherwise from tomorrow
+    const row = await getDaily().catch(() => null);
+    if (row && !row.answered.length) {
+      if (state.preview) delete previewFlags.daily[state.subject];
+      else await sb.from('daily_sets').delete().eq('user_id', state.user.id).eq('subject', state.subject).eq('day', row.day);
+    } else if (row && !row.finished_at) toast(`${DAILY_MODES[k]} from tomorrow's 5.`);
+    drawDaily();
+  };
   function dailyErr(err) { $('quick-error').textContent = err.message; $('quick-error').hidden = false; }
 
   // ---------- daily streak: one tick per day you finish your Daily 5 (Sydney time) ----------
