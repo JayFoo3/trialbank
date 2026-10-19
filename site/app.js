@@ -70,6 +70,8 @@
     loadingN++; $('loading').hidden = false;
     try { return await fn(); } finally { if (--loadingN <= 0) { loadingN = 0; $('loading').hidden = true; } }
   }
+  // an invite link (#friend=ABC123): keep the code until they're signed in, then add them
+  { const m = location.hash.match(/^#friend=([A-Za-z0-9]{4,10})$/); if (m) { try { localStorage.setItem('tb_invite', JSON.stringify(m[1])); } catch {} history.replaceState(null, '', location.pathname + location.search + '#home'); } }
   async function route() {
     if (window.Annotate) Annotate.stop();
     const [h, arg] = (location.hash || '#home').slice(1).split('/');
@@ -278,7 +280,7 @@
         const em = state.user.email || '';
         $('account-email').textContent = em;
         applyPrefs(); loadMedia().then(() => applyPrefs());
-        touchStreak(); drawMarkLeft();
+        touchStreak(); drawMarkLeft(); setTimeout(acceptInvite, 600);
       }
       await checkAdmin();
       route();
@@ -1708,6 +1710,7 @@
       go.textContent = left > 0 ? 'Continue' : 'Mark it';
       go.onclick = () => $('resume-btn').click();
     } else await drawDaily();
+    drawFriends();
   }
   $('mark-go').onclick = async () => {
     const id = Number($('mark-paper').value);
@@ -2612,7 +2615,7 @@
       c.to > c.from ? `${esc(topicName(c.topic))} up to level ${c.to}` : c.days <= 1 ? `${esc(topicName(c.topic))} comes back tomorrow` : `${esc(topicName(c.topic))} back in ${c.days} days`);
     const extra = items.length ? `<ul class="tbp-list">${items.map(t => `<li>${t}</li>`).join('')}</ul>` : '';
     const box = celebrate({ kind: 'daily', panel: panel({ kicker: "Today's 5 done", big: '0', sub: 'day streak', mood: 'happy', cls: 'streak-n' }),
-      title: `${r.score} / ${r.out_of} today`, body: `Do tomorrow's 5 to make it ${n + 1}.`, extra, primary: 'See results' });
+      title: `${r.score} / ${r.out_of} today`, body: `Do tomorrow's 5 to make it ${n + 1}.` + (state.friends.length ? `<br><span class="small muted">${friendsDone()}.</span>` : ''), extra, primary: 'See results' });
     payoff(box.card, { at: 250, count: n });
     return box;
   }
@@ -2664,6 +2667,95 @@
   };
   function dailyErr(err) { $('quick-error').textContent = err.message; $('quick-error').hidden = false; }
 
+
+  // ---------- friends: add each other by code, see who has done today's 5 ----------
+  state.friends = [];
+  async function loadFriends() {
+    if (!state.user || state.preview) return (state.friends = []);
+    const { data, error } = await sb.rpc('my_friends');
+    if (error) { console.warn('friends', error.message); return state.friends; }
+    return (state.friends = data || []);
+  }
+  let myCode = null;
+  async function friendCode() {
+    if (myCode) return myCode;
+    const { data, error } = await sb.rpc('my_friend_code');
+    if (error) throw error;
+    return (myCode = data);
+  }
+  const inviteLink = (code) => location.origin + location.pathname + '#friend=' + code;
+  const meRow = () => { const st = streakData(); return { friend_id: 'me', name: 'You', streak: liveStreak(st), done_today: st.last === dayOf(), me: true }; };
+  const friendChip = (f) => `<div class="fr${f.done_today ? ' done' : ''}${f.me ? ' me' : ''}" title="${esc(f.name)}: ${f.streak} day streak${f.done_today ? ', done today' : ''}">
+      <span class="fr-flame">${flame(f.streak)}</span><b>${esc(f.name)}</b><small>${f.done_today ? 'Done today' : 'Not yet'}</small></div>`;
+  async function drawFriends() {
+    const box = $('friends'), head = $('friends-head');
+    if (state.preview || !state.user) { box.hidden = head.hidden = true; return; }
+    const fs = await loadFriends();
+    head.hidden = box.hidden = false;
+    if (!fs.length) {
+      box.className = 'friends empty';
+      box.innerHTML = `<p><b>Do your Daily 5 with friends.</b> <span class="muted">See their streaks and who's done today's 5.</span></p><button class="secondary" id="fr-invite">Invite a friend</button>`;
+      $('fr-invite').onclick = openFriends;
+      return;
+    }
+    box.className = 'friends';
+    const all = [meRow(), ...fs].sort((a, b) => b.done_today - a.done_today || b.streak - a.streak);
+    box.innerHTML = all.map(friendChip).join('');
+  }
+  $('fr-open').onclick = () => openFriends();
+  async function openFriends() {
+    $('streak-pop').hidden = true;
+    const m = mk('div', 'modal');
+    m.innerHTML = `<div class="modal-card fr-card" role="dialog" aria-modal="true" aria-labelledby="fr-t">
+      <h2 id="fr-t">Friends</h2>
+      <p class="small muted">Friends see your first name, your streak and whether you've done today's 5. Nothing else.</p>
+      <div class="fr-code"><span class="small muted">Your code</span><b id="fr-code">······</b><button class="primary" id="fr-share">Share invite</button></div>
+      <form class="fr-add" id="fr-add"><input id="fr-in" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="Their code" aria-label="Friend's code"><button class="secondary">Add</button></form>
+      <p class="error small" id="fr-err" hidden></p>
+      <div class="fr-list" id="fr-list"></div>
+      <div class="row confirm-row"><button class="link" data-x>Done</button></div></div>`;
+    const close = () => { m.remove(); document.removeEventListener('keydown', k); drawFriends(); };
+    const k = (ev) => { if (ev.key === 'Escape') close(); };
+    m.onclick = (ev) => { if (ev.target === m || ev.target.closest('[data-x]')) close(); };
+    document.addEventListener('keydown', k); document.body.appendChild(m);
+    const err = (msg) => { $('fr-err').textContent = msg; $('fr-err').hidden = !msg; };
+    const list = async () => {
+      const fs = await loadFriends();
+      $('fr-list').innerHTML = fs.length ? fs.map(f => `<div class="fr-li"><span class="fr-flame">${flame(f.streak)}</span><b>${esc(f.name)}</b><span class="small muted">${f.done_today ? 'Done today' : 'Not yet today'}</span><button class="link small" data-rm="${f.friend_id}" data-n="${esc(f.name)}">Remove</button></div>`).join('')
+        : '<p class="small muted">No friends added yet.</p>';
+    };
+    $('fr-list').onclick = async (ev) => {
+      const b = ev.target.closest('[data-rm]'); if (!b) return;
+      if (!(await confirmBox(`Remove ${esc(b.dataset.n)} as a friend?`, 'Remove', 'Keep'))) return;
+      await sb.rpc('remove_friend', { fid: b.dataset.rm }); list();
+    };
+    $('fr-add').onsubmit = async (ev) => {
+      ev.preventDefault(); err('');
+      const code = $('fr-in').value.trim(); if (!code) return;
+      const { data, error } = await sb.rpc('add_friend', { friend_code: code });
+      if (error) return err(error.message.replace(/^.*?: /, ''));
+      $('fr-in').value = ''; toast(`You and <b>${esc(data)}</b> are now friends.`); window.Juice?.sfx?.good?.(3); list();
+    };
+    list();
+    try {
+      const code = await friendCode(); $('fr-code').textContent = code;
+      $('fr-share').onclick = async () => {
+        const text = `Do the Trialbank Daily 5 with me. My code is ${code}`, url = inviteLink(code);
+        if (navigator.share) { try { await navigator.share({ title: 'Trialbank', text, url }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+        try { await navigator.clipboard.writeText(`${text}: ${url}`); toast('Invite link copied.'); } catch { toast(`Your link: ${esc(url)}`, 9000); }
+      };
+    } catch (e) { $('fr-code').textContent = '?'; err(e.message); }
+  }
+  async function acceptInvite() {
+    if (!state.user || state.preview) return;
+    const code = lsGet('tb_invite'); if (!code) return;
+    try { localStorage.removeItem('tb_invite'); } catch {}
+    const { data, error } = await sb.rpc('add_friend', { friend_code: code });
+    if (error) { if (!/own code/.test(error.message)) toast(esc(error.message.replace(/^.*?: /, ''))); return; }
+    toast(`You and <b>${esc(data)}</b> are now friends. Do your Daily 5 together.`, 6000);
+    if (location.hash === '#home' || !location.hash) drawFriends();
+  }
+
   // ---------- daily streak: one tick per day you finish your Daily 5 (Sydney time) ----------
   const dayOf = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(d);
   const prevDay = (day) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
@@ -2707,8 +2799,16 @@
     const label = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('en-AU', { weekday: 'narrow', timeZone: 'UTC' });
     pop.innerHTML = `<div class="sp-top"><span class="sp-flame">${flame(liveStreak(st), true)}</span>
       <div><strong>${liveStreak(st)} day streak</strong><span class="small muted">Best ${st.best || st.n || 0} · finish your Daily 5 every day to keep it</span></div></div>
-      <div class="sp-week">${week.map(day => `<span class="${have.has(day) ? 'hit' : ''}${day === today ? ' today' : ''}"><i></i>${label(day)}</span>`).join('')}</div>`;
+      <div class="sp-week">${week.map(day => `<span class="${have.has(day) ? 'hit' : ''}${day === today ? ' today' : ''}"><i></i>${label(day)}</span>`).join('')}</div>
+      ${state.preview ? '' : `<div class="sp-fr">${state.friends.length ? `<span class="small">${friendsDone()}</span>` : '<span class="small muted">Keep streaks with friends</span>'}<button class="link small" id="sp-fr">${state.friends.length ? 'Friends' : 'Add a friend'}</button></div>`}`;
     pop.hidden = false;
+    $('sp-fr') && ($('sp-fr').onclick = (ev) => { ev.stopPropagation(); openFriends(); });
+  }
+  function friendsDone() {
+    const d = state.friends.filter(f => f.done_today).map(f => esc(f.name));
+    return !d.length ? `None of your ${state.friends.length} friend${state.friends.length === 1 ? '' : 's'} done today yet`
+      : d.length === state.friends.length && d.length > 1 ? `All ${d.length} friends have done today's 5`
+      : `${d.slice(0, 2).join(' and ')}${d.length > 2 ? ` and ${d.length - 2} more` : ''} done today`;
   }
   $('streak').onclick = (ev) => { ev.stopPropagation(); $('streak-pop').hidden ? openStreakPop() : ($('streak-pop').hidden = true); };
   document.addEventListener('click', (ev) => { if (!ev.target.closest('#streak-pop')) $('streak-pop').hidden = true; });

@@ -177,6 +177,10 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <a class="other" href="#practise"><strong>Pick topics</strong><span class="muted small">Build your own set</span></a>
     </div>
 
+    <!-- friends: who's done today's 5, and their streaks -->
+    <div class="sec-head" id="friends-head" hidden><h2 class="sec">Friends</h2><button class="link small" id="fr-open">Add a friend</button></div>
+    <div class="friends" id="friends" hidden></div>
+
     <h2 class="sec" data-feature="weak">Weak spots</h2>
     <div class="checkup" id="checkup" hidden data-feature="weak">
       <div><strong>Find your weak spots</strong><span class="small muted">12 quick questions, one from each topic.</span></div>
