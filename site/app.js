@@ -2683,7 +2683,7 @@
 
 
   // ---------- profile: a pet, a banner colour and a border, unlocked by levelling up ----------
-  // pets are Microsoft's Fluent Emoji 3D (MIT licence), pinned to one commit so they never change under us
+  // pets are Microsoft's Fluent Emoji, flat style (MIT licence), pinned to one commit so they never change under us
   const EMOJI = 'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/';
   const PETS = [   // key, name, emoji folder, file, level needed, pro only
     ['cat', 'Cat', 'Cat face', 'cat_face', 1], ['dog', 'Dog', 'Dog face', 'dog_face', 1], ['fox', 'Fox', 'Fox', 'fox', 1],
@@ -2708,7 +2708,7 @@
   const isProUser = () => (state.admin && !state.viewAs) || (state.viewAs ? state.viewAs === 'pro' : state.release?.level === 'pro');
   const myProfile = () => ({ pet: null, color: 'blue', border: 'none', ...(state.preview ? previewFlags.profile : state.user?.user_metadata?.profile), self: true });
   const petOf = (k) => PETS.find(p => p[0] === k) || EGG;
-  const petUrl = (k) => { const p = petOf(k); return `${EMOJI}${encodeURIComponent(p[2])}/3D/${p[3]}_3d.png`; };
+  const petUrl = (k) => { const p = petOf(k); return `${EMOJI}${encodeURIComponent(p[2])}/Flat/${p[3]}_flat.svg`; };   // the simple flat style
   const petImg = (k) => `<img src="${petUrl(k)}" alt="" loading="lazy" draggable="false">`;
   const colorCss = (k) => (COLORS.find(c => c[0] === k) || COLORS[0])[2];
   // a pet on its colour, inside its border; f is { pet, color, border }

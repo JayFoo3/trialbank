@@ -1483,7 +1483,7 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 /* ---------- pets, banners and borders ---------- */
 .pet { --sz: 56px; position: relative; display: inline-grid; place-items: center; width: var(--sz); height: var(--sz); flex: none;
   border-radius: 50%; background: var(--pc, #3b6cf6); box-shadow: inset 0 -4px 0 rgba(0,0,0,.18); }
-.pet img { width: 78%; height: 78%; object-fit: contain; filter: drop-shadow(0 2px 2px rgba(0,0,0,.18)); user-select: none; }
+.pet img { width: 74%; height: 74%; object-fit: contain; filter: drop-shadow(0 2px 0 rgba(0,0,0,.16)); user-select: none; }
 .pet-sm { --sz: 34px; } .pet-md { --sz: 56px; } .pet-xl { --sz: 128px; }
 .pet::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; }
 .pet-sm::after { inset: -3px; }
