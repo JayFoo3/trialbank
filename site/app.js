@@ -927,7 +927,7 @@
       ['Progress page', tick('progress')],
       ['Lost-mark tagging', tick('lost')],
       ['Auto-marking (shared free pool)', tick('automark')],
-      ['Personal auto-marks', (l) => l === 'pro' ? `<b>${pro} a month</b>` : no],
+      ['Personal marked papers', (l) => l === 'pro' ? `<b>${pro} a month</b>` : no],
       ['Bought marking packs', () => 'If bought'],
     ];
   }
@@ -944,7 +944,7 @@
     $('pro-save').onclick = async () => {
       const v = String(Math.max(0, Math.min(100, Math.round(+pm.value || 0))));
       const { error } = await sb.from('settings').upsert([{ key: 'pro_monthly_marks', value: v }]);
-      $('pro-msg').textContent = error ? error.message : `Pro accounts get ${v} auto-marks a month.`;
+      $('pro-msg').textContent = error ? error.message : `Pro accounts get ${v} papers marked a month.`;
       if (!error) { s.pro_monthly_marks = v; drawLevels(s, users); }
     };
   }
@@ -2361,11 +2361,11 @@
       const m = mk('div', 'modal buy');
       m.innerHTML = `<div class="modal-card buy-card" role="dialog" aria-modal="true" aria-labelledby="buy-h">
         <button class="link buy-x" data-k="" aria-label="Close">✕</button>
-        <h2 id="buy-h">Get more marks</h2>
-        <p class="buy-sub">One mark auto-marks one full paper.${myMarks.balance ? ` You have <b>${myMarks.balance}</b> right now.` : ''}</p>
+        <h2 id="buy-h">Mark more papers</h2>
+        <p class="buy-sub">Each pack auto-marks that many full papers.${myMarks.balance ? ` You have <b>${myMarks.balance}</b> paper${myMarks.balance === 1 ? '' : 's'} left.` : ''}</p>
         <div class="buy-packs">${P.map((p, i) => `<button class="buy-pack${i === 1 ? ' pop' : ''}" data-k="${p.marks}" style="--i:${i}">
           <span class="buy-tag">${i === 1 ? 'Most popular' : i === best ? 'Best value' : ''}</span>
-          <span class="buy-n">${p.marks}</span><span class="buy-u">marks</span>
+          <span class="buy-n">${p.marks}</span><span class="buy-u">papers</span>
           <span class="buy-price">${esc(p.price)}</span><span class="buy-each">${Math.round(per[i] * 100)}c a paper</span>
           <span class="buy-go">Buy</span></button>`).join('')}</div>
         <ul class="buy-points"><li>One-off payment, no subscription</li><li>Marks never expire</li><li>Card or Apple Pay, via Stripe</li></ul>
@@ -2431,14 +2431,14 @@
     ].join('');
     const pct = c.poolTotal ? Math.round(100 * c.poolLeft / c.poolTotal) : 0;
     $('mk-balance').innerHTML = `
-      <div class="mk-big"><b>${c.unlimited ? '∞' : c.total}</b><span>${c.unlimited ? 'unlimited marks (admin)' : `mark${c.total === 1 ? '' : 's'} you can use right now`}</span></div>
+      <div class="mk-big"><b>${c.unlimited ? '∞' : c.total}</b><span>${c.unlimited ? 'unlimited marks (admin)' : `paper${c.total === 1 ? '' : 's'} you can get marked right now`}</span></div>
       <div class="mk-tiles">${tiles}</div>
       <div class="mk-pool">
-        <div class="between small"><span><b>Shared free pool</b> · everyone's free marks come from here</span><span>${c.poolLeft} of ${c.poolTotal} papers left</span></div>
+        <div class="between small"><span><b>Shared free pool</b> · everyone's free marking comes from here</span><span>${c.poolLeft} of ${c.poolTotal} papers left</span></div>
         <div class="mk-bar"><i style="width:${pct}%"></i></div>
-        <p class="small muted">Resets on ${reset}. Bought and Pro marks are used first, so the free pool lasts longer for everyone.</p>
+        <p class="small muted">Resets on ${reset}. Bought and Pro papers are used first, so the free pool lasts longer for everyone.</p>
       </div>
-      ${c.canBuy ? '<button class="primary mk-buy" id="mk-buy">Get more marks</button>' : lite ? '<p class="small muted mk-later">Marking packs open after trials.</p>' : ''}`;
+      ${c.canBuy ? '<button class="primary mk-buy" id="mk-buy">Mark more papers</button>' : lite ? '<p class="small muted mk-later">Marking packs open after trials.</p>' : ''}`;
     if ($('mk-buy')) $('mk-buy').onclick = openBuy;
   }
   async function drawMarkLeft() {
@@ -2446,8 +2446,8 @@
     const [{ data, error }, m] = await Promise.all([sb.rpc('my_automark_usage'), loadMyMarks()]);
     const u = !error && data && data[0]; if (!u) return;
     let text, out = false;
-    if (m.pro_left > 0) text = `Upload your working · ${m.pro_left} Pro mark${m.pro_left === 1 ? '' : 's'} left this month` + (m.balance > 0 ? ` + ${m.balance} bought` : '');
-    else if (m.balance > 0) text = `Upload your working · ${m.balance} bought mark${m.balance === 1 ? '' : 's'} left`;
+    if (m.pro_left > 0) text = `Upload your working · ${m.pro_left} Pro paper${m.pro_left === 1 ? '' : 's'} left this month` + (m.balance > 0 ? ` + ${m.balance} bought` : '');
+    else if (m.balance > 0) text = `Upload your working · ${m.balance} bought paper${m.balance === 1 ? '' : 's'} left`;
     else if (u.unlimited) text = 'Upload your working · unlimited (admin)';
     else {
       const total = Math.max(1, Math.floor(Number(u.limit_usd) / PER_PAPER_USD));
@@ -2714,8 +2714,8 @@
     const n = new URLSearchParams(location.search).get('bought');
     if (!n) return;
     history.replaceState(null, '', location.pathname + location.hash);
-    const box = celebrate({ kind: 'buy', hero: `<div class="coin spin"><b>+${esc(n)}</b><small>marks</small></div>`,
-      title: 'Thank you!', body: 'Payment received. Adding your marks…', primary: 'Done' });
+    const box = celebrate({ kind: 'buy', hero: `<div class="coin spin"><b>+${esc(n)}</b><small>papers</small></div>`,
+      title: 'Thank you!', body: 'Payment received. Adding your papers…', primary: 'Done' });
     const since = new Date(Date.now() - 15 * 60e3).toISOString();
     let tries = 0;
     const poll = setInterval(async () => {
@@ -2727,7 +2727,7 @@
         box.card.querySelector('.coin').classList.remove('spin');
         if (arrived) {
           box.card.querySelector('.coin').classList.add('landed');
-          box.set(`${esc(n)} marks are yours`, `That's <b>${m.balance}</b> in total. They never expire. Use one on any paper with <b>Mark my paper</b>.`, 'Mark a paper');
+          box.set(`${esc(n)} papers of marking are yours`, `You can now get <b>${m.balance}</b> papers marked. They never expire.`, 'Mark a paper');
           box.pop(30);
           box.result.then(k => { if (k === 'yes') location.hash = '#mark'; });
         } else box.set('Thanks, payment received', "Your marks are taking a little longer than usual. They'll appear on their own; if they're not here in a few minutes, contact Jayden.", 'OK');
@@ -2744,7 +2744,7 @@
     const list = [];
     if (to !== 'free' && from === 'free') list.push('Every trial paper', 'Topic practice');
     FEATURE_NAMES.forEach(([f, name]) => { if ((LEVEL_FEAT[from] ?? 0) < FEATURE_AT[f] && (LEVEL_FEAT[to] ?? 0) >= FEATURE_AT[f]) list.push(cap(name.replace(/^the /, ''))); });
-    if (to === 'pro') list.push('Your own auto-marks every month');
+    if (to === 'pro') list.push('Your own marked papers every month');
     return list;
   }
   function levelPopup(from, to) {

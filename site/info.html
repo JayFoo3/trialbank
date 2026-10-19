@@ -84,17 +84,17 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <tr><td>Past HSC papers and topic practice</td><td class="c-free">✓</td><td class="c-pack">✓</td></tr>
       <tr><td>Every past trial paper</td><td class="c-free">Partner schools</td><td class="c-pack">✓</td></tr>
       <tr><td>Timed exams, weak spots and Progress</td><td class="c-free">Partner schools</td><td class="c-pack">✓</td></tr>
-      <tr><td>Auto-marking of your working</td><td class="c-free">Partner schools, small monthly allowance</td><td class="c-pack">✓ one mark per paper</td></tr>
+      <tr><td>Auto-marking of your working</td><td class="c-free">Partner schools, small monthly allowance</td><td class="c-pack">✓ as many papers as you buy</td></tr>
     </tbody>
   </table></div>
   <p class="fine">Partner schools get their students free access; which tools are switched on can change through the year. Buying any marking pack unlocks every paper and tool on your account, not just auto-marking.</p>
 
   <h2 id="pricing">Optional: marking packs</h2>
-  <p>You never have to buy anything to use Trialbank, and you never pay for papers. A pack pays only for the auto-marking service. If you want your papers auto-marked, a pack adds marks to your account: <b>one mark auto-marks one full paper you upload.</b> Packs are one-off purchases, not subscriptions, and bought marks never expire.</p>
+  <p>You never have to buy anything to use Trialbank, and you never pay for papers. A pack pays only for the auto-marking service. If you want your papers auto-marked, a pack lets you get that many full papers marked: <b>a 10-paper pack marks 10 papers you upload.</b> Packs are one-off purchases, not subscriptions, and they never expire.</p>
   <div class="packs" id="packs">
-    <div class="pack"><span class="tag"></span><div class="n">10</div><div class="u">marks</div><div class="price">$4.99</div><div class="each">50c a paper</div></div>
-    <div class="pack best"><span class="tag">Most popular</span><div class="n">25</div><div class="u">marks</div><div class="price">$9.99</div><div class="each">40c a paper</div></div>
-    <div class="pack"><span class="tag">Best value</span><div class="n">60</div><div class="u">marks</div><div class="price">$19.99</div><div class="each">33c a paper</div></div>
+    <div class="pack"><span class="tag"></span><div class="n">10</div><div class="u">papers</div><div class="price">$4.99</div><div class="each">50c a paper</div></div>
+    <div class="pack best"><span class="tag">Most popular</span><div class="n">25</div><div class="u">papers</div><div class="price">$9.99</div><div class="each">40c a paper</div></div>
+    <div class="pack"><span class="tag">Best value</span><div class="n">60</div><div class="u">papers</div><div class="price">$19.99</div><div class="each">33c a paper</div></div>
   </div>
   <p class="fine">One-off payments in Australian dollars, processed securely by Stripe. Trialbank never sees or stores your card details. Nothing renews automatically.</p>
 
@@ -106,10 +106,10 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 
   <h2 id="refunds">Refunds</h2>
   <div class="policy">
-    <h3>Unused marks</h3>
-    <p>If you change your mind, we'll refund any marks you haven't used, if you ask within 14 days of buying them. Email us from the address on your account.</p>
-    <h3>Used marks</h3>
-    <p>Marks that have already been used to mark a paper aren't refundable for change of mind. If a marking result is clearly wrong or the marking failed, contact us and we'll return the mark or refund it.</p>
+    <h3>Unused papers</h3>
+    <p>If you change your mind, we'll refund any papers from a pack you haven't had marked yet, if you ask within 14 days of buying it. Email us from the address on your account.</p>
+    <h3>Papers already marked</h3>
+    <p>Papers that have already been marked aren't refundable for change of mind. If a marking result is clearly wrong or the marking failed, contact us and we'll give you that paper back or refund it.</p>
     <h3>Your rights</h3>
     <p>Nothing in this policy limits your rights under the Australian Consumer Law. If something we sell has a major problem, you're entitled to a refund.</p>
     <p>Refunds go back to the original payment method, usually within 5 to 10 business days.</p>
@@ -124,7 +124,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <h3>Auto-marking</h3>
     <p>Auto-marking uses AI (Anthropic's Claude) to read your working and mark it against the paper's marking guidelines. It's a study aid, not an official mark, and it can make mistakes; always check the feedback against the worked solutions.</p>
     <h3>Changes and availability</h3>
-    <p>We may update features, access levels and these terms. We'll do our best to keep Trialbank running, but we can't promise it will always be available. If we ever close Trialbank, we'll refund unused bought marks.</p>
+    <p>We may update features, access levels and these terms. We'll do our best to keep Trialbank running, but we can't promise it will always be available. If we ever close Trialbank, we'll refund any unused papers from packs.</p>
   </div>
 
   <h2 id="privacy">Privacy</h2>
@@ -156,7 +156,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       document.getElementById('packs').innerHTML = P.map((p, i) => {
         const c = Math.round(per[i] * 100);
         const tag = i === 1 ? 'Most popular' : i === best ? 'Best value' : '';
-        return `<div class="pack${i === 1 ? ' best' : ''}"><span class="tag">${tag}</span><div class="n">${p.marks}</div><div class="u">marks</div><div class="price">${p.price}</div><div class="each">${c}c a paper</div></div>`;
+        return `<div class="pack${i === 1 ? ' best' : ''}"><span class="tag">${tag}</span><div class="n">${p.marks}</div><div class="u">papers</div><div class="price">${p.price}</div><div class="each">${c}c a paper</div></div>`;
       }).join('');
     }
     if (B.email) { const a = document.getElementById('contact-email'); a.href = 'mailto:' + B.email; a.textContent = B.email; }

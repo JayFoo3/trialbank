@@ -326,10 +326,10 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <section id="view-mark" class="view" hidden>
     <h1>Auto-marking</h1>
     <p class="muted mk-lede">Sit a paper on paper, take photos of your working, and get every question marked against the marking guidelines.</p>
-    <div class="card mk-balance" id="mk-balance"><p class="muted">Loading your marks…</p></div>
+    <div class="card mk-balance" id="mk-balance"><p class="muted">Loading…</p></div>
     <div class="card mk-upload">
       <h2>Mark a paper</h2>
-      <p class="small muted">Pick the paper you sat, then upload photos of your working. One mark covers the whole paper.</p>
+      <p class="small muted">Pick the paper you sat, then upload photos of your working. The whole paper counts as one.</p>
       <div class="mk-row">
         <select id="mark-paper" aria-label="Which paper"><option value="">Pick the paper</option></select>
         <button class="primary" id="mark-go">Upload my working</button>
@@ -420,7 +420,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <h2>Access levels</h2>
       <p class="small muted">What each level gets right now. Change anyone's level from the Access column in Accounts below; Auto follows the dial and the Lite switch.</p>
       <div class="tbl-wrap"><table class="tbl lv-table" id="levels-table"></table></div>
-      <div class="row"><label class="small inline">Pro auto-marks a month <input id="pro-marks" type="number" min="0" max="100" step="1"></label><button class="primary" id="pro-save">Save</button><span class="muted small" id="pro-msg"></span></div>
+      <div class="row"><label class="small inline">Pro papers marked a month <input id="pro-marks" type="number" min="0" max="100" step="1"></label><button class="primary" id="pro-save">Save</button><span class="muted small" id="pro-msg"></span></div>
     </div>
 
     <div class="card">
