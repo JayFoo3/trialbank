@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1200, system: system(SUBJECTS[subject]), tools: [TOOL], tool_choice: { type: 'tool', name: 'tutor_turn' }, messages: turns }),
+      body: JSON.stringify({ model: MODEL, max_tokens: 1200, system: system(SUBJECTS[subject]), tools: [TOOL], tool_choice: { type: 'auto' }, messages: turns }),
     });
     const out = await r.json();
     const u = out.usage ?? {};
@@ -195,7 +195,11 @@ Deno.serve(async (req) => {
       cache_write: u.cache_creation_input_tokens, cache_read: u.cache_read_input_tokens, cost_usd: cost, error: r.ok ? null : JSON.stringify(out.error ?? out).slice(0, 500) });
     if (!r.ok) return json({ error: `The tutor hit a problem (${out.error?.type ?? r.status}). Try again in a moment.` }, 502);
     const call = (out.content ?? []).find((c: { type: string; name?: string }) => c.type === 'tool_use' && c.name === 'tutor_turn');
-    const t = call?.input ?? {};
+    // this model can't be forced to use the tool: fall back to JSON or plain text written as a reply
+    const txt = (out.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('\n').trim();
+    let t = call?.input;
+    if (!t) { const m = txt.match(/\{[\s\S]*"say"[\s\S]*\}/); if (m) { try { t = JSON.parse(m[0]); } catch { /* not JSON */ } } }
+    t = t ?? { say: txt };
     const say = String(t.say ?? '').trim();
     if (!say) return json({ error: 'The tutor went quiet. Try again.' }, 502);
 
