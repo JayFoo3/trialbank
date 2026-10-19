@@ -12,3 +12,8 @@ $$;
 revoke execute on function public.daily_pool(text) from public, anon;
 grant execute on function public.daily_pool(text) to authenticated;
 select 'daily pool ready' as status, (select data_type from information_schema.columns where table_name='questions' and column_name='id') id_type, (select data_type from information_schema.columns where table_name='questions' and column_name='marks') marks_type;
+
+-- RLS speed-up: work out the student's release dial once per query, not once per row
+-- (students' question queries were hitting "canceling statement due to statement timeout")
+alter policy "read papers" on public.papers using (((select public.my_dial()) >= 100) or (coalesce(release_pct, 0::numeric) < ((select public.my_dial()))::numeric));
+create index if not exists questions_paper_id on public.questions (paper_id);
