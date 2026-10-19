@@ -1769,3 +1769,9 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .pro-ref-row { display: flex; gap: 8px; }
 .pro-ref-row input { flex: 1; min-width: 0; font-size: 13px; }
 .pro-plans.after-trial .pro-plan.best em { background: var(--hover); color: var(--ink); }
+
+/* Explain my mistake */
+.explain-btn { display: inline-flex; align-items: center; gap: 8px; margin: 4px 0 10px; padding: 9px 14px; border-radius: var(--r); background: var(--biro-soft); color: var(--biro-dark); border: 0; font-weight: 700; cursor: pointer; }
+.explain-btn:hover { filter: brightness(.97); }
+.explain-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pro-chip { font-style: normal; font-size: 11px; font-weight: 800; letter-spacing: .04em; padding: 2px 7px; border-radius: 99px; background: var(--biro); color: #fff; }

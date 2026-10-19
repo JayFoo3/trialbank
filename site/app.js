@@ -618,6 +618,7 @@
     $('star').onclick = () => toggleStar(x.id, $('star'));
     $('ask-tutor').hidden = !(tuAllowed() && tuSubjects().includes(x.papers.subject) && x.image_path && !x.content);
     $('ask-tutor').onclick = () => askTutor(x);
+    $('explain-mistake').hidden = true;
     $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true;
     $('next').hidden = true; $('skip').hidden = false;
     $('mcq-controls').hidden = x.type !== 'mcq' || !!x.syllabus_note;
@@ -691,11 +692,28 @@
     if (x.type === 'short' && !(x.content && Online.objective(x))) verdict(score === outOf ? 'Full marks.' : score === 0 ? 'Mark it, move on. It will come back around.' : `${score}/${outOf}.`, score === outOf ? 'good' : score === 0 ? 'bad' : 'warn');
     $('next').hidden = false; $('skip').hidden = true;
     if (x.type === 'short' && score < outOf && !(x.content && Online.objective(x))) showLost(s.results[s.i], outOf - score);
+    if (score < outOf) showExplain(x, score, outOf, chosen, s.results[s.i]);
     const { data: row, error } = await sb.from('attempts').insert({ user_id: state.user.id, question_id: x.id, score, out_of: outOf, chosen }).select('id').single();
     if (error) console.warn('attempt not saved', error.message);
     else { s.results[s.i].attemptId = row.id; if (s.results[s.i].lost?.length) saveLost(s.results[s.i]); }
     const ch = await srsAnswer(x, score, outOf).catch(e => { console.warn('srs', e.message); return null; });
     if (s.daily) { s.daily.changes.push(ch); dailyMark(x, score, outOf); }
+  }
+  // ---------- "Explain my mistake": straight into the tutor on this question, knowing what went wrong ----------
+  function showExplain(x, score, outOf, chosen, res) {
+    const b = $('explain-mistake');
+    const fits = tuSubjects().includes(x.papers?.subject) && x.image_path && !x.content;
+    const pro = tuAllowed(), sell = !pro && proOpen();
+    b.hidden = !fits || (!pro && !sell);
+    $('explain-pro').hidden = pro;
+    b.onclick = () => {
+      if (!pro) return openPro('mistake');
+      const why = (res?.lost || []).map(l => reasonName[l.reason]).filter(Boolean);
+      const ask = x.type === 'mcq'
+        ? `I picked ${chosen || 'an answer'} but the answer is ${x.answer}. Explain my mistake: why is ${x.answer} right and what was wrong with mine?`
+        : `I got ${score}/${outOf} on this.${why.length ? ` I lost marks for: ${why.join(', ').toLowerCase()}.` : ''} Explain where I went wrong and how to get full marks.`;
+      askTutor({ ...x, ask });
+    };
   }
   // ---------- lost marks: which mark, and why ----------
   const REASONS = [
@@ -2475,7 +2493,7 @@
     m.innerHTML = `<div class="modal-card buy-card pro-card" role="dialog" aria-modal="true" aria-labelledby="pro-h">
       <button class="link buy-x" data-k="" aria-label="Close">✕</button>
       <p class="pro-kick">Trialbank Pro</p>
-      <h2 id="pro-h">${active ? "You're on Pro" : pass ? `Free Pro until ${shortDay(pro.pass_end)}` : from === 'tutor' ? 'The tutor comes with Pro' : 'Study with your own tutor'}</h2>
+      <h2 id="pro-h">${active ? "You're on Pro" : pass ? `Free Pro until ${shortDay(pro.pass_end)}` : from === 'tutor' ? 'The tutor comes with Pro' : from === 'mistake' ? 'Pro explains every mistake' : 'Study with your own tutor'}</h2>
       <ul class="pro-feats">
         <li><b>AI tutor in every subject</b><span>One step at a time on real past questions. 300 messages a month.</span></li>
         <li><b>5 papers marked every month</b><span>On top of anything you've bought.</span></li>

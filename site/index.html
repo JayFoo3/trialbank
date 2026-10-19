@@ -281,6 +281,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 
     <p class="verdict" id="verdict" hidden></p>
     <div id="lost-box" hidden></div>
+    <button class="explain-btn" id="explain-mistake" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 9.5h6M9 12.5h4"/></svg><span>Explain my mistake</span><em class="pro-chip" id="explain-pro" hidden>Pro</em></button>
     <div class="row end">
       <span class="row tight"><button class="link" id="skip">Skip</button><button class="link muted-link" id="not-learnt">Haven't learnt this</button><button class="link muted-link" id="too-hard">Not to this level</button></span>
       <button class="primary" id="next" hidden>Next</button>
