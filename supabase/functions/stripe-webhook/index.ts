@@ -33,6 +33,32 @@ Deno.serve(async (req) => {
   if (!(await verified(raw, req.headers.get('stripe-signature') ?? '', secret))) return new Response('bad signature', { status: 400 });
 
   const event = JSON.parse(raw);
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey(), { auth: { persistSession: false } });
+
+  // Pro subscriptions: keep our copy of the subscription in step with Stripe
+  const subEvent = ['customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted'].includes(event.type);
+  const subCheckout = event.type === 'checkout.session.completed' && event.data?.object?.mode === 'subscription';
+  if (subEvent || subCheckout || event.type === 'invoice.paid') {
+    const key = Deno.env.get('STRIPE_SECRET_KEY');
+    const o = event.data?.object ?? {};
+    const subId = subEvent ? o.id : o.subscription;
+    if (!subId || !key) return new Response('no subscription', { status: 200 });
+    const r = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(typeof subId === 'string' ? subId : subId.id)}`, { headers: { Authorization: `Bearer ${key}` } });
+    const sub = await r.json();
+    if (!r.ok) return new Response('could not read subscription', { status: 500 });
+    const uid = sub.metadata?.user_id ?? (subCheckout ? o.client_reference_id : null);
+    if (!uid) return new Response('no user on subscription', { status: 200 });
+    const end = sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end;
+    const interval = sub.items?.data?.[0]?.price?.recurring?.interval;
+    const { error } = await admin.from('subscriptions').upsert({
+      user_id: uid, customer: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id, sub_id: sub.id,
+      plan: sub.metadata?.plan ?? (interval === 'year' ? 'annual' : 'monthly'), status: sub.status,
+      period_end: end ? new Date(end * 1000).toISOString() : null, cancel_at_period_end: !!sub.cancel_at_period_end, updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+    if (error) return new Response('could not save subscription', { status: 500 });
+    return new Response('ok', { status: 200 });
+  }
+
   if (event.type !== 'checkout.session.completed' && event.type !== 'checkout.session.async_payment_succeeded') {
     return new Response('ignored', { status: 200 });
   }
@@ -42,7 +68,6 @@ Deno.serve(async (req) => {
   const marks = Number(s.metadata?.marks);
   if (!uid || !Number.isInteger(marks) || marks <= 0) return new Response('missing metadata', { status: 200 });
 
-  const admin = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey(), { auth: { persistSession: false } });
   const { error } = await admin.rpc('add_marks', {
     uid, n: marks, k: 'purchase', r: s.id,
     nt: `${marks} marks, ${(Number(s.amount_total) / 100).toFixed(2)} ${String(s.currency ?? '').toUpperCase()}`,

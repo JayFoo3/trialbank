@@ -1691,3 +1691,24 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .own-tbl .om small, .own-tbl .of small { display: block; font-weight: 600; color: var(--muted); font-size: .78rem; }
 .own-tbl tr.full .om { color: #1a7f37; } .own-tbl tr.zero .om { color: #c0392b; } .own-tbl tr.part .om { color: #b7791f; }
 #own-history { margin-top: 18px; }
+
+/* Trialbank Pro */
+.pro-card { max-width: 560px; }
+.pro-kick { margin: 0; font: 800 .8rem/1 var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--biro); }
+.pro-feats { list-style: none; padding: 0; margin: 14px 0 18px; display: grid; gap: 10px; text-align: left; }
+.pro-feats li { display: flex; flex-direction: column; padding-left: 30px; position: relative; }
+.pro-feats li::before { content: "✓"; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--biro); color: #fff; font-size: .75rem; font-weight: 900; display: grid; place-items: center; }
+.pro-feats span { color: var(--muted); font-size: .9rem; }
+.pro-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+.pro-plan { font: inherit; color: inherit; cursor: pointer; background: var(--paper); border: 2px solid var(--rule); border-radius: var(--r-lg); padding: 14px 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 4px 0 var(--rule); transition: transform .12s; }
+.pro-plan b { font-family: var(--display); font-size: 2rem; line-height: 1.1; }
+.pro-plan b small { font-size: .9rem; color: var(--muted); font-weight: 700; margin-left: 2px; }
+.pro-plan > span:not(.pro-tag) { color: var(--muted); font-size: .85rem; }
+.pro-plan em { font-style: normal; font-weight: 800; margin-top: 8px; padding: 8px 14px; border-radius: var(--r); background: var(--hover); width: 100%; }
+.pro-plan.best { border-color: var(--biro); box-shadow: 0 5px 0 var(--biro-dark, #1d47b8); }
+.pro-plan.best em { background: var(--biro); color: #fff; }
+.pro-tag { font-size: .72rem; font-weight: 800; color: var(--biro); min-height: 1em; text-transform: uppercase; letter-spacing: .05em; }
+.pro-plan:hover { transform: translateY(-2px); }
+.pro-status { font-weight: 700; margin: 6px 0 12px; }
+.menu-pro { color: var(--biro); font-weight: 800; }
+@media (max-width: 480px) { .pro-plans { grid-template-columns: 1fr; } }

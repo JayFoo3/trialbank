@@ -133,6 +133,10 @@ Deno.serve(async (req) => {
   const { count } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true })
     .eq('user_id', user.id).gte('created_at', new Date(Date.now() - 864e5).toISOString());
   if (!isAdmin && (count ?? 0) >= Number(s.tutor_daily_msgs ?? 150)) return json({ error: "You've hit today's tutor limit. Back tomorrow." }, 429);
+  // each Pro student's monthly allowance (Sydney months), so no one account can run up the bill
+  const sydMonth = new Date(new Date().toLocaleString('en-US', { timeZone: 'Australia/Sydney' })); sydMonth.setDate(1); sydMonth.setHours(0, 0, 0, 0);
+  const { count: monthCount } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', new Date(Date.now() - (Date.now() - sydMonth.getTime()) - 11 * 36e5).toISOString());
+  if (!isAdmin && (monthCount ?? 0) >= Number(s.tutor_user_monthly_msgs ?? 300)) return json({ error: "You've used this month's tutor messages. They refill on the 1st." }, 429);
 
   const img = async (bucket: string, path: string) => {
     const { data, error } = await admin.storage.from(bucket).download(path);

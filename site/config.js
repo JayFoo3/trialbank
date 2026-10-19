@@ -15,5 +15,7 @@ window.APP_CONFIG = {
   // shown on info.html (pricing and policies); add the ABN once Stripe is set up under JAIOPS
   business: { name: 'JAIOPS', abn: '56 119 345 967', email: 'jaydenvujic@gmail.com' },
   // marking packs (must match the Stripe prices; the pack key is the number of marks)
+  // Trialbank Pro prices shown on the site (AUD); the real prices live in Stripe
+  pro: { monthly: 12.99, annual: 99 },
   packs: [{ marks: 10, price: '$4.99' }, { marks: 25, price: '$9.99' }, { marks: 60, price: '$19.99' }],
 };

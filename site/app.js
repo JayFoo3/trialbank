@@ -88,6 +88,7 @@
       if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
       if (h === 'mark') { show('mark'); await renderMark(); return; }
       if (h === 'tutor' && tuAllowed()) { show('tutor'); await renderTutor(); return; }
+      if (h === 'tutor' && state.proSale === 'on') { history.replaceState(null, '', '#home'); show('home'); await renderHome(); openPro('tutor'); return; }
       if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
       if (h === 'examrun' || h === 'exam') {
         if (state.exam) return show('examrun');
@@ -301,7 +302,7 @@
   // papers a "Free" preview can open (the database lets the admin see everything, so this mirrors the dial)
   const seePaper = (p) => state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial;
   function applyRelease() {
-    $('nav-tutor').hidden = !tuAllowed();
+    $('nav-tutor').hidden = !tuAllowed() && !(state.proSale === 'on' && state.user && !state.preview);   // once Pro is on sale, everyone sees the Tutor tab (it offers Pro)
     document.querySelectorAll('[data-feature]').forEach(el => el.classList.toggle('feature-off', !can(el.dataset.feature)));
     const d = state.viewAs === 'free' ? state.viewDial : state.viewAs ? 100 : state.release?.dial ?? 100, note = $('release-note');
     const lite = state.viewAs ? state.viewAs === 'lite' : state.release?.lite;
@@ -314,7 +315,10 @@
   async function checkAdmin() {
     state.admin = false;
     if (state.user) { const { data } = await sb.rpc('is_admin'); state.admin = !!data; }
-    if (state.user && !state.preview) { const { data: rel } = await sb.rpc('my_release'); if (rel) state.release = rel; }
+    if (state.user && !state.preview) {
+      const [{ data: rel }, { data: pro }] = await Promise.all([sb.rpc('my_release'), sb.rpc('my_pro')]);
+      if (rel) state.release = rel; if (pro) { state.pro = pro; state.proSale = pro.sale; }
+    }
     applyRelease();
     $('nav-admin').hidden = !state.admin;
     $('preview-new').hidden = !state.admin || state.preview;
@@ -2430,6 +2434,66 @@
   $('me-modal').addEventListener('click', (ev) => { if (ev.target.id === 'me-modal') closeMe(); });
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('me-modal').hidden) closeMe(); });
 
+
+  // ---------- Trialbank Pro: monthly or annual, through Stripe ----------
+  const PRO = C.pro || { monthly: 12.99, annual: 99 };
+  const money = (v) => '$' + (Number.isInteger(v) ? v : v.toFixed(2));
+  async function openPro(from) {
+    $('account-menu').hidden = true;
+    let pro = state.pro;
+    try { const { data } = await sb.rpc('my_pro'); if (data) pro = state.pro = data; } catch {}
+    const active = pro?.active, onSale = pro?.sale === 'on' || (pro?.sale === 'admin' && state.admin);
+    const perMonth = PRO.annual / 12, save = Math.round(100 * (1 - PRO.annual / (PRO.monthly * 12)));
+    const end = pro?.period_end ? new Date(pro.period_end).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const m = mk('div', 'modal buy pro-modal');
+    m.innerHTML = `<div class="modal-card buy-card pro-card" role="dialog" aria-modal="true" aria-labelledby="pro-h">
+      <button class="link buy-x" data-k="" aria-label="Close">✕</button>
+      <p class="pro-kick">Trialbank Pro</p>
+      <h2 id="pro-h">${active ? "You're on Pro" : from === 'tutor' ? 'The tutor comes with Pro' : 'Study with your own tutor'}</h2>
+      <ul class="pro-feats">
+        <li><b>AI tutor in every subject</b><span>One step at a time on real past questions. 300 messages a month.</span></li>
+        <li><b>5 papers marked every month</b><span>On top of anything you've bought.</span></li>
+        <li><b>Pro pets and looks</b><span>Unicorn, dragon and phoenix, the Aurora banner and the Pro border.</span></li>
+      </ul>
+      ${active ? `<p class="pro-status">${pro.plan === 'annual' ? 'Annual' : 'Monthly'} plan · ${pro.cancel_at_period_end ? `ends ${end}` : `renews ${end}`}</p>
+        <button class="primary" data-k="portal">Manage subscription</button>`
+      : onSale ? `<div class="pro-plans">
+          <button class="pro-plan best" data-k="annual"><span class="pro-tag">Best value · save ${save}%</span><b>${money(Math.round(perMonth * 100) / 100)}<small>/month</small></b><span>Billed ${money(PRO.annual)} a year</span><em>Go annual</em></button>
+          <button class="pro-plan" data-k="monthly"><span class="pro-tag"></span><b>${money(PRO.monthly)}<small>/month</small></b><span>Cancel any time</span><em>Go monthly</em></button>
+        </div><p class="small muted">Secure payment with Stripe. Card or Apple Pay. Cancel any time from your profile.</p>`
+      : '<p class="pro-status">Pro opens soon.</p>'}
+    </div>`;
+    const done = () => { m.classList.add('out'); setTimeout(() => m.remove(), 180); document.removeEventListener('keydown', k); };
+    const k = (ev) => { if (ev.key === 'Escape') done(); };
+    m.onclick = async (ev) => {
+      if (ev.target === m) return done();
+      const b = ev.target.closest('[data-k]'); if (!b) return;
+      if (!b.dataset.k) return done();
+      b.disabled = true;
+      const body = b.dataset.k === 'portal' ? { portal: true } : { plan: b.dataset.k };
+      toast(b.dataset.k === 'portal' ? 'Opening your subscription…' : 'Opening secure checkout…');
+      const { data, error } = await sb.functions.invoke('buy-marks', { body });
+      if (error || !data?.url) { let msg = error?.message || 'Could not start the payment.'; try { msg = (await error.context.json()).error || msg; } catch {} b.disabled = false; return toast(esc(msg)); }
+      location.href = data.url;
+    };
+    document.addEventListener('keydown', k); document.body.appendChild(m);
+  }
+  $('open-pro').onclick = () => openPro();
+  // back from Stripe after subscribing: wait for the webhook to switch the account to Pro, then celebrate
+  function afterPro() {
+    const plan = new URLSearchParams(location.search).get('pro');
+    if (!plan) return;
+    history.replaceState(null, '', location.pathname + location.hash);
+    toast('Payment received. Switching on Pro…', 8000);
+    let tries = 0;
+    const poll = setInterval(async () => {
+      if (!state.user) return;
+      const { data: rel } = await sb.rpc('my_release');
+      if (rel?.level === 'pro' || rel?.level === 'admin' || ++tries > 25) { clearInterval(poll); await checkAdmin(); route(); if (rel?.level !== 'pro' && rel?.level !== 'admin') toast("Your payment went through. Pro is taking a moment to switch on; refresh in a minute. If it doesn't, contact Jayden.", 9000); }
+    }, 2000);
+  }
+  setTimeout(() => afterPro(), 0);
+
   // ---------- auto-marking allowance: "3 of 4 left this month" ----------
   const PER_PAPER_USD = 0.45;            // rough cost of marking one paper
   // ---------- marking packs: bought auto-marks, separate from the free monthly ones ----------
@@ -2849,7 +2913,8 @@
       if (b.classList.contains('locked')) {
         window.Juice?.sfx?.bad?.();
         b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
-        return toast(pro ? `${esc(b.querySelector('span').textContent)} comes with Pro.` : `Reach level ${lvl} to unlock ${esc(b.querySelector('span').textContent)}.`);
+        if (pro) return openPro();
+        return toast(`Reach level ${lvl} to unlock ${esc(b.querySelector('span').textContent)}.`);
       }
       await saveProfile({ [kind]: k });
       window.Juice?.sfx?.good?.(2);
