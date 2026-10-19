@@ -21,7 +21,7 @@ from pypdf import PdfWriter, PdfReader  # noqa: E402
 
 
 FOLDERS = {k: v["folder"] for k, v in SUBJECTS.items()}
-FOLDERS.update({"Ext1": "Math Extension 1", "Physics": "Physics"})
+FOLDERS.update({"Ext2": "Math Extension 2", "Ext1": "Math Extension 1", "Physics": "Physics"})
 
 
 def joined(exam, mg):

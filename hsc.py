@@ -3,7 +3,8 @@
 
   python3 hsc.py download    fetch each exam paper and its marking guidelines into hsc/<slug>/ (run on your Mac)
   python3 hsc.py thumbs      make hsc/<slug>/thumb.webp from page 1 (needs poppler; Claude runs this one)
-  SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python3 hsc.py upload    put them on the site
+  SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python3 hsc.py upload [Ext2]   put them on the site (one subject, or all)
+  PDFs go to Backblaze B2 when the B2_* variables are set, otherwise to Supabase storage.
 
 Papers come straight from NESA (nsw.gov.au), which publishes them free for HSC preparation."""
 import glob, hashlib, json, os, subprocess, sys, tempfile, time, urllib.request
@@ -13,6 +14,12 @@ OUT = os.path.join(HERE, 'hsc')
 NESA = 'https://www.nsw.gov.au/sites/default/files/noindex/'
 # (subject, year, exam paper, marking guidelines)
 PAPERS = [
+    ('Ext2', 2020, '2025-05/2020-hsc-mathematics-extension-2.pdf', '2025-05/2020-hsc-mathematics-ext-2-mg.pdf'),
+    ('Ext2', 2021, '2025-05/2021-hsc-mathematics-extension-2.pdf', '2025-05/2021-hsc-maths-ext-2-mg.pdf'),
+    ('Ext2', 2022, '2025-05/2022-hsc-mathematics-extension-2.pdf', '2025-05/2022-hsc-maths-ext-2-mg.pdf'),
+    ('Ext2', 2023, '2025-05/2023-hsc-maths-ext-2.pdf', '2025-05/2023-hsc-maths-ext-2-mg.pdf'),
+    ('Ext2', 2024, '2025-05/2024-hsc-maths-ext-2.pdf', '2025-05/2024-hsc-maths-ext-2-mg.pdf'),
+    ('Ext2', 2025, '2025-10/2025-hsc-maths-extension-2.pdf', '2025-11/2025-hsc-maths-extension-2-mg.pdf'),
     ('Ext1', 2020, '2025-05/2020-hsc-mathematics-extension-1.pdf', '2025-05/2020-hsc-mathematics-ext-1-mg.pdf'),
     ('Ext1', 2021, '2025-05/2021-hsc-mathematics-extension-1.pdf', '2025-05/2021-hsc-maths-ext-1-mg.pdf'),
     ('Ext1', 2022, '2025-05/2022-hsc-mathematics-extension-1.pdf', '2025-05/2022-hsc-maths-ext-1-mg.pdf'),
@@ -108,14 +115,24 @@ def upload():
             time.sleep(3 * (i + 1))
         sys.exit(f'{path}: gave up')
 
+    import b2
+    only = sys.argv[2] if len(sys.argv) > 2 else None
+    if b2.ready(): print('PDFs -> Backblaze B2')
+
+    def put_pdf(path, data):
+        if b2.ready(): b2.put(path, data)
+        else: put(path, data, 'application/pdf')
+
     for s, y, _, _ in PAPERS:
+        if only and s != only:
+            continue
         slug = slug_of(s, y); d = os.path.join(OUT, slug)
         exam, mg, th = (os.path.join(d, n) for n in ('exam.pdf', 'mg.pdf', 'thumb.webp'))
         if not os.path.exists(exam):
             print(slug, 'not downloaded, skipped'); continue
         raw = open(exam, 'rb').read()
-        put(f'{slug}/paper.pdf', raw, 'application/pdf')
-        if os.path.exists(mg): put(f'{slug}/mg.pdf', open(mg, 'rb').read(), 'application/pdf')
+        put_pdf(f'{slug}/paper.pdf', raw)
+        if os.path.exists(mg): put_pdf(f'{slug}/mg.pdf', open(mg, 'rb').read())
         if os.path.exists(th): put(f'{slug}/thumb.webp', open(th, 'rb').read(), 'image/webp')
         row = dict(slug=slug, subject=s, school='HSC', year=y, difficulty='HSC', sha256=hashlib.sha256(raw).hexdigest(),
                    pdf_path=f'{slug}/paper.pdf', pdf_sol_path=f'{slug}/mg.pdf' if os.path.exists(mg) else None)
