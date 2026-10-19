@@ -4,11 +4,11 @@ window.APP_CONFIG = {
   supabaseUrl: 'https://xqkdggyksufbthskmmdz.supabase.co',
   supabaseAnonKey: 'sb_publishable_eJI_qmdm7H6VTax5x5zx8g_9MvxlIFz',
   subjects: { Ext2: 'Mathematics Extension 2', Ext1: 'Mathematics Extension 1', Adv: 'Mathematics Advanced', Std2: 'Mathematics Standard 2', Physics: 'Physics', Eng: 'Engineering Studies', SE: 'Software Engineering' },
-  exam: { Ext2: { reading: 10, working: 180 }, Ext1: { reading: 10, working: 120 }, Adv: { reading: 10, working: 180 }, Physics: { reading: 5, working: 180 }, Eng: { reading: 5, working: 180 }, Std2: { reading: 10, working: 150 }, SE: { reading: 10, working: 140 } },  // minutes, editable on the page
+  exam: { Ext2: { reading: 10, working: 180 }, Ext1: { reading: 10, working: 120 }, Adv: { reading: 10, working: 180 }, Physics: { reading: 5, working: 180 }, Bio: { reading: 5, working: 180 }, Econ: { reading: 5, working: 180 }, Eng: { reading: 5, working: 180 }, Std2: { reading: 10, working: 150 }, SE: { reading: 10, working: 140 } },  // minutes, editable on the page
   // subjects to announce with a "New on Trialbank" popup the first time each student sees them
   announce: ['Ext2'],
-  // AI tutor (prototype): which subjects it works in, and whether everyone sees the tab (the server still checks access)
-  tutor: { subjects: ['Adv'], open: false },
+  // AI tutor (prototype, Pro only): which subjects it works in
+  tutor: { subjects: ['Adv'] },
   // paper PDFs are served from Backblaze B2 (supabase/functions/pdf-url)
   pdfStore: 'b2',
   schoolDomain: 'education.nsw.gov.au',

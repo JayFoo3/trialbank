@@ -2,7 +2,8 @@
 """Read THSC trial papers for one Trialbank subject with Claude Code.
 
 Run from Terminal:  cd ~/Documents/question-bank && caffeinate -i python3 read_subject.py --subject Eng --max 15
-Subjects: Adv (Maths Advanced), Std2 (Maths Standard 2), Eng (Engineering Studies), SE (Software Engineering).
+Subjects: Adv (Maths Advanced), Std2 (Maths Standard 2), Eng (Engineering Studies), SE (Software Engineering),
+Econ (Economics), Bio (Biology).
 Run it again any time: it carries on where it stopped.
 
 It uses Albert's reader (~/Documents/thsc-index/reader) but never changes or pushes his repo:
@@ -41,6 +42,10 @@ SUBJECTS = {
     "SE": dict(pages=["Software Engineering/trialpapers.html", "SoftwareEngineering/trialpapers.html", "Software/trialpapers.html",
                       "Software Engineering/trialpapers_se.html"],
                word="software", first=2024, folder="Software Engineering", sol_only=False),
+    "Econ": dict(pages=["Economics/trialpapers.html", "Economics/trialpapers_economics.html", "Econ/trialpapers.html"],
+                 word="economics", first=2015, folder="Economics", sol_only=False),
+    "Bio": dict(pages=["Biology/trialpapers.html", "Biology/trialpapers_biology.html", "Bio/trialpapers.html"],
+                word="biology", first=2019, folder="Biology", sol_only=False),
 }
 NAMED = re.compile(r"^(.*?)\s+((?:19|20)\d\d)\b")
 

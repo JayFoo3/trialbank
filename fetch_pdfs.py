@@ -10,7 +10,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 import read_subject as rs  # noqa: E402
 from read_subject import thsc, pdf_name  # noqa: E402
 
-FOLDERS = {"Ext2": "Math Extension 2", "Ext1": "Math Extension 1", "Physics": "Physics"}
+FOLDERS = {"Ext2": "Math Extension 2", "Ext1": "Math Extension 1", "Physics": "Physics", "Econ": "Economics", "Bio": "Biology"}
 
 
 def main():

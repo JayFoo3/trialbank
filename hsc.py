@@ -57,6 +57,20 @@ PAPERS = [
     ('Physics', 2023, '2025-05/2023-hsc-physics.pdf', '2025-05/2023-hsc-physics-mg.pdf'),
     ('Physics', 2024, '2025-09/2024-hsc-physics.pdf', '2025-05/2024-hsc-physics-mg.pdf'),
     ('Physics', 2025, '2025-11/2025-hsc-physics.pdf', '2025-11/2025-hsc-physics-mg.pdf'),
+    ('Econ', 2019, '2025-05/2019-hsc-economics.pdf', '2025-05/2019-hsc-economics-mg.pdf'),
+    ('Econ', 2020, '2025-05/2020-hsc-economics.pdf', '2025-05/2020-hsc-economics-mg.pdf'),
+    ('Econ', 2021, '2025-05/2021-hsc-economics.pdf', '2025-05/2021-hsc-economics-mg.pdf'),
+    ('Econ', 2022, '2025-05/2022-hsc-economics.pdf', '2025-05/2022-hsc-economics-mg.pdf'),
+    ('Econ', 2023, '2025-05/2023-hsc-economics.pdf', '2025-05/2023-hsc-economics-mg.pdf'),
+    ('Econ', 2024, '2025-05/2024-hsc-economics.pdf', '2025-05/2024-hsc-economics-mg.pdf'),
+    ('Econ', 2025, '2025-10/2025-hsc-economics.pdf', '2025-11/2025-hsc-economics-mg.pdf'),
+    ('Bio', 2019, '2025-02/2019-hsc-biology.pdf', '2025-02/2019-hsc-biology-mg.pdf'),
+    ('Bio', 2020, '2025-12/2020-hsc-biology.pdf', '2025-02/2020-hsc-biology-mg.pdf'),
+    ('Bio', 2021, '2025-02/2021-hsc-biology.pdf', '2025-02/2021-hsc-biology-mg.pdf'),
+    ('Bio', 2022, '2025-02/2022-hsc-biology.pdf', '2025-02/2022-hsc-biology-mg.pdf'),
+    ('Bio', 2023, '2025-02/2023-hsc-biology_20240326.pdf', '2025-02/2023-hsc-biology-mg.pdf'),
+    ('Bio', 2024, '2025-07/2024-hsc-biology-cc.pdf', '2025-02/2024-hsc-biology-mg.pdf'),
+    ('Bio', 2025, '2026-02/2025-hsc-biology.pdf', '2025-11/2025-hsc-biology-mg.pdf'),
 ]
 slug_of = lambda s, y: f'hsc-{s.lower()}-{y}'
 
