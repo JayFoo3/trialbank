@@ -71,6 +71,7 @@
     try { return await fn(); } finally { if (--loadingN <= 0) { loadingN = 0; $('loading').hidden = true; } }
   }
   async function route() {
+    if (window.Annotate) Annotate.stop();
     const [h, arg] = (location.hash || '#home').slice(1).split('/');
     if (!state.user) return show('auth');
     drawSubject();
@@ -259,6 +260,7 @@
     return msg;
   }
   $('signout').onclick = () => sb.auth.signOut();
+  $('calc-btn').onclick = () => window.Calc && Calc.toggle();
   const drawSound = () => { if (window.Juice) $('sound-toggle').textContent = `Sounds: ${Juice.soundLabel()}`; };
   $('sound-toggle').onclick = () => { if (window.Juice) { Juice.cycleSound(); drawSound(); } };
   drawSound();
@@ -284,11 +286,16 @@
   const FEATURE_AT = { weak: 25, exam: 25, progress: 40, lost: 50, automark: 75 };
   const FEATURE_NAMES = [['weak', 'weak spots and got-wrong drills'], ['exam', 'timed papers'], ['progress', 'the Progress page'], ['lost', 'lost-mark tagging'], ['automark', 'auto-marking']];
   state.release = { dial: 100, tier: 'admin' };
-  const can = (f) => state.admin || (state.release?.dial ?? 100) >= (FEATURE_AT[f] ?? 0);
+  // tools follow the feature level; Trialbank Lite keeps the cohort's tools off while its papers stay open
+  const can = (f) => state.admin || (state.release?.features ?? state.release?.dial ?? 100) >= (FEATURE_AT[f] ?? 0);
   function applyRelease() {
     document.querySelectorAll('[data-feature]').forEach(el => el.classList.toggle('feature-off', !can(el.dataset.feature)));
     const d = state.release?.dial ?? 100, note = $('release-note');
-    if (note) { note.hidden = state.admin || d >= 100; note.textContent = 'Trialbank is opening up in stages: more papers and features are on the way.'; }
+    if (note) {
+      note.hidden = state.admin || (d >= 100 && !state.release?.lite);
+      note.textContent = state.release?.lite ? 'You\'re on Trialbank Lite: every paper and topic practice. Auto-marking, timed exams and weak spots unlock after trials.'
+        : 'Trialbank is opening up in stages: more papers and features are on the way.';
+    }
   }
   async function checkAdmin() {
     state.admin = false;
@@ -367,6 +374,13 @@
       ['Calculus', ['Calculus', 'Integration', 'Rates of Change', 'Related Rates', 'Exp. G + D', 'Volumes', "DE's"]],
       ['Proof and Vectors', ['Proof Induction', 'Vectors', 'Further Operations', 'Projectiles']],
       ['Combinatorics and Statistics', ['Combinatorics', 'Perms/Combs', 'Binom. Exp.', 'Statistical Analysis', 'Bern./Binom Dist.', 'Normal Approx.']],
+    ],
+    Ext2: [
+      ['Proof', ['Contradiction', 'Inequalities', 'Induction', 'PROOF']],
+      ['Complex numbers', ["Euler's", 'Solving Equations', 'Argand Diag', 'Geometric Implications']],
+      ['Vectors', ['3D Vectors', 'Equations of lines']],
+      ['Integration', ['Substitution', 'Quadratic Denom.', 'Reduction', 'Parts']],
+      ['Mechanics', ['SHM', 'Resisted Motion', 'Non Resisted Motion', 'Projectiles']],
     ],
     Adv: [
       ['Functions', ['Working with Functions', 'Graphing Techniques']],
@@ -560,6 +574,9 @@
     const s = state.set, x = s.qs[s.i];
     const qcard = document.querySelector('#view-set .card.question');
     if (qcard) { qcard.classList.remove('enter'); void qcard.offsetWidth; qcard.classList.add('enter'); }
+    // write on the question: pencil, highlighter, eraser, plus working space underneath
+    if (window.Annotate) { Annotate.stop(); qcard?.querySelector('.ann-tools')?.remove(); }
+    if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${x.id}`)); qcard.prepend(tb); }
     $('set-pos').textContent = `${s.i + 1} of ${s.qs.length} · ${topicName(x.topic)}`;
     firstHint(x);
     $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
@@ -868,6 +885,11 @@
       (on.length ? `, ${on.join(', ')}` : '') + '.' + (off.length ? ` Next: ${off[0][1]} at ${FEATURE_AT[off[0][0]]}.` : '');
   }
   function drawRelease(s) {
+    const lite = $('rel-lite'); lite.checked = (s.cohort_lite ?? 'off') === 'on';
+    lite.onchange = async () => {
+      const { error } = await sb.from('settings').upsert([{ key: 'cohort_lite', value: lite.checked ? 'on' : 'off' }]);
+      $('rel-saved').textContent = error ? error.message : lite.checked ? 'Trialbank Lite is on for your cohort.' : 'Lite is off: your cohort gets every tool its dial allows.';
+    };
     [['cohort', s.release_cohort ?? '100'], ['public', s.release_public ?? '10']].forEach(([k, v]) => {
       const r = $('rel-' + k); r.value = v;
       const sync = () => { $(`rel-${k}-v`).textContent = r.value; $(`rel-${k}-what`).textContent = releaseWhat(+r.value); };
@@ -1774,6 +1796,7 @@
   }
   function renderExamBody() {
     const e = state.exam, body = $('exam-body'), marking = e.phase === 'marking';
+    if (window.Annotate) Annotate.stop();
     body.innerHTML = '';
     const jump = $('exam-jump'); jump.innerHTML = '';
     if (marking) body.appendChild(automarkCard());
@@ -1784,6 +1807,7 @@
       jump.appendChild(chip);
       const c = mk('div', 'card qcard'); c.id = 'xq' + idx;
       c.innerHTML = `<div class="between"><strong>${qLabel(q)} ${sylFlag(q)}</strong><span class="muted small">${marksText(q.marks)}</span></div>`;
+      if (window.Annotate && state.user && !q.content) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(c, `tb_ann_${state.user.id}_${q.id}`)); c.appendChild(tb); }
       if (q.content) c.appendChild(Online.render(q, { value: e.answers[q.id], disabled: e.phase !== 'working', reveal: marking && Online.objective(q),
         onChange: v => { e.answers[q.id] = v; saveExam(); chip.classList.toggle('done', Online.answered(q, v)); } }));
       else c.appendChild(qImg(q.imageUrl, 'Question ' + qLabel(q)));
