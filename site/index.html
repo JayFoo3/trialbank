@@ -370,6 +370,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <section id="view-tutor" class="view" hidden>
     <div class="tu-head">
       <div><h1>Tutor</h1><p class="small muted" id="tu-sub"></p></div>
+      <div class="tu-left" id="tu-left" hidden><span class="tu-left-n" id="tu-left-n"></span><span class="tu-left-bar"><i id="tu-left-fill"></i></span><span class="tu-left-r small muted" id="tu-left-r"></span></div>
       <button class="link small" id="tu-end" hidden>New session</button>
     </div>
     <div class="tu-modes" role="tablist" aria-label="How do you want to work?" id="tu-modes"></div>

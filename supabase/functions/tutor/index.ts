@@ -138,8 +138,9 @@ Deno.serve(async (req) => {
   if (!isAdmin && (count ?? 0) >= Number(s.tutor_daily_msgs ?? 150)) return json({ error: "You've hit today's tutor limit. Back tomorrow." }, 429);
   // each Pro student's monthly allowance (Sydney months), so no one account can run up the bill
   const sydMonth = new Date(new Date().toLocaleString('en-US', { timeZone: 'Australia/Sydney' })); sydMonth.setDate(1); sydMonth.setHours(0, 0, 0, 0);
-  const { count: monthCount } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('created_at', new Date(Date.now() - (Date.now() - sydMonth.getTime()) - 11 * 36e5).toISOString());
-  if (!isAdmin && (monthCount ?? 0) >= Number(s.tutor_user_monthly_msgs ?? 300)) return json({ error: "You've used this month's tutor messages. They refill on the 1st." }, 429);
+  const { count: monthCount } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('error', null).gte('created_at', new Date(Date.now() - (Date.now() - sydMonth.getTime()) - 11 * 36e5).toISOString());
+  const allowance = Number(s.tutor_user_monthly_msgs ?? 300);
+  if (!isAdmin && (monthCount ?? 0) >= allowance) return json({ error: "You've used this month's tutor messages. They refill on the 1st." }, 429);
 
   const img = async (bucket: string, path: string) => {
     const { data, error } = await admin.storage.from(bucket).download(path);
@@ -192,6 +193,8 @@ Deno.serve(async (req) => {
     }
     if (turns[turns.length - 1].role === 'assistant') turns.push({ role: 'user', content: [{ type: 'text', text: '(The student is waiting for you to continue.)' }] });
     turns[turns.length - 1].content.push({ type: 'text', text: `[Current mode: ${mode}]` });
+    // cache the conversation so far: each reply re-sends the whole chat, and the next call reads all but the newest turn from cache
+    if (turns.length >= 3) { const prev = turns[turns.length - 2].content; prev[prev.length - 1].cache_control = { type: 'ephemeral' }; }
 
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -224,7 +227,8 @@ Deno.serve(async (req) => {
       const list = [...(notes?.notes ?? []).filter((x: string) => x !== note), note].slice(-8);
       await admin.from('tutor_notes').upsert({ user_id: user.id, subject, notes: list, updated_at: new Date().toISOString() });
     }
-    return json({ say, done, awarded, out_of: q ? marks : null, slip, next_level: ['easier', 'same', 'harder'].includes(t.next_level) ? t.next_level : null, learnt: note || null, cost_usd: Number(cost.toFixed(5)) });
+    return json({ say, done, awarded, out_of: q ? marks : null, slip, next_level: ['easier', 'same', 'harder'].includes(t.next_level) ? t.next_level : null, learnt: note || null, cost_usd: Number(cost.toFixed(5)),
+      left: isAdmin ? null : Math.max(0, allowance - (monthCount ?? 0) - 1), allowance });
   } catch (err) {
     return json({ error: String((err as Error).message ?? err) }, 500);
   }

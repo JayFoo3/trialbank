@@ -1715,3 +1715,20 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 
 .tu-ask { display: flex; gap: 8px; margin-bottom: 16px; }
 .tu-ask input { flex: 1; min-width: 0; font-size: 1rem; }
+
+/* tutor allowance */
+.tu-left { display: grid; grid-template-columns: auto; gap: 4px; min-width: 190px; margin-left: auto; text-align: right; }
+.tu-left-n { font-size: 14px; }
+.tu-left-n b { font-variant-numeric: tabular-nums; }
+.tu-left-bar, .pro-use-bar { display: block; height: 6px; border-radius: 99px; background: var(--rule); overflow: hidden; }
+.tu-left-bar i, .pro-use-bar i { display: block; height: 100%; border-radius: inherit; background: var(--biro); transition: width .4s ease; }
+.tu-left.low .tu-left-bar i { background: var(--warn); }
+.tu-left.low .tu-left-n b { color: var(--warn); }
+.tu-left.out .tu-left-n { color: var(--bad); font-weight: 700; }
+.pro-usage { display: grid; gap: 10px; margin: 4px 0 14px; padding: 12px 14px; border-radius: 12px; background: var(--soft); text-align: left; }
+.pro-usage > p { margin: 0; }
+.pro-use { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline; }
+.pro-use b { font-variant-numeric: tabular-nums; }
+.pro-use b small { font-weight: 400; opacity: .7; }
+.pro-use .pro-use-bar, .pro-use .small { grid-column: 1 / -1; }
+@media (max-width: 560px) { .tu-head { flex-wrap: wrap; } .tu-left { order: 3; width: 100%; text-align: left; margin-left: 0; } }

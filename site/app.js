@@ -2445,6 +2445,14 @@
     const active = pro?.active, onSale = pro?.sale === 'on' || (pro?.sale === 'admin' && state.admin);
     const perMonth = PRO.annual / 12, save = Math.round(100 * (1 - PRO.annual / (PRO.monthly * 12)));
     const end = pro?.period_end ? new Date(pro.period_end).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    let usage = '';
+    if (active) {
+      const [t, mm] = await Promise.all([loadTuLeft(), loadMyMarks().catch(() => myMarks)]);
+      const row = (label, n, of, note) => `<div class="pro-use"><span>${label}</span><b>${n}${of ? `<small> of ${of}</small>` : ''}</b><span class="pro-use-bar"><i style="width:${of ? Math.round(100 * n / of) : 100}%"></i></span>${note ? `<span class="small muted">${note}</span>` : ''}</div>`;
+      usage = `<div class="pro-usage"><p class="small muted">Left this month${t?.refills ? `, refills ${refillDay(t.refills)}` : ''}</p>` +
+        (t && !t.unlimited ? row('Tutor messages', t.left, t.allowance) : '') +
+        row('Papers marked for you', mm?.pro_left ?? 0, mm?.pro_total || 5, mm?.balance ? `plus ${mm.balance} bought, which never expire` : '') + '</div>';
+    }
     const m = mk('div', 'modal buy pro-modal');
     m.innerHTML = `<div class="modal-card buy-card pro-card" role="dialog" aria-modal="true" aria-labelledby="pro-h">
       <button class="link buy-x" data-k="" aria-label="Close">✕</button>
@@ -2455,7 +2463,7 @@
         <li><b>5 papers marked every month</b><span>On top of anything you've bought.</span></li>
         <li><b>Pro pets and looks</b><span>Unicorn, dragon and phoenix, the Aurora banner and the Pro border.</span></li>
       </ul>
-      ${active ? `<p class="pro-status">${pro.plan === 'annual' ? 'Annual' : 'Monthly'} plan · ${pro.cancel_at_period_end ? `ends ${end}` : `renews ${end}`}</p>
+      ${active ? `${usage}<p class="pro-status">${pro.plan === 'annual' ? 'Annual' : 'Monthly'} plan · ${pro.cancel_at_period_end ? `ends ${end}` : `renews ${end}`}</p>
         <button class="primary" data-k="portal">Manage subscription</button>`
       : onSale ? `<div class="pro-plans">
           <button class="pro-plan best" data-k="annual"><span class="pro-tag">Best value · save ${save}%</span><b>${money(Math.round(perMonth * 100) / 100)}<small>/month</small></b><span>Billed ${money(PRO.annual)} a year</span><em>Go annual</em></button>
@@ -3708,7 +3716,8 @@
     loadKatex().catch(() => {});
     const subj = tuSubject();
     if (tu.active && tu.subject && tu.subject !== subj) { tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; tu.topic = ''; }   // switched subject: start fresh in the new one
-    $('tu-sub').textContent = `${C.subjects[subj]} · prototype`;
+    $('tu-sub').textContent = C.subjects[subj];
+    loadTuLeft();
     drawTuModes();
     $('tu-start').hidden = tu.active; $('tu-session').hidden = !tu.active; $('tu-end').hidden = !tu.active;
     if (tu.handoff) { const q = tu.handoff; tu.handoff = null; tuStart(false, q); return; }
@@ -3876,6 +3885,26 @@
     requestAnimationFrame(() => last.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
   }
 
+  // ---------- tutor allowance: "286 of 300 messages left this month" ----------
+  let tuLeft = null;
+  async function loadTuLeft() {
+    if (!state.user || state.preview) return null;
+    try { const { data } = await sb.rpc('my_tutor_left'); if (data) tuLeft = { ...data, left: Math.max(0, data.allowance - data.used) }; } catch {}
+    drawTuLeft(); return tuLeft;
+  }
+  const refillDay = (d) => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
+  function drawTuLeft() {
+    const box = $('tu-left'); if (!box) return;
+    if (!tuLeft || tuLeft.unlimited) { box.hidden = true; return; }
+    const { left, allowance } = tuLeft;
+    box.hidden = false;
+    box.classList.toggle('low', left <= Math.max(10, allowance * 0.1));
+    box.classList.toggle('out', left === 0);
+    $('tu-left-n').innerHTML = left === 0 ? 'No messages left' : `<b>${left}</b> of ${allowance} messages left`;
+    $('tu-left-fill').style.width = `${Math.round(100 * left / allowance)}%`;
+    $('tu-left-r').textContent = left === 0 ? `Refills ${refillDay(tuLeft.refills)}` : `this month · refills ${refillDay(tuLeft.refills)}`;
+    box.title = 'Every reply from the tutor uses one message. Quick questions count the same as help on a past question.';
+  }
   async function tuSend(text) {
     if (tu.busy) return;
     text = (text || '').trim();
@@ -3904,6 +3933,7 @@
       } });
       if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
       tu.msgs.push({ role: 'tutor', text: data.say, slip: data.slip?.what || null, learnt: data.learnt || null });
+      if (data.left != null && tuLeft) { tuLeft.left = data.left; tuLeft.allowance = data.allowance || tuLeft.allowance; tuLeft.used = tuLeft.allowance - data.left; drawTuLeft(); }
       if (data.slip) tu.slipped = true;
       if (data.done && !tu.done) await tuFinish(data);
     } catch (err) {
