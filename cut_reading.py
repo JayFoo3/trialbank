@@ -128,15 +128,21 @@ def mcq_starts(pages, first, last, lo, hi):
     cands = []
     for pi, l in body_lines(pages, lo, hi):
         W = pages[pi]['width']
-        m = RE_NUM.match(l['words'][0][4])
-        if m and l['x0'] < 0.3 * W and (len(l['words']) > 1 or level_text(pages[pi]['lines'], l)):
+        ws = l['words']
+        m = RE_NUM.match(ws[0][4]) or re.match(r'^(\d{1,2})\.[A-Za-z(]', ws[0][4])   # "11.Below": number glued to the first word
+        if not m and len(ws) > 1 and ws[0][4].lower() == 'question':   # "Question 7" headings
+            m = RE_NUM.match(ws[1][4])
+            if m and l['x0'] < 0.3 * W:
+                cands.append((pi, l['y0'], l['x0'], int(m.group(1))))
+            continue
+        if m and l['x0'] < 0.3 * W and (len(ws) > 1 or level_text(pages[pi]['lines'], l)):
             cands.append((pi, l['y0'], l['x0'], int(m.group(1))))
     if cands:
         xs = [round(c[2] / 5) * 5 for c in cands]
         col = max(set(xs), key=xs.count)
         pos = (lo, -1)
         for n in want:
-            hit = next((c for c in sorted(cands) if c[3] == n and abs(c[2] - col) < 24 and (c[0], c[1]) > pos), None)
+            hit = next((c for c in sorted(cands) if c[3] == n and abs(c[2] - col) < 40 and (c[0], c[1]) > pos), None)   # 40: some papers indent a page's numbers
             if hit:
                 found[n] = (hit[0], hit[1])
                 pos = (hit[0], hit[1])
