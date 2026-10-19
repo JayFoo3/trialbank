@@ -10,3 +10,5 @@ _preview/
 hsc/
 reader/tmp/
 reader/tmp-hsc/
+keyfix/
+keyfix*.tgz
