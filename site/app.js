@@ -3950,6 +3950,14 @@
   $('tu-send').onclick = tuSubmit;
   $('tu-go').onclick = () => { tu.topic = $('tu-topic').value; tu.focus = null; tuStart(false); };
   $('tu-own').onclick = () => tuStart(true);
+  // a quick question: no past question loaded, just ask and get a short answer
+  $('tu-ask').onsubmit = async (ev) => {
+    ev.preventDefault();
+    const v = $('tu-ask-in').value.trim(); if (!v || tu.busy) return;
+    $('tu-error').hidden = true;
+    try { await tuLoad(null); $('tu-ask-in').value = ''; await tuSend(v); }
+    catch (err) { $('tu-error').textContent = err.message || String(err); $('tu-error').hidden = false; }
+  };
   $('tu-ref').onsubmit = async (ev) => {
     ev.preventDefault();
     const v = $('tu-ref-in').value.trim(); if (!v) return;

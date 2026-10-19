@@ -375,6 +375,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <div class="tu-modes" role="tablist" aria-label="How do you want to work?" id="tu-modes"></div>
     <p class="small muted tu-modehint" id="tu-modehint"></p>
     <div class="card tu-start" id="tu-start">
+      <form class="tu-ask" id="tu-ask"><input id="tu-ask-in" placeholder="Ask anything: what's the range in projectile motion?" aria-label="Ask the tutor a quick question" autocomplete="off"><button class="primary">Ask</button></form>
       <h2>One step at a time, on real past questions</h2>
       <p class="muted">I pick a question from your weak spots, check each step against the marking guidelines, and make the next one easier or harder depending on how you go.</p>
       <div class="tu-start-row">
