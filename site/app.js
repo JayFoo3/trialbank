@@ -4774,7 +4774,7 @@
       window.Juice?.sfx?.pop?.();
       const k = await choiceBox(`<b>${esc(String(payload.from || 'A friend').slice(0, 30))}</b> invited you to study together`, [['join', 'Join now', 'primary'], ['no', 'Not now', 'secondary']]);
       if (k === 'join') location.hash = `#study/${code}`;
-    }).subscribe((s) => { if (s === 'SUBSCRIBED') stIn.track({ on: 1 }); });
+    }).on('presence', { event: 'sync' }, () => {}).subscribe((s) => { if (s === 'SUBSCRIBED') stIn.track({ on: 1 }); });
   }
   const stWatch = {}, stInvited = new Set();   // friend id -> a channel watching their inbox (to see them online and send the invite)
   const stOnline = (f) => !!stWatch[f.friend_id]?.presenceState?.()?.[f.friend_id];
@@ -4783,7 +4783,7 @@
     state.friends.forEach(f => {
       if (stWatch[f.friend_id]) return;
       const c = stWatch[f.friend_id] = sb.channel(`inbox:${f.friend_id}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
-      c.on('presence', { event: 'sync' }, stDrawFriends).subscribe();
+      c.on('presence', { event: 'sync' }, stDrawFriends).subscribe((x) => { if (x === 'SUBSCRIBED') c.track({ w: 1 }); });   // Realtime only shares who's there with members who track too
     });
     stDrawFriends();
   }
