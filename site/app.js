@@ -25,7 +25,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { storage: durable, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
-  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile', 'hsc'];
+  const views = ['auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile', 'hsc', 'study'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty), level';
 
   document.title = C.name;
@@ -75,6 +75,7 @@
   async function route() {
     if (window.Annotate) Annotate.stop();
     const [h, arg] = (location.hash || '#home').slice(1).split('/');
+    if (h !== 'study' && st.ch) stLeave();   // left a study session
     if (!state.user) return show('auth');
     drawSubject();
     if (!state.preview) sb.rpc('log_visit', { v: h || 'home' }).then(() => {}, () => {});   // engagement stats for the Admin page
@@ -84,6 +85,7 @@
       if (h === 'admin' && state.admin) { show('admin'); await renderAdmin(); return; }
       if (h === 'profile') { show('profile'); await renderProfile(); return; }
       if (h === 'hsc') { show('hsc'); await renderHsc(); return; }
+      if (h === 'study') { show('study'); await renderStudy(arg); return; }
       if (h === 'set' && state.set) return show('set');
       if (h === 'summary' && state.set) return show('summary');
       if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
@@ -329,6 +331,7 @@
     drawProMenu();
     applyRelease();
     $('nav-admin').hidden = !state.admin;
+    $('open-study').hidden = !state.admin;   // Study together: admins host while it's in beta (anyone can join from a link)
     $('preview-new').hidden = !state.admin || state.preview;
     if (!state.admin) { state.preview = false; state.viewAs = null; }
     $('view-as-row').hidden = !state.admin; $('view-as').value = state.viewAs || '';
@@ -4120,10 +4123,10 @@
     return `<p>${s}</p>`;
   }
 
-  // the Tutor tab for someone without access: a short video of a real session, then the ways in
+  // the Tutor tab for someone without access: what the tutor does, then the ways in
   function renderTutorIntro() {
     ['tu-modes', 'tu-modehint', 'tu-start', 'tu-session', 'tu-end', 'tu-left'].forEach(id => { const e = $(id); if (e) e.hidden = true; });
-    $('tu-sub').textContent = 'Watch a real session, 54 seconds';
+    $('tu-sub').textContent = 'Comes with Pro';
     $('tu-intro').hidden = false;
     const p = state.pro || {}, trialsOpen = p.trials === 'on' || (p.trials === 'admin' && state.admin);
     const canTrial = trialsOpen && !p.active && !p.pass && !p.trial_used;
@@ -4135,8 +4138,6 @@
       openPro('tutor');
       if (b.dataset.k === 'trial') setTimeout(() => document.querySelector('.pro-modal .pro-trial')?.focus(), 300);
     };
-    const v = $('tu-intro-v');
-    if (v && v.paused && !v.dataset.played) { v.dataset.played = '1'; v.play().catch(() => {}); }   // starts on its own (muted); controls let them replay
   }
   async function renderTutor() {
     $('tu-intro').hidden = true; ['tu-modes', 'tu-modehint'].forEach(id => { const e = $(id); if (e) e.hidden = false; });
@@ -4603,6 +4604,211 @@
     if (!f || !f.id) { $('tu-error').textContent = f?.missing ? `${f.missing} isn't in the bank yet.` : "I couldn't find that one. Try it like: James Ruse 2025 11a"; $('tu-error').hidden = false; return; }
     $('tu-ref-in').value = ''; tuStart(false, f);
   };
+  // ---------- Study together (beta, admins host): a shared whiteboard, a coach for the teacher, and a chat ----------
+  // Runs on Supabase Realtime broadcast: nothing is stored on the server. Strokes use 0..1 coordinates so any screen size works.
+  const ST_COLOURS = ['#1b1f2e', '#2f5be7', '#e5484d', '#1f9d55', '#f5a524'], ST_SIZES = [2, 4, 8];
+  const st = { code: null, host: false, ch: null, strokes: [], live: {}, bg: null, tool: { c: ST_COLOURS[0], w: 4, e: false }, people: [], coach: [], chat: [], ended: false, flushT: null };
+  const stKey = (code) => `tb_study_${code}`;
+  const stName = () => String(state.user?.user_metadata?.first_name || state.user?.email || 'Someone').trim().split(/\s+/)[0];
+  const stCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), b => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[b % 31]).join('');
+  const stCanvas = () => $('st-canvas');
+  function stResize() {
+    const cv = stCanvas(), box = $('st-board'); if (!cv || !box || box.offsetParent === null) return;
+    const dpr = window.devicePixelRatio || 1, w = box.clientWidth, h = box.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    stRedraw();
+  }
+  function stStroke(ctx, s, from = 0) {
+    const W = ctx.canvas.width, H = ctx.canvas.height, p = s.p; if (p.length < 2) return;
+    ctx.save();
+    ctx.globalCompositeOperation = s.e ? 'destination-out' : 'source-over';
+    ctx.strokeStyle = s.c; ctx.lineWidth = (s.e ? s.w * 5 : s.w) * W / 1000; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    const i0 = Math.max(0, from - 2);
+    ctx.moveTo(p[i0] * W, p[i0 + 1] * H);
+    if (p.length === 2) ctx.lineTo(p[0] * W + .01, p[1] * H);
+    for (let i = i0 + 2; i < p.length; i += 2) ctx.lineTo(p[i] * W, p[i + 1] * H);
+    ctx.stroke(); ctx.restore();
+  }
+  function stRedraw() {
+    const cv = stCanvas(); if (!cv) return; const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    st.strokes.forEach(s => stStroke(ctx, s));
+  }
+  const stSend = (event, payload) => st.ch && st.ch.send({ type: 'broadcast', event, payload });
+  const stSave = () => { if (st.host) lsSet(stKey(st.code), { strokes: st.strokes.slice(-1500), bg: st.bg, coach: st.coach.slice(-30), at: Date.now() }); };
+  // ---- drawing (host only) ----
+  let stCur = null, stPending = [];
+  function stPoint(ev) { const r = stCanvas().getBoundingClientRect(); return [+((ev.clientX - r.left) / r.width).toFixed(4), +((ev.clientY - r.top) / r.height).toFixed(4)]; }
+  function stFlush() {
+    st.flushT = null; if (!stCur || !stPending.length) return;
+    stSend('seg', { id: stCur.id, c: stCur.c, w: stCur.w, e: stCur.e, p: stPending }); stPending = [];
+  }
+  function stBindDraw() {
+    const cv = stCanvas();
+    cv.onpointerdown = (ev) => {
+      if (!st.host) return; ev.preventDefault(); cv.setPointerCapture(ev.pointerId);
+      const pt = stPoint(ev);
+      stCur = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), c: st.tool.c, w: st.tool.w, e: st.tool.e, p: [...pt] };
+      st.strokes.push(stCur); stPending = [...pt];
+      stStroke(cv.getContext('2d'), stCur);
+      st.flushT = st.flushT || setTimeout(stFlush, 40);
+    };
+    cv.onpointermove = (ev) => {
+      if (!stCur) return;
+      const evs = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev];
+      const from = stCur.p.length;
+      evs.forEach(e => { const pt = stPoint(e); stCur.p.push(...pt); stPending.push(...pt); });
+      stStroke(cv.getContext('2d'), stCur, from);
+      st.flushT = st.flushT || setTimeout(stFlush, 40);
+    };
+    cv.onpointerup = cv.onpointercancel = () => { if (!stCur) return; clearTimeout(st.flushT); stFlush(); stSend('end', { id: stCur.id }); stCur = null; stSave(); };
+  }
+  // ---- what everyone sees ----
+  function stOnSeg({ id, c, w, e, p }) {
+    let s = st.live[id];
+    if (!s) { s = st.live[id] = { id, c, w, e, p: [] }; st.strokes.push(s); }
+    const from = s.p.length; s.p.push(...p);
+    stStroke(stCanvas().getContext('2d'), s, from);
+  }
+  function stSetBg(bg) {
+    st.bg = bg || null; const im = $('st-bg');
+    im.hidden = !st.bg; if (st.bg) im.src = st.bg.url; else im.removeAttribute('src');
+    $('st-bgoff').hidden = !(st.host && st.bg);
+    $('st-sub').textContent = st.bg?.label ? `On the board: ${st.bg.label}` : (st.host ? 'You are teaching. Draw on the board; everyone sees it live.' : 'Watching live. Ask anything in the chat.');
+  }
+  function stDrawChat() {
+    const box = $('st-chat-msgs');
+    box.innerHTML = st.chat.map(m => `<div class="st-cm${m.me ? ' me' : ''}${m.coach ? ' coach' : ''}"><b>${esc(m.name)}</b>${m.coach ? `<div class="tu-text">${tuRich(m.text)}</div>` : `<span>${esc(m.text)}</span>`}</div>`).join('') || '<p class="small muted">Questions and notes show up here.</p>';
+    box.scrollTop = box.scrollHeight;
+  }
+  function stDrawPeople() {
+    const ppl = st.people;
+    $('st-people').textContent = ppl.length ? ppl.map(p => p.name + (p.host ? ' (teaching)' : '')).join(', ') : '';
+  }
+  function stDrawCoach() {
+    const box = $('st-coach-msgs');
+    box.innerHTML = st.coach.map((m, i) => `<div class="tu-msg ${m.role === 'tutor' ? 'tutor' : 'student'}${m.error ? ' err' : ''}">${m.role === 'tutor' ? `<div class="tu-text">${tuRich(m.text)}</div>${m.error ? '' : `<button class="link small" data-share="${i}">Share in the chat</button>`}` : `<div class="tu-text"><p>${esc(m.text)}</p></div>`}</div>`).join('')
+      + (st.coachBusy ? '<div class="tu-msg tutor typing"><span></span><span></span><span></span></div>' : '')
+      || '<p class="small muted">Tell it what you\'re teaching and it plans the session: what to explain first, what to draw, and what to ask her.</p>';
+    box.querySelectorAll('[data-share]').forEach(b => b.onclick = () => {
+      const m = st.coach[+b.dataset.share]; const msg = { name: stName() + ' (coach notes)', text: m.text, coach: true, at: Date.now() };
+      st.chat.push({ ...msg, me: true }); stSend('chat', msg); stDrawChat(); b.textContent = 'Shared';
+    });
+    box.scrollTop = box.scrollHeight;
+    $('st-coach-quick').innerHTML = st.coach.length ? ['Next step', "She's confused. Explain it another way", 'Give me a check question', 'What mistake will she make?'].map(q => `<button class="chip" data-q="${esc(q)}">${esc(q)}</button>`).join('') : '';
+    $('st-coach-quick').querySelectorAll('[data-q]').forEach(b => b.onclick = () => stCoach(b.dataset.q));
+  }
+  async function stCoach(text) {
+    if (st.coachBusy || !text) return;
+    st.coach.push({ role: 'student', text }); st.coachBusy = true; stDrawCoach();
+    try {
+      const { data, error } = await sb.functions.invoke('tutor', { body: { subject: tuSubject(), mode: 'coach', question_id: st.bg?.qid || null,
+        messages: st.coach.filter(m => !m.error).map(m => ({ role: m.role, text: m.text, images: [] })) } });
+      if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
+      st.coach.push({ role: 'tutor', text: data.say });
+    } catch (err) { st.coach.push({ role: 'tutor', error: true, text: err.message || String(err) }); }
+    finally { st.coachBusy = false; stDrawCoach(); stSave(); }
+  }
+  // ---- joining a room ----
+  async function stJoin(code, host) {
+    if (st.ch && st.code === code) return;
+    stLeave(true);
+    Object.assign(st, { code, host, strokes: [], live: {}, bg: null, people: [], coach: [], chat: [], ended: false });
+    if (host) { const saved = lsGet(stKey(code)); if (saved) { st.strokes = saved.strokes || []; st.bg = saved.bg || null; st.coach = saved.coach || []; } }
+    $('st-lobby').hidden = true; $('st-main').hidden = false;
+    document.body.classList.toggle('st-hosting', host);
+    $('st-tools').hidden = !host; $('st-coach').hidden = !host;
+    $('st-over').hidden = true;
+    const link = `${location.origin}${location.pathname}#study/${code}`;
+    $('st-room').innerHTML = host ? `<span class="small muted">Room <b>${code}</b></span><button class="secondary" id="st-copy">Copy invite link</button><button class="link small" id="st-end">End session</button>`
+      : `<span class="small muted">Room <b>${code}</b></span><button class="link small" id="st-leave">Leave</button>`;
+    if (host) {
+      $('st-copy').onclick = async () => { try { await navigator.clipboard.writeText(link); toast('Invite link copied. Send it to your friend.'); } catch { prompt('Invite link', link); } };
+      $('st-end').onclick = () => { stSend('ended', {}); lsSet(stKey(code), null); lsSet('tb_study_host', null); stLeave(); location.hash = '#study'; };
+    } else $('st-leave').onclick = () => { stLeave(); location.hash = '#home'; };
+    if (host) lsSet('tb_study_host', code);
+    stSetBg(st.bg); stDrawChat(); stDrawCoach(); stDrawPeople();
+    requestAnimationFrame(stResize);
+    const ch = st.ch = sb.channel(`study:${code}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
+    ch.on('broadcast', { event: 'seg' }, ({ payload }) => stOnSeg(payload))
+      .on('broadcast', { event: 'end' }, ({ payload }) => { delete st.live[payload.id]; })
+      .on('broadcast', { event: 'undo' }, ({ payload }) => { st.strokes = st.strokes.filter(s => s.id !== payload.id); stRedraw(); })
+      .on('broadcast', { event: 'clear' }, () => { st.strokes = []; st.live = {}; stRedraw(); })
+      .on('broadcast', { event: 'bg' }, ({ payload }) => stSetBg(payload.bg))
+      .on('broadcast', { event: 'chat' }, ({ payload }) => { st.chat.push(payload); stDrawChat(); if (st.host && !payload.coach) window.Juice?.sfx?.pop?.(); })
+      .on('broadcast', { event: 'hello' }, () => { if (!st.host) return;   // someone joined: send them the board so far, in pieces
+        const parts = []; for (let i = 0; i < st.strokes.length; i += 40) parts.push(st.strokes.slice(i, i + 40));
+        if (!parts.length) parts.push([]);
+        parts.forEach((strokes, i) => stSend('sync', { part: i, total: parts.length, strokes, bg: i === 0 ? st.bg : undefined })); })
+      .on('broadcast', { event: 'sync' }, ({ payload }) => { if (st.host) return;
+        if (payload.part === 0) { st.strokes = []; st.live = {}; stSetBg(payload.bg); }
+        st.strokes.push(...payload.strokes); stRedraw(); })
+      .on('broadcast', { event: 'ended' }, () => { if (st.host) return; st.ended = true; $('st-over').hidden = false; $('st-over').innerHTML = '<div><b>The session has ended.</b><span>Thanks for studying together.</span></div>'; })
+      .on('presence', { event: 'sync' }, () => {
+        const ps = ch.presenceState(); st.people = Object.values(ps).map(v => v[0]).filter(Boolean); stDrawPeople();
+        if (!st.host && !st.people.some(p => p.host) && !st.ended) { $('st-over').hidden = false; $('st-over').innerHTML = '<div><b>Waiting for the teacher…</b><span>The board appears as soon as they\'re here.</span></div>'; }
+        else if (!st.ended) $('st-over').hidden = true;
+      })
+      .subscribe(async (status) => {
+        if (status !== 'SUBSCRIBED') return;
+        await ch.track({ name: stName(), host });
+        if (!host) stSend('hello', {});
+      });
+  }
+  function stLeave(quiet) {
+    if (st.ch) { try { sb.removeChannel(st.ch); } catch {} }
+    st.ch = null; document.body.classList.remove('st-hosting');
+  }
+  async function renderStudy(arg) {
+    if (arg) return stJoin(String(arg).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8), state.admin && !state.viewAs && lsGet('tb_study_host') === String(arg).toUpperCase());
+    stLeave();
+    $('st-main').hidden = true; $('st-lobby').hidden = false; $('st-room').innerHTML = '';
+    $('st-sub').textContent = 'Teach a friend live: you draw, they watch, and a coach tells you what to teach next.';
+    const resume = lsGet('tb_study_host');
+    $('st-lobby').innerHTML = state.admin && !state.viewAs
+      ? `<h2>Start a study session</h2><p class="muted">You get a whiteboard and a coach. Send your friend the invite link and they watch your board live, from anywhere. Talk over a phone or Discord call.</p>
+         <div class="row"><button class="primary" id="st-start">Start a session</button>${resume ? `<button class="link" id="st-resume">Back to room ${esc(resume)}</button>` : ''}</div>`
+      : `<h2>Study together</h2><p class="muted">Got an invite link? Open it to join your friend's session.</p>`;
+    if ($('st-start')) $('st-start').onclick = () => { const c = stCode(); lsSet('tb_study_host', c); location.hash = `#study/${c}`; };
+    if ($('st-resume')) $('st-resume').onclick = () => { location.hash = `#study/${resume}`; };
+  }
+  // tools
+  $('st-colours').innerHTML = ST_COLOURS.map((c, i) => `<button class="st-col${i ? '' : ' on'}" data-c="${c}" style="--c:${c}" aria-label="Colour"></button>`).join('');
+  $('st-sizes').innerHTML = ST_SIZES.map(w => `<button class="st-size${w === 4 ? ' on' : ''}" data-w="${w}" aria-label="Pen size"><i style="width:${w + 4}px;height:${w + 4}px"></i></button>`).join('');
+  $('st-colours').onclick = (ev) => { const b = ev.target.closest('[data-c]'); if (!b) return; st.tool.c = b.dataset.c; st.tool.e = false; $('st-erase').classList.remove('on'); $('st-colours').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+  $('st-sizes').onclick = (ev) => { const b = ev.target.closest('[data-w]'); if (!b) return; st.tool.w = +b.dataset.w; $('st-sizes').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+  $('st-erase').onclick = () => { st.tool.e = !st.tool.e; $('st-erase').classList.toggle('on', st.tool.e); };
+  $('st-undo').onclick = () => { const s = st.strokes.pop(); if (!s) return; stRedraw(); stSend('undo', { id: s.id }); stSave(); };
+  $('st-clear').onclick = () => { if (!st.strokes.length) return; st.strokes = []; stRedraw(); stSend('clear', {}); stSave(); };
+  $('st-bgoff').onclick = () => { stSetBg(null); stSend('bg', { bg: null }); stSave(); };
+  $('st-qform').onsubmit = async (ev) => {
+    ev.preventDefault(); const v = $('st-qin').value.trim(); if (!v) return;
+    const f = await tuFind(v, tuSubject()).catch(() => null);
+    if (!f || !f.id) return toast(f?.missing ? `${esc(f.missing)} isn't in the bank yet.` : "Couldn't find that. Try: James Ruse 2025 11a");
+    await attachUrls([f]);
+    const bg = { url: f.imageUrl, label: `${f.papers.school} ${f.papers.year} ${label(f)}`, qid: f.id };
+    stSetBg(bg); stSend('bg', { bg }); stSave(); $('st-qin').value = '';
+    if (!st.coach.length) stCoach(`I'm teaching my friend this question (${bg.label}). Plan it for me.`);
+  };
+  $('st-photo').onchange = async (ev) => {
+    const file = ev.target.files[0]; ev.target.value = ''; if (!file) return;
+    try {
+      const blob = await shrinkImage(file, 1800), path = `${state.user.id}/study-${st.code}/bg-${Date.now().toString(36)}.jpg`;
+      const { error } = await sb.storage.from('submissions').upload(path, blob, { contentType: blob.type, upsert: true }); if (error) throw error;
+      const { data } = await sb.storage.from('submissions').createSignedUrl(path, 4 * 3600);
+      const bg = { url: data.signedUrl, label: 'A photo' };
+      stSetBg(bg); stSend('bg', { bg }); stSave();
+    } catch (err) { toast(esc(err.message || String(err))); }
+  };
+  $('st-coach-form').onsubmit = (ev) => { ev.preventDefault(); const v = $('st-coach-in').value.trim(); if (!v) return; $('st-coach-in').value = ''; stCoach(v); };
+  $('st-chat-form').onsubmit = (ev) => {
+    ev.preventDefault(); const v = $('st-chat-in').value.trim(); if (!v || !st.ch) return; $('st-chat-in').value = '';
+    const msg = { name: stName(), text: v.slice(0, 500), at: Date.now() };
+    st.chat.push({ ...msg, me: true }); stSend('chat', msg); stDrawChat();
+  };
+  stBindDraw();
+  addEventListener('resize', () => { if (location.hash.startsWith('#study/')) stResize(); });
   function askTutor(q) { tu.handoff = q; if (location.hash === '#tutor') renderTutor(); else location.hash = '#tutor'; }
   $('tu-end').onclick = () => { lsSet(tuChatKey(), null); tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; renderTutor(); };
   document.querySelectorAll('#tu-quick [data-say]').forEach(b => { b.onclick = () => tuSend(b.dataset.say); });

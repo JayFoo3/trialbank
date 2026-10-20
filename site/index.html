@@ -49,6 +49,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
           <p class="menu-email small muted" id="account-email"></p>
           <a class="menu-item" href="#profile" id="open-profile">Profile and pets</a>
           <a class="menu-item" href="#hsc" id="open-hsc">HSC band and ATAR</a>
+          <a class="menu-item" href="#study" id="open-study" hidden>Study together (beta)</a>
           <button class="menu-item menu-pro" id="open-pro">Trialbank Pro</button>
           <button class="menu-item" id="open-me">Theme and background</button>
           <button class="menu-item" id="buy-marks" hidden>Buy marking packs</button>
@@ -318,6 +319,43 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </section>
 
   <!-- ===== progress ===== -->
+  <section id="view-study" class="view" hidden>
+    <div class="st-head">
+      <div><h1>Study together <em class="pro-chip">Beta</em></h1><p class="small muted" id="st-sub"></p></div>
+      <div class="st-room" id="st-room"></div>
+    </div>
+    <div class="card st-lobby" id="st-lobby"></div>
+    <div class="st-main" id="st-main" hidden>
+      <div class="st-left">
+        <div class="st-tools" id="st-tools">
+          <span class="st-colours" id="st-colours"></span>
+          <span class="st-sizes" id="st-sizes"></span>
+          <button class="st-tool" id="st-erase" title="Eraser">Eraser</button>
+          <button class="st-tool" id="st-undo" title="Undo">Undo</button>
+          <button class="st-tool" id="st-clear" title="Clear the board">Clear</button>
+          <span class="st-sep"></span>
+          <form class="st-qform" id="st-qform"><input id="st-qin" placeholder="Put a question up: James Ruse 2025 11a" autocomplete="off"><button class="st-tool">Show</button></form>
+          <label class="st-tool" title="Put up a photo"><input type="file" accept="image/*" id="st-photo" hidden>Photo</label>
+          <button class="st-tool" id="st-bgoff" hidden>Remove question</button>
+        </div>
+        <div class="st-board" id="st-board"><img id="st-bg" alt="" hidden><canvas id="st-canvas"></canvas><div class="st-over" id="st-over" hidden></div></div>
+      </div>
+      <aside class="st-side">
+        <div class="card st-panel" id="st-coach">
+          <div class="st-ph"><b>Your coach</b><span class="small muted">Only you see this</span></div>
+          <div class="st-msgs" id="st-coach-msgs"></div>
+          <div class="st-quick" id="st-coach-quick"></div>
+          <form class="st-send" id="st-coach-form"><input id="st-coach-in" placeholder="What are you teaching? e.g. chain rule" autocomplete="off"><button class="primary">Ask</button></form>
+        </div>
+        <div class="card st-panel" id="st-chat">
+          <div class="st-ph"><b>Chat</b><span class="small muted" id="st-people"></span></div>
+          <div class="st-msgs" id="st-chat-msgs"></div>
+          <form class="st-send" id="st-chat-form"><input id="st-chat-in" placeholder="Ask a question" autocomplete="off"><button class="secondary">Send</button></form>
+        </div>
+      </aside>
+    </div>
+  </section>
+
   <section id="view-hsc" class="view" hidden>
     <h1>Your HSC estimate</h1>
     <p class="muted small hsc-lead">From your answers on Trialbank, with recent work counting more. It's an estimate, not a promise.</p>

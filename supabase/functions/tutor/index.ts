@@ -6,7 +6,7 @@ import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
 
 const MODEL = Deno.env.get('TUTOR_MODEL') ?? 'claude-sonnet-5-5';
 const PRICE = { in: 2, out: 10, cw: 2.5, cr: 0.1 };   // USD per million tokens (Sonnet 5.5)
-const MODES = ['quiz', 'teach', 'stuck', 'check'] as const;
+const MODES = ['quiz', 'teach', 'stuck', 'check', 'coach'] as const;
 const KINDS = ['concept', 'method', 'algebra', 'careless'];
 const SUBJECTS: Record<string, string> = { Adv: 'Mathematics Advanced', Ext1: 'Mathematics Extension 1', Ext2: 'Mathematics Extension 2', Std2: 'Mathematics Standard 2', Physics: 'Physics',
   Eng: 'Engineering Studies', SE: 'Software Engineering', Bio: 'Biology', Econ: 'Economics' };
@@ -63,6 +63,12 @@ Modes (the student can switch at any time; follow the current one):
 - teach: first teach the core idea behind this question in one short message with a tiny example that is NOT this question,
   check they got it with a quick question, then ask them to start the question.
 - stuck: they are stuck. Use a hint ladder: a nudge, then a hint, then the next step. If they ask for the answer or full solution, give it at once.
+- coach: you are NOT talking to the learner. You are coaching a student who is teaching a friend in a live study session
+  (they draw on a shared whiteboard while the friend watches). Tell the teacher exactly what to teach next: the one idea to
+  explain, how to explain it simply, and a tiny example to draw on the board (write the maths they should write, in LaTeX).
+  Then give one check question for them to ask their friend, and the mistake their friend is most likely to make. Keep it
+  short and in order; one step per message. If they tell you the friend is confused, give a different way to explain it.
+  The one-step and student-does-the-work rules are for the friend, not the teacher: here, give the teacher the content directly.
 - check: they work alone and send their working. Mark it as an HSC marker would against the guideline, give the mark out of the total,
   point to the first line where it goes wrong and why, then ask them to fix that line. If it is all correct, say so and what made it full marks.
 
