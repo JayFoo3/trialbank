@@ -4000,7 +4000,7 @@
       <div class="buy-packs tp-packs">${TUTOR_PACKS.map((p, i) => `<button class="buy-pack${i === 1 ? ' pop' : ''}" data-k="${p.n}" style="--i:${i}">
         <span class="buy-tag">${i === 1 ? 'Best value' : ''}</span>
         <span class="buy-n">${p.n}</span><span class="buy-u">messages</span>
-        <span class="buy-price">A$${p.price.toFixed(2)}</span><span class="small muted">${(100 * p.price / p.n).toFixed(1)}c a message</span></button>`).join('')}</div>
+        <span class="buy-price">A$${p.price.toFixed(2)}</span></button>`).join('')}</div>
       ${!tuAllowed() && proOpen() ? `<p class="small muted">Or go Pro: 300 messages every month plus everything else, from A$8.25 a month. <button class="link small" data-k="pro">See Pro</button></p>` : ''}
       <p class="small muted">Secure payment with Stripe.</p>
     </div>`;
