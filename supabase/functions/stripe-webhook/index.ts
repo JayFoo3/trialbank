@@ -1,4 +1,4 @@
-// Trialbank: Stripe tells us a payment went through, and we add the marks to that student's balance.
+// Trialbank: Stripe tells us a payment went through, and we add the marks (or tutor messages) to that student's balance.
 // Deploy with --no-verify-jwt (Stripe can't sign in). Every request is checked against Stripe's signature instead.
 // Secrets: STRIPE_WEBHOOK_SECRET (whsec_...)
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
@@ -65,6 +65,15 @@ Deno.serve(async (req) => {
   const s = event.data?.object ?? {};
   if (s.payment_status !== 'paid') return new Response('not paid yet', { status: 200 });
   const uid = s.metadata?.user_id ?? s.client_reference_id;
+  const tutorMsgs = Number(s.metadata?.tutor_msgs);
+  if (uid && Number.isInteger(tutorMsgs) && tutorMsgs > 0) {   // a pack of tutor messages
+    const { error } = await admin.rpc('add_tutor_msgs', {
+      uid, n: tutorMsgs, k: 'purchase', r: s.id,
+      nt: `${tutorMsgs} tutor messages, ${(Number(s.amount_total) / 100).toFixed(2)} ${String(s.currency ?? '').toUpperCase()}`,
+    });
+    if (error) return new Response('could not add tutor messages', { status: 500 });
+    return new Response('ok', { status: 200 });
+  }
   const marks = Number(s.metadata?.marks);
   if (!uid || !Number.isInteger(marks) || marks <= 0) return new Response('missing metadata', { status: 200 });
 

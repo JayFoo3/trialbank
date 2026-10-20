@@ -88,7 +88,7 @@
       if (h === 'summary' && state.set) return show('summary');
       if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
       if (h === 'mark') { show('mark'); await renderMark(); return; }
-      if (h === 'tutor' && tuAllowed()) { show('tutor'); await renderTutor(); return; }
+      if (h === 'tutor' && tutorUsable()) { show('tutor'); await renderTutor(); return; }
       if (h === 'tutor' && proOpen()) { history.replaceState(null, '', '#home'); show('home'); await renderHome(); openPro('tutor'); return; }
       if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
       if (h === 'examrun' || h === 'exam') {
@@ -305,7 +305,7 @@
   // Pro can be bought (pro_sales) or tried free (pro_trials); 'admin' means only admins see it while testing
   const proOpen = () => !!state.user && !state.preview && [state.proSale, state.pro?.trials].some(v => v === 'on' || (v === 'admin' && state.admin));
   function applyRelease() {
-    $('nav-tutor').hidden = !tuAllowed() && !proOpen();   // once Pro is on sale, everyone sees the Tutor tab (it offers Pro)
+    $('nav-tutor').hidden = !tutorUsable() && !proOpen();   // once Pro is on sale, everyone sees the Tutor tab (it offers Pro)
     document.querySelectorAll('[data-feature]').forEach(el => el.classList.toggle('feature-off', !can(el.dataset.feature)));
     const d = state.viewAs === 'free' ? state.viewDial : state.viewAs ? 100 : state.release?.dial ?? 100, note = $('release-note');
     const lite = state.viewAs ? state.viewAs === 'lite' : state.release?.lite;
@@ -321,6 +321,7 @@
     if (state.user && !state.preview) {
       const [{ data: rel }, { data: pro }] = await Promise.all([sb.rpc('my_release'), sb.rpc('my_pro')]);
       if (rel) state.release = rel; if (pro) { state.pro = pro; state.proSale = pro.sale; }
+      sb.rpc('my_tutor_left').then(({ data }) => { if (data) { state.tutorCredits = data.credits || 0; state.tutorPacks = data.packs; applyRelease(); } }).catch(() => {});
       sb.rpc('settle_referral').then(({ data }) => {   // a friend's link brought them here: once they've studied a bit, both get a free week
         if (data?.rewarded) { toast(`Your friend's invite paid off: <b>${data.days} days of Pro Mini</b> for both of you.`, 7000); checkAdmin(); }
       }).catch(() => {});
@@ -617,7 +618,7 @@
     $('star').textContent = '☆ Star';
     loadStars().then(s => { $('star').textContent = s.has(x.id) ? '★ Starred' : '☆ Star'; });
     $('star').onclick = () => toggleStar(x.id, $('star'));
-    $('ask-tutor').hidden = !(tuAllowed() && tuSubjects().includes(x.papers.subject) && x.image_path && !x.content);
+    $('ask-tutor').hidden = !(tutorUsable() && tuSubjects().includes(x.papers.subject) && x.image_path && !x.content);
     $('ask-tutor').onclick = () => askTutor(x);
     $('explain-mistake').hidden = true;
     $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true;
@@ -704,7 +705,7 @@
   function showExplain(x, score, outOf, chosen, res) {
     const b = $('explain-mistake');
     const fits = tuSubjects().includes(x.papers?.subject) && x.image_path && !x.content;
-    const pro = tuAllowed(), sell = !pro && proOpen();
+    const pro = tutorUsable(), sell = !pro && proOpen();
     b.hidden = !fits || (!pro && !sell);
     $('explain-pro').hidden = pro;
     b.onclick = () => {
@@ -1133,12 +1134,14 @@
         <div class="stat-tile"><b>A${money(Math.round(mrr * 100) / 100)}</b><span>a month from Pro</span><em>before GST and Stripe fees</em></div>
         <div class="stat-tile"><b>${p.on_pass}</b><span>on a free week now</span><em>${p.trials_month} trials started this month · ${p.trials} ever</em></div>
         <div class="stat-tile"><b>${p.ref_rewarded}</b><span>referrals paid out</span><em>${p.ref_pending} waiting on 10 answers</em></div>
+        <div class="stat-tile"><b>${p.packs_month || 0}</b><span>tutor packs sold</span><em>${p.pack_msgs_month || 0} messages this month</em></div>
         <div class="stat-tile"><b>US$${a.spent.toFixed(2)}</b><span>auto-marking</span><em>${a.runs} paper${a.runs === 1 ? '' : 's'} marked</em></div>
         <div class="stat-tile ${t.off_topic ? 'warn' : ''}"><b>${t.off_topic}</b><span>off-topic requests</span><em>code, essays and so on, declined</em></div>
       </div>
       <div class="au-controls">
         <div class="opt"><span>Pro sales</span>${seg('pro_sales', [['admin', 'Admins only'], ['on', 'On']])}</div>
         <div class="opt"><span>Free week</span>${seg('pro_trials', [['off', 'Off'], ['admin', 'Admins only'], ['on', 'On']])}</div>
+        <div class="opt"><span>Tutor packs</span>${seg('tutor_packs', [['admin', 'Admins only'], ['on', 'On']])}</div>
         <div class="opt"><span>Tutor cap a month</span><span class="au-cap">US$<input id="au-cap" type="number" min="0" step="5" value="${Number(t.cap)}"><button class="secondary" id="au-cap-save">Save</button></span></div>
       </div>
       <h3 class="au-h3">Heaviest users this month</h3>
@@ -1150,7 +1153,7 @@
       const { error } = await sb.from('settings').upsert([{ key: sg.dataset.au, value: b.dataset.v }], { onConflict: 'key' });
       if (error) return toast(esc(error.message));
       sg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-      toast(`${sg.dataset.au === 'pro_sales' ? 'Pro sales' : 'Free week'}: <b>${esc(b.textContent)}</b>`);
+      toast(`${{ pro_sales: 'Pro sales', pro_trials: 'Free week', tutor_packs: 'Tutor packs' }[sg.dataset.au]}: <b>${esc(b.textContent)}</b>`); if (sg.dataset.au === 'tutor_packs') state.tutorPacks = b.dataset.v;
       const { data: pro } = await sb.rpc('my_pro'); if (pro) { state.pro = pro; state.proSale = pro.sale; applyRelease(); }
     });
     $('au-cap-save').onclick = async () => {
@@ -2744,6 +2747,7 @@
           <button class="pro-plan" data-k="monthly"><span class="pro-tag"></span><b>${money(PRO.monthly)}<small>/month</small></b><span>Cancel any time</span><em>Go monthly</em></button>
         </div><p class="small muted">Secure payment with Stripe. Card or Apple Pay. Cancel any time from your profile.</p>`
       : (canTrial || pass) ? '' : '<p class="pro-status">Pro opens soon.</p>'}
+      ${packsOpen() ? `<p class="small muted pro-packs">${active || pass ? 'Running low?' : 'Just want the tutor?'} <button class="link small" data-k="packs">Buy tutor messages</button> from A$4.99. They never expire.</p>` : ''}
       ${link ? `<div class="pro-ref">
         <p class="pro-ref-h">Invite friends, get Pro Mini free</p>
         <ol class="pro-ref-steps"><li>Send a friend your link.</li><li>They sign up and answer 10 questions.</li><li><b>You both get ${pro.referral_days || 7} days of Pro Mini, free.</b></li></ol>
@@ -2757,6 +2761,7 @@
       if (ev.target === m) return done();
       const b = ev.target.closest('[data-k]'); if (!b) return;
       if (!b.dataset.k) return done();
+      if (b.dataset.k === 'packs') { done(); return openTutorPacks(); }
       if (b.dataset.k === 'copy') {
         try { await navigator.clipboard.writeText(link); b.textContent = 'Copied'; } catch { m.querySelector('.pro-ref input').select(); }
         if (navigator.share && matchMedia('(pointer: coarse)').matches) navigator.share({ title: 'Trialbank', text: 'Join me on Trialbank and we both get a free week of Pro', url: link }).catch(() => {});
@@ -3981,6 +3986,53 @@
     busy: false, done: null, active: false, session: null, topic: '', focus: null, slipped: false, seen: new Set(lsGet('tb_tu_seen') || []), n: 0 };
   // Pro only (plus admins); an admin viewing as a level sees exactly what that level gets. The server checks too.
   const tuAllowed = () => !!state.user && !state.preview && ((state.admin && !state.viewAs) || (state.viewAs ? state.viewAs === 'pro' : state.release?.level === 'pro'));
+  // anyone with bought tutor messages can use the tutor too (and Explain my mistake), without the rest of Pro
+  const tutorUsable = () => tuAllowed() || (!!state.user && !state.preview && !state.viewAs && (state.tutorCredits || 0) > 0);
+  const packsOpen = () => !!state.user && !state.preview && (state.tutorPacks === 'on' || (state.tutorPacks === 'admin' && state.admin));
+  const TUTOR_PACKS = [{ n: 150, price: 4.99 }, { n: 300, price: 8.99 }];
+  function openTutorPacks() {
+    $('account-menu').hidden = true;
+    const m = mk('div', 'modal buy');
+    m.innerHTML = `<div class="modal-card buy-card" role="dialog" aria-modal="true" aria-labelledby="tp-h">
+      <button class="link buy-x" data-k="" aria-label="Close">✕</button>
+      <h2 id="tp-h">More time with the tutor</h2>
+      <p class="buy-sub">Messages never expire.${tuAllowed() ? ' Your monthly Pro messages get used first.' : ' Use them for any subject, and for Explain my mistake.'}${state.tutorCredits ? ` You have <b>${state.tutorCredits}</b> left.` : ''}</p>
+      <div class="buy-packs tp-packs">${TUTOR_PACKS.map((p, i) => `<button class="buy-pack${i === 1 ? ' pop' : ''}" data-k="${p.n}" style="--i:${i}">
+        <span class="buy-tag">${i === 1 ? 'Best value' : ''}</span>
+        <span class="buy-n">${p.n}</span><span class="buy-u">messages</span>
+        <span class="buy-price">A$${p.price.toFixed(2)}</span><span class="small muted">${(100 * p.price / p.n).toFixed(1)}c a message</span></button>`).join('')}</div>
+      ${!tuAllowed() && proOpen() ? `<p class="small muted">Or go Pro: 300 messages every month plus everything else, from A$8.25 a month. <button class="link small" data-k="pro">See Pro</button></p>` : ''}
+      <p class="small muted">Secure payment with Stripe.</p>
+    </div>`;
+    const done = () => { m.classList.add('out'); setTimeout(() => m.remove(), 180); };
+    m.onclick = async (ev) => {
+      if (ev.target === m) return done();
+      const b = ev.target.closest('[data-k]'); if (!b) return;
+      if (!b.dataset.k) return done();
+      if (b.dataset.k === 'pro') { done(); return openPro('tutor'); }
+      b.disabled = true; toast('Opening secure checkout…');
+      const { data, error } = await sb.functions.invoke('buy-marks', { body: { tutor: b.dataset.k } });
+      if (error || !data?.url) { let msg = error?.message || 'Could not start the payment.'; try { msg = (await error.context.json()).error || msg; } catch {} b.disabled = false; return toast(esc(msg)); }
+      location.href = data.url;
+    };
+    document.body.appendChild(m);
+  }
+  // back from Stripe with a tutor pack: wait for the messages to land
+  function afterTutorPack() {
+    const n = new URLSearchParams(location.search).get('tutorpack'); if (!n) return;
+    history.replaceState(null, '', location.pathname + location.hash);
+    const before = state.tutorCredits || 0; let tries = 0;
+    toast(`Payment received. Adding <b>${esc(n)} tutor messages</b>…`, 4000);
+    const poll = setInterval(async () => {
+      const { data } = await sb.rpc('my_tutor_left');
+      if (data && (data.credits > before || ++tries > 20)) {
+        clearInterval(poll); state.tutorCredits = data.credits || 0; applyRelease(); tuLeft = { ...data, left: Math.max(0, data.allowance - data.used) }; drawTuLeft();
+        toast(data.credits > before ? `<b>${data.credits} tutor messages</b> ready. They never expire.` : 'Your messages are taking a little longer to arrive. They\'ll appear on their own.', 6000);
+        if (location.hash !== '#tutor') location.hash = '#tutor'; else renderTutor();
+      }
+    }, 2000);
+  }
+  setTimeout(() => afterTutorPack(), 0);
   const tuSubjects = () => (C.tutor && C.tutor.subjects) || Object.keys(C.subjects);
   const tuSubject = () => tuSubjects().includes(state.subject) ? state.subject : tuSubjects()[0];
 
@@ -4277,7 +4329,13 @@
       if (m.text) el.appendChild(mk('div', 'tu-text', m.role === 'tutor' ? tuRich(m.text) : `<p>${esc(m.text).replace(/\n/g, '<br>')}</p>`));
       if (m.slip) el.appendChild(mk('div', 'tu-note', `Noted: ${esc(m.slip)}`));
       if (m.learnt) el.appendChild(mk('div', 'tu-note', `Learnt about you: ${esc(m.learnt)}`));
-      if (m.error) {
+      if (m.error && m.buy) {   // out of messages: offer a pack (or Pro), then let them carry on
+        const row = mk('div', 'tu-buyrow');
+        if (packsOpen()) { const b = mk('button', 'primary small', 'Get more messages'); b.onclick = openTutorPacks; row.appendChild(b); }
+        if (!tuAllowed() && proOpen()) { const b = mk('button', 'link small', 'See Pro'); b.onclick = () => openPro('tutor'); row.appendChild(b); }
+        const retry = mk('button', 'link small', 'Try again'); retry.onclick = () => { tu.msgs.splice(i, 1); tuSend(); }; row.appendChild(retry);
+        el.appendChild(row);
+      } else if (m.error) {
         const retry = mk('button', 'link small', 'Try again');
         retry.onclick = () => { tu.msgs.splice(i, 1); tuSend(); };
         el.appendChild(retry);
@@ -4339,9 +4397,18 @@
         head: `<b>US$${left.toFixed(2)}</b> of US$${cap.toFixed(2)} tutor budget left`,
         sub: `${fmtTok(Number(st.tokens) || 0)} tokens used this month · about ${msgsLeft.toLocaleString('en-AU')} messages left · ${pc.text}` };
     }
-    const { left, allowance } = tuLeft, pc = pace(allowance - left, allowance, tuLeft.refills);
-    return { fill: allowance ? left / allowance : 0, tick: pc.tick, cls: pc.cls, low: left <= Math.max(10, allowance * 0.1), out: left === 0,
-      head: left === 0 ? 'No messages left' : `<b>${left}</b> of ${allowance} messages left`, sub: pc.text };
+    const { left, allowance } = tuLeft, credits = tuLeft.credits || 0;
+    if (!allowance) {   // no Pro: just the packs they've bought
+      const cap = Math.max(credits, 150);
+      return { fill: credits / cap, tick: 100, cls: credits ? 'ok' : 'out', low: credits > 0 && credits <= 10, out: !credits, more: true,
+        head: credits ? `<b>${credits}</b> tutor message${credits === 1 ? '' : 's'} left` : 'No tutor messages left', sub: credits ? 'From your packs. They never expire.' : 'Get a pack, or go Pro for 300 a month.' };
+    }
+    const pc = pace(allowance - left, allowance, tuLeft.refills);
+    const extra = credits ? ` <span class="muted">+ ${credits} from packs</span>` : '';
+    return { fill: allowance ? left / allowance : 0, tick: pc.tick, cls: left === 0 && credits ? 'ok' : pc.cls, low: left <= Math.max(10, allowance * 0.1) && !credits, out: left === 0 && !credits,
+      more: left <= Math.max(10, allowance * 0.1) || credits > 0,
+      head: (left === 0 ? (credits ? 'Monthly messages used' : 'No messages left') : `<b>${left}</b> of ${allowance} messages left`) + extra,
+      sub: left === 0 && credits ? 'Now using your pack messages.' : pc.text };
   }
   function drawTuLeft() {
     const m = tuMeterModel(), box = $('tu-left'), bar = $('tu-meter');
@@ -4353,6 +4420,10 @@
       n.innerHTML = m.head; fill.style.width = `${Math.max(m.out ? 0 : 1.5, Math.round(1000 * m.fill) / 10)}%`;
       fill.parentNode.style.setProperty('--tick', `${m.tick}%`);
       r.textContent = m.sub; r.className = `${r.dataset.base} pace-${m.cls}`;
+      let g = root.querySelector('.tu-more');
+      if (m.more && packsOpen() && !tuLeft.unlimited) {
+        if (!g) { g = mk('button', 'link small tu-more', 'Get more'); g.onclick = openTutorPacks; r.after(g); }
+      } else if (g) g.remove();
     };
     paint(box, $('tu-left-n'), $('tu-left-fill'), $('tu-left-r'));
     paint(bar, $('tu-meter-n'), $('tu-meter-fill'), $('tu-meter-r'));
@@ -4388,15 +4459,15 @@
           ? { role: 'student', text: `(Auto-mark result for ${m.rec.title}: ${m.rec.results.map(r => `${r.label} ${r.awarded}/${r.out_of}${r.feedback ? ` (${r.feedback})` : ''}`).join('; ')})`.slice(0, 2000), images: [] }
           : { role: m.role, text: m.text || '', images: m.images || [] }),
       } });
-      if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
+      if (error) { let msg = error.message, body = null; try { body = await error.context.json(); msg = body.error || msg; } catch {} const e = new Error(msg); e.out = !!body?.out; throw e; }
       tu.msgs.push({ role: 'tutor', text: data.say, slip: data.slip?.what || null, learnt: data.learnt || null });
-      if (data.left != null && tuLeft) { tuLeft.left = data.left; tuLeft.allowance = data.allowance || tuLeft.allowance; tuLeft.used = tuLeft.allowance - data.left; drawTuLeft(); }
+      if (data.left != null && tuLeft) { tuLeft.left = data.left; tuLeft.allowance = data.allowance ?? tuLeft.allowance; tuLeft.used = tuLeft.allowance - data.left; tuLeft.credits = data.credits ?? tuLeft.credits; state.tutorCredits = tuLeft.credits; drawTuLeft(); }
       else if (tuLeft?.unlimited) loadTuLeft();
       if (data.slip) tu.slipped = true;
       if (data.full_paper && tu.msgs.some(m => m.images?.length)) tu.msgs.push({ role: 'offer' });
       if (data.done && !tu.done) await tuFinish(data);
     } catch (err) {
-      tu.msgs.push({ role: 'tutor', error: true, text: err.message || String(err) });
+      tu.msgs.push({ role: 'tutor', error: true, text: err.message || String(err), buy: !!err.out });
     } finally {
       tu.busy = false; tuDraw(); tuSave(); drawTuRecent();
     }

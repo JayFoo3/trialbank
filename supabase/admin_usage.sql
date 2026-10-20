@@ -24,8 +24,10 @@ begin
       'on_pass', (select count(distinct user_id) from pro_passes where starts <= now() and ends > now()),
       'trials', (select count(*) from pro_passes where reason = 'trial'),
       'trials_month', (select count(*) from pro_passes where reason = 'trial' and created_at >= since),
-      'ref_rewarded', (select count(*) from referrals where rewarded), 'ref_pending', (select count(*) from referrals where not rewarded)),
-    'settings', (select json_object_agg(key, value) from settings where key in ('pro_sales', 'pro_trials', 'tutor_monthly_cap_usd', 'tutor_user_monthly_msgs', 'tutor_trial_msgs')),
+      'ref_rewarded', (select count(*) from referrals where rewarded), 'ref_pending', (select count(*) from referrals where not rewarded),
+      'packs_month', (select count(*) from tutor_credit_ledger where kind = 'purchase' and created_at >= since),
+      'pack_msgs_month', (select coalesce(sum(delta), 0) from tutor_credit_ledger where kind = 'purchase' and created_at >= since)),
+    'settings', (select json_object_agg(key, value) from settings where key in ('pro_sales', 'pro_trials', 'tutor_packs', 'tutor_monthly_cap_usd', 'tutor_user_monthly_msgs', 'tutor_trial_msgs')),
     'top', coalesce((select json_agg(x) from (
       select au.email, u.msgs, round(u.tusd::numeric, 2) tutor_usd, u.off, u.tokens, u.runs, round(u.ausd::numeric, 2) mark_usd,
              (public.access_info(u.uid) ->> 'tier') tier

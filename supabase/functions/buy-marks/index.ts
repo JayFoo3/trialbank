@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
   const { data: ures } = await admin.auth.getUser(token);
   const user = ures?.user;
   if (!user) return json({ error: 'Please sign in again.' }, 401);
-  let body: { pack?: string; plan?: string; portal?: boolean };
+  let body: { pack?: string; plan?: string; portal?: boolean; tutor?: string };
   try { body = await req.json(); } catch { return json({ error: 'Bad request' }, 400); }
   const stripe = async (path: string, form?: URLSearchParams) => {
     const r = await fetch(`https://api.stripe.com/v1/${path}`, { method: form ? 'POST' : 'GET', headers: { Authorization: `Bearer ${stripeKey}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form });
@@ -74,6 +74,36 @@ Deno.serve(async (req) => {
       'subscription_data[metadata][user_id]': user.id,
       'subscription_data[metadata][plan]': plan,
       allow_promotion_codes: 'true',
+    });
+    if (sub?.customer) form.set('customer', sub.customer); else if (user.email) form.set('customer_email', user.email);
+    const { ok, out } = await stripe('checkout/sessions', form);
+    if (!ok || !out.url) return json({ error: 'Could not start the payment. Try again in a minute.' }, 502);
+    return json({ url: out.url });
+  }
+
+  // tutor message packs: anyone can buy them; priced right here, so no Stripe products are needed
+  if (body.tutor) {
+    const TUTOR_PACKS: Record<string, number> = { '150': 499, '300': 899 };   // messages: price in cents (AUD, GST included)
+    const n = String(body.tutor), cents = TUTOR_PACKS[n];
+    if (!cents) return json({ error: 'Unknown pack' }, 400);
+    const { data: info } = await admin.rpc('access_info', { uid: user.id });
+    const { data: st } = await admin.from('settings').select('value').eq('key', 'tutor_packs').maybeSingle();
+    const sale = st?.value ?? 'admin';
+    if (sale !== 'on' && !(sale === 'admin' && info?.level === 'admin')) return json({ error: 'Tutor packs open soon.' }, 403);
+    const form = new URLSearchParams({
+      mode: 'payment',
+      'line_items[0][price_data][currency]': 'aud',
+      'line_items[0][price_data][unit_amount]': String(cents),
+      'line_items[0][price_data][product_data][name]': `Trialbank tutor: ${n} messages`,
+      'line_items[0][price_data][product_data][description]': 'Messages with the Trialbank tutor. They never expire.',
+      'line_items[0][quantity]': '1',
+      success_url: `${base0}?tutorpack=${n}#tutor`,
+      cancel_url: `${base0}#tutor`,
+      client_reference_id: user.id,
+      'metadata[user_id]': user.id,
+      'metadata[tutor_msgs]': n,
+      'payment_intent_data[metadata][user_id]': user.id,
+      'payment_intent_data[metadata][tutor_msgs]': n,
     });
     if (sub?.customer) form.set('customer', sub.customer); else if (user.email) form.set('customer_email', user.email);
     const { ok, out } = await stripe('checkout/sessions', form);

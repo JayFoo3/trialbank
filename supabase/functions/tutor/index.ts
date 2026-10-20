@@ -139,10 +139,14 @@ Deno.serve(async (req) => {
   const isAdmin = String(s.admin_emails ?? '').toLowerCase().split(/[\s,]+/).includes(String(user.email ?? '').toLowerCase());
   if (s.tutor_enabled === 'off' && !isAdmin) return json({ error: 'The tutor is switched off right now.' }, 403);
   const access = s.tutor_access ?? 'admin';
+  // Pro (or a free week / Pro Mini) gets a monthly allowance; anyone can also have bought message packs
+  const { data: info } = await admin.rpc('access_info', { uid: user.id });
+  const isPro = info?.level === 'pro';
+  const { data: cr } = await admin.from('tutor_credits').select('balance').eq('user_id', user.id).maybeSingle();
+  const packLeft = Number(cr?.balance ?? 0);
   if (!isAdmin && access !== 'all') {
-    let ok = false;
-    if (access === 'pro') { const { data: info } = await admin.rpc('access_info', { uid: user.id }); ok = info?.level === 'pro'; }
-    if (!ok) return json({ error: 'The tutor is in testing and not open yet.' }, 403);
+    const ok = access === 'pro' && (isPro || packLeft > 0);
+    if (!ok) return json({ error: access === 'pro' ? 'The tutor comes with Pro, or with a pack of tutor messages.' : 'The tutor is in testing and not open yet.' }, 403);
   }
   const month = new Date(); month.setUTCDate(1); month.setUTCHours(0, 0, 0, 0);
   const { data: spent } = await admin.from('tutor_runs').select('cost_usd').gte('created_at', month.toISOString());
@@ -151,17 +155,22 @@ Deno.serve(async (req) => {
   const { count } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true })
     .eq('user_id', user.id).gte('created_at', new Date(Date.now() - 864e5).toISOString());
   if (!isAdmin && (count ?? 0) >= Number(s.tutor_daily_msgs ?? 150)) return json({ error: "You've hit today's tutor limit. Back tomorrow." }, 429);
-  // each Pro student's monthly allowance (Sydney months), so no one account can run up the bill
+  // each student's monthly allowance (Sydney months); pack messages aren't counted against it
   const sydMonth = new Date(new Date().toLocaleString('en-US', { timeZone: 'Australia/Sydney' })); sydMonth.setDate(1); sydMonth.setHours(0, 0, 0, 0);
-  const { count: monthCount } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('error', null).gte('created_at', new Date(Date.now() - (Date.now() - sydMonth.getTime()) - 11 * 36e5).toISOString());
+  const { count: monthCount } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('error', null).eq('from_pack', false)
+    .gte('created_at', new Date(Date.now() - (Date.now() - sydMonth.getTime()) - 11 * 36e5).toISOString());
   const { data: allow } = await admin.rpc('tutor_allowance', { uid: user.id });
-  const allowance = Number(allow ?? s.tutor_user_monthly_msgs ?? 300);   // a free week gets a taster, subscribers the full month
+  const allowance = isPro || isAdmin ? Number(allow ?? s.tutor_user_monthly_msgs ?? 300) : 0;   // a free week or Pro Mini gets less than full Pro
   // repeated attempts to use it as a general AI (code, files, essays, batch marking) pause it for the day
   const { count: offCount } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('off_topic', true).gte('created_at', new Date(Date.now() - 864e5).toISOString());
   if (!isAdmin && (offCount ?? 0) >= Number(s.tutor_offtopic_daily ?? 6)) return json({ error: "The tutor is just for study, so it's paused for today after several off-topic requests. Back tomorrow." }, 429);
-  if (!isAdmin && (monthCount ?? 0) >= allowance) return json({ error: allowance < Number(s.tutor_user_monthly_msgs ?? 300)
-    ? `You've used the ${allowance} tutor messages in your free week. Pro gives you ${s.tutor_user_monthly_msgs ?? 300} a month.`
-    : "You've used this month's tutor messages. They refill on the 1st." }, 429);
+  const fromPack = !isAdmin && (monthCount ?? 0) >= allowance;   // monthly messages used up: this one comes out of a pack
+  if (fromPack && packLeft <= 0) return json({ error: !isPro ? "You're out of tutor messages. Get a pack or go Pro to keep going."
+    : allowance < Number(s.tutor_user_monthly_msgs ?? 300)
+      ? `You've used the ${allowance} tutor messages in your free days. Get a pack of messages or go Pro for ${s.tutor_user_monthly_msgs ?? 300} a month.`
+      : "You've used this month's tutor messages. They refill on the 1st, or get a pack to keep going.", out: true }, 429);
+  let packTaken = false;
+  const refund = async () => { if (packTaken) { packTaken = false; await admin.rpc('add_tutor_msgs', { uid: user.id, n: 1, k: 'refund', r: null, nt: 'tutor reply failed' }); } };
 
   const img = async (bucket: string, path: string) => {
     const { data, error } = await admin.storage.from(bucket).download(path);
@@ -219,6 +228,11 @@ Deno.serve(async (req) => {
     // cache the conversation so far: each reply re-sends the whole chat, and the next call reads all but the newest turn from cache
     if (turns.length >= 3) { const prev = turns[turns.length - 2].content; prev[prev.length - 1].cache_control = { type: 'ephemeral' }; }
 
+    if (fromPack) {
+      const { data: took } = await admin.rpc('use_tutor_msg', { uid: user.id });
+      if (!took) return json({ error: "You're out of tutor messages.", out: true }, 429);
+      packTaken = true;
+    }
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -230,7 +244,8 @@ Deno.serve(async (req) => {
       (u.cache_creation_input_tokens ?? 0) * PRICE.cw + (u.cache_read_input_tokens ?? 0) * PRICE.cr) / 1e6;
     const offTopic = !!((out.content ?? []).find((c: { type: string; name?: string }) => c.type === 'tool_use' && c.name === 'tutor_turn')?.input?.off_topic);
     await admin.from('tutor_runs').insert({ off_topic: offTopic, user_id: user.id, question_id: q?.id ?? null, mode, input_tokens: u.input_tokens, output_tokens: u.output_tokens,
-      cache_write: u.cache_creation_input_tokens, cache_read: u.cache_read_input_tokens, cost_usd: cost, error: r.ok ? null : JSON.stringify(out.error ?? out).slice(0, 500) });
+      cache_write: u.cache_creation_input_tokens, cache_read: u.cache_read_input_tokens, from_pack: fromPack && r.ok, cost_usd: cost, error: r.ok ? null : JSON.stringify(out.error ?? out).slice(0, 500) });
+    if (!r.ok) await refund();
     if (!r.ok) return json({ error: `The tutor hit a problem (${out.error?.type ?? r.status}). Try again in a moment.` }, 502);
     const call = (out.content ?? []).find((c: { type: string; name?: string }) => c.type === 'tool_use' && c.name === 'tutor_turn');
     // this model can't be forced to use the tool: fall back to JSON or plain text written as a reply
@@ -239,7 +254,7 @@ Deno.serve(async (req) => {
     if (!t) { const m = txt.match(/\{[\s\S]*"say"[\s\S]*\}/); if (m) { try { t = JSON.parse(m[0]); } catch { /* not JSON */ } } }
     t = t ?? { say: txt };
     const say = String(t.say ?? '').trim();
-    if (!say) return json({ error: 'The tutor went quiet. Try again.' }, 502);
+    if (!say) { await refund(); return json({ error: 'The tutor went quiet. Try again.' }, 502); }
 
     const marks = Number(q?.marks ?? 0);
     const done = !!t.done;
@@ -252,8 +267,9 @@ Deno.serve(async (req) => {
       await admin.from('tutor_notes').upsert({ user_id: user.id, subject, notes: list, updated_at: new Date().toISOString() });
     }
     return json({ say, done, awarded, out_of: q ? marks : null, slip, next_level: ['easier', 'same', 'harder'].includes(t.next_level) ? t.next_level : null, learnt: note || null, full_paper: !!t.full_paper, cost_usd: Number(cost.toFixed(5)),
-      left: isAdmin ? null : Math.max(0, allowance - (monthCount ?? 0) - 1), allowance });
+      left: isAdmin ? null : Math.max(0, allowance - (monthCount ?? 0) - (fromPack ? 0 : 1)), allowance, credits: Math.max(0, packLeft - (fromPack ? 1 : 0)) });
   } catch (err) {
+    await refund();
     return json({ error: String((err as Error).message ?? err) }, 500);
   }
 });
