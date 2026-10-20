@@ -1862,7 +1862,7 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .tu-thread > *, .tu-done { scroll-margin-bottom: 230px; }
 
 /* Tutor tab for students without it: the video, then the ways in */
-.tu-intro { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 8px; }
+.tu-intro { max-width: 640px; margin-top: 8px; }
 .tu-intro-video { border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow); background: #0e111c; }
 .tu-intro-video video { display: block; width: 100%; height: auto; aspect-ratio: 1024 / 680; }
 .tu-intro-copy h2 { margin: 0 0 12px; font-size: 26px; }
