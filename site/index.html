@@ -204,43 +204,23 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 
   <!-- ===== practise: build a set ===== -->
   <section id="view-practise" class="view" hidden>
-    <div class="between pr-head"><h1>Practise by topic</h1><button class="secondary" id="open-syllabus">Syllabus</button></div>
-    <div class="pr-grid">
-      <div class="card pr-topics">
-        <div class="pr-tools">
-          <input id="topic-filter" type="search" placeholder="Find a topic" autocomplete="off">
-          <div class="small pr-links"><button class="link" id="topics-all">Select all</button> <span class="muted">/</span> <button class="link" id="topics-none">Clear</button> <span class="muted">/</span> <button class="link" id="topics-learnt">Topics I've learnt</button></div>
-        </div>
-        <div id="topic-chips"></div>
+    <div class="pr-head">
+      <div><h1>Practise</h1><p class="muted" id="pr-sub">Let Trialbank pick, or choose your own topics below.</p></div>
+      <div class="pr-headlinks"><button class="link small" id="topics-learnt">Topics I've learnt</button><button class="secondary small" id="open-syllabus">Syllabus</button></div>
+    </div>
+    <div class="pr-quick">
+      <button class="pr-q main" id="pr-smart"><span class="pr-q-k">Quickest start</span><b>10 questions picked for you</b><span class="pr-q-s" id="pr-smart-sub">From your weakest topics, ones you haven't done yet.</span></button>
+      <button class="pr-q" id="pr-paper"><span class="pr-q-k">To do on paper</span><b>Make me a practice paper</b><span class="pr-q-s">A PDF with lines to write on and the solutions at the back.</span></button>
+    </div>
+    <p class="error" id="pr-error" hidden></p>
+    <div class="card pr-topics">
+      <div class="pr-tools">
+        <h2>Choose topics</h2>
+        <input id="topic-filter" type="search" placeholder="Find a topic" autocomplete="off">
+        <div class="small pr-links"><button class="link" id="topics-all">Select all</button><button class="link" id="topics-none">Clear</button></div>
       </div>
-
-      <aside class="card pr-set">
-        <h2>Your set</h2>
-        <p class="small muted" id="pr-picked">Tap topics to add them.</p>
-        <div class="options">
-          <div class="opt">
-            <span>Questions</span>
-            <div class="seg" data-opt="count"><button data-v="5">5</button><button data-v="10" class="on">10</button><button data-v="20">20</button></div>
-          </div>
-          <div class="opt">
-            <span>Type</span>
-            <div class="seg" data-opt="type"><button data-v="all" class="on">Both</button><button data-v="mcq" title="Multiple choice">MCQ</button><button data-v="short">Written</button></div>
-          </div>
-          <div class="opt">
-            <span>Difficulty</span>
-            <div class="seg" data-opt="diff"><button data-v="all" class="on">Any</button><button data-v="Easier">Easier</button><button data-v="Medium">Medium</button><button data-v="Hard">Hard</button></div>
-          </div>
-          <div class="opt">
-            <span>Unseen first</span>
-            <div class="seg" data-opt="fresh"><button data-v="1" class="on">On</button><button data-v="0">Off</button></div>
-          </div>
-        </div>
-        <div class="startbar">
-          <span class="small" id="start-summary">No topics picked</span>
-          <button class="primary" id="start">Start</button>
-        </div>
-        <p class="error" id="home-error" hidden></p>
-      </aside>
+      <div class="pr-key small muted"><span><i class="k low"></i>Needs work</span><span><i class="k mid"></i>Getting there</span><span><i class="k high"></i>Strong</span><span><i class="k new"></i>Not tried</span></div>
+      <div id="topic-chips"></div>
     </div>
     <div class="card cp-card" id="cp-card">
       <div class="cp-head">
@@ -252,6 +232,20 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
         <div class="opt"><span>Focus</span><div class="seg" data-cp="focus"><button data-v="weak" class="on">My weak spots</button><button data-v="picked">Topics I picked</button><button data-v="mixed">A bit of everything</button></div></div>
       </div>
       <div class="cp-go"><button class="primary" id="cp-pdf">Download the PDF</button><button class="secondary" id="cp-now">Do it here</button><span class="small muted" id="cp-status"></span></div>
+    </div>
+    <div class="pr-bar" id="pr-bar">
+      <div class="pr-opts" id="pr-opts" hidden>
+        <div class="opt"><span>Questions</span><div class="seg" data-opt="count"><button data-v="5">5</button><button data-v="10" class="on">10</button><button data-v="20">20</button></div></div>
+        <div class="opt"><span>Type</span><div class="seg" data-opt="type"><button data-v="all" class="on">Both</button><button data-v="mcq" title="Multiple choice">Multiple choice</button><button data-v="short">Written</button></div></div>
+        <div class="opt"><span>Difficulty</span><div class="seg" data-opt="diff"><button data-v="all" class="on">Any</button><button data-v="Easier">Easier</button><button data-v="Medium">Medium</button><button data-v="Hard">Hard</button></div></div>
+        <div class="opt"><span>Questions I haven't done first</span><div class="seg" data-opt="fresh"><button data-v="1" class="on">Yes</button><button data-v="0">No</button></div></div>
+      </div>
+      <div class="pr-bar-row">
+        <div class="pr-bar-l"><b id="start-summary">Pick a topic to start</b><span class="small muted" id="pr-picked"></span></div>
+        <button class="link small" id="pr-opts-btn" aria-expanded="false">Options</button>
+        <button class="primary" id="start" disabled>Start</button>
+      </div>
+      <p class="error" id="home-error" hidden></p>
     </div>
   </section>
 
@@ -368,21 +362,24 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </section>
 
   <section id="view-progress" class="view" hidden>
-    <h1>Progress</h1>
-    <a class="card hsc-teaser" id="hsc-teaser" href="#hsc" hidden></a>
-    <div class="card">
-      <h2>By topic</h2>
-      <div class="bars" id="my-bars"></div>
+    <div class="pg-head"><h1>Progress</h1><p class="muted" id="pg-sub"></p></div>
+    <div class="pg-top">
+      <div class="card pg-hero" id="pg-hero"></div>
+      <a class="card pg-band" id="hsc-teaser" href="#hsc"></a>
+    </div>
+    <div class="card pg-week">
+      <div class="pg-ch"><h2>Last two weeks</h2><span class="small muted" id="pg-week-sum"></span></div>
+      <div class="pg-days" id="pg-days"></div>
+    </div>
+    <div class="card pg-topics">
+      <div class="pg-ch"><h2>Every topic</h2><span class="pr-key small muted"><span><i class="k low"></i>Needs work</span><span><i class="k mid"></i>Getting there</span><span><i class="k high"></i>Strong</span><span><i class="pg-tick-k"></i>Year average</span></span></div>
+      <p class="error" id="pg-error" hidden></p>
+      <div id="my-bars"></div>
     </div>
     <div class="card">
-      <h2>Why you lose marks</h2>
-      <p class="muted small">Tap one to drill it.</p>
+      <div class="pg-ch"><h2>Why you lose marks</h2><span class="small muted">Tap one to drill it</span></div>
       <div class="bars" id="lost-bars"></div>
       <p class="error" id="lost-error" hidden></p>
-    </div>
-    <div class="card">
-      <h2>Whole year</h2>
-      <div class="bars" id="cohort-bars"></div>
     </div>
   </section>
 
@@ -398,12 +395,17 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <!-- ===== one paper ===== -->
   <!-- ===== marking: balance, the shared pool, and uploading a paper ===== -->
   <section id="view-mark" class="view" hidden>
-    <h1>Auto-marking</h1>
-    <p class="muted mk-lede">Sit a paper on paper, take photos of your working, and get every question marked against the marking guidelines.</p>
-    <div class="card mk-balance" id="mk-balance"><p class="muted">Loading…</p></div>
+    <div class="mk-head">
+      <div><h1>Mark a paper</h1><p class="muted mk-lede">Do a past paper on paper, photograph your working, and get every question marked against the marking guidelines.</p></div>
+      <button class="mk-chip" id="mk-chip" hidden></button>
+    </div>
+    <ol class="mk-how">
+      <li><b>Sit it</b><span>On paper, ideally on the clock</span></li>
+      <li><b>Snap it</b><span>A photo of each page of working</span></li>
+      <li><b>Get marked</b><span>Every question, and where marks went</span></li>
+    </ol>
     <div class="card mk-upload">
-      <h2>Mark a paper</h2>
-      <p class="small muted">Find the paper you sat, then upload photos of your working. The whole paper counts as one.</p>
+      <h2>Which paper did you sit?</h2>
       <div class="mk-find">
         <input id="mark-search" type="search" placeholder="Search a school or year, e.g. Ruse 2023" autocomplete="off" aria-label="Search for the paper">
         <div class="mk-results" id="mark-results" role="listbox"></div>
@@ -424,11 +426,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div id="own-result"></div>
     </div>
     <div id="own-history"></div>
-    <ol class="mk-how">
-      <li><b>Sit it</b><span>Do a full paper on paper, ideally on the clock.</span></li>
-      <li><b>Snap it</b><span>Photograph each page of your working.</span></li>
-      <li><b>Get marked</b><span>Marks and feedback for every question, plus where you lost marks.</span></li>
-    </ol>
+    <div class="card mk-balance" id="mk-balance"><p class="muted">Loading…</p></div>
   </section>
 
   <section id="view-tutor" class="view" hidden>

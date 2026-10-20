@@ -461,9 +461,13 @@
       el.appendChild(b);
     }
   }
+  let prMine = {};   // topic -> { score, out_of } for this subject, so each topic shows how you're going
+  const prLevel = (m) => !m || !m.out_of ? 'new' : m.score / m.out_of < 0.5 ? 'low' : m.score / m.out_of < 0.75 ? 'mid' : 'high';
   async function renderBuild() {
     $('open-syllabus').hidden = !SYLLABUS[state.subject];
-    const counts = await loadTopicCounts();
+    $('pr-error').hidden = true;
+    const [counts, { data: mine }] = await Promise.all([loadTopicCounts(), sb.from('my_topic_stats').select('*').eq('subject', state.subject)]);
+    prMine = {}; (state.preview ? [] : mine || []).forEach(r => { prMine[r.topic] = r; });
     const byTopic = {};
     counts.filter(r => r.subject === state.subject).forEach(r => {
       byTopic[r.topic] = byTopic[r.topic] || { mcq: 0, short: 0 };
@@ -471,12 +475,12 @@
     });
     const wrap = $('topic-chips'); wrap.innerHTML = '';
     const skip = skipped();
-    [...state.topics].forEach(t => { if (skip.has(t)) state.topics.delete(t); });
+    [...state.topics].forEach(t => { if (!byTopic[t]) state.topics.delete(t); });
     const all = Object.keys(byTopic);
     const groups = (TOPIC_GROUPS[state.subject] || []).map(([name, ts]) => [name, ts.filter(t => byTopic[t] && !skip.has(t))]);
     const placed = new Set(groups.flatMap(g => g[1]));
     const other = all.filter(t => !placed.has(t) && !skip.has(t));
-    if (other.length) groups.push([groups.length ? 'Other' : 'Topics', other]);
+    if (other.length) groups.push([groups.length ? 'Other' : 'Topics', other.sort((a, b) => topicName(a).localeCompare(topicName(b)))]);
     const later = all.filter(t => skip.has(t));
     if (later.length) groups.push(["Not learnt yet", later]);
     groups.filter(g => g[1].length).forEach(([name, ts]) => {
@@ -487,40 +491,56 @@
       tog.onclick = () => {
         const on = !ts.every(t => state.topics.has(t));
         ts.forEach(t => on ? state.topics.add(t) : state.topics.delete(t));
-        box.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', on));
+        box.querySelectorAll('.tp').forEach(c => { c.classList.toggle('on', on); c.setAttribute('aria-pressed', on); });
         sync(); startSummary();
       };
       head.appendChild(tog); box.appendChild(head);
-      const chips = mk('div', 'chips');
-      ts.sort((a, b) => topicName(a).localeCompare(topicName(b))).forEach(t => {
-        const b = document.createElement('button');
-        b.className = 'chip' + (state.topics.has(t) ? ' on' : '');
-        if (skip.has(t)) b.title = 'Marked as not learnt yet';
-        b.innerHTML = `${esc(topicName(t))}<span class="n">${byTopic[t].mcq + byTopic[t].short}</span>`;
+      const list = mk('div', 'tp-list');
+      ts.forEach(t => {
+        const m = prMine[t], lv = prLevel(m), pct = m && m.out_of ? Math.round(100 * m.score / m.out_of) : null, n = byTopic[t].mcq + byTopic[t].short;
+        const b = mk('button', `tp ${lv}${state.topics.has(t) ? ' on' : ''}`);
+        b.type = 'button'; b.setAttribute('aria-pressed', state.topics.has(t));
+        b.innerHTML = `<i class="tp-box" aria-hidden="true"></i><span class="tp-name">${esc(topicName(t))}<small>${n} question${n === 1 ? '' : 's'}</small></span>
+          <span class="tp-you" title="${pct == null ? 'Not tried yet' : `You've got ${m.score} of ${m.out_of} marks right`}">${pct == null ? '<em>Not tried</em>' : `<span class="tp-bar"><i style="width:${Math.max(4, pct)}%"></i></span><b>${pct}%</b>`}</span>`;
         b.dataset.t = (topicName(t) + ' ' + t + ' ' + name).toLowerCase();
-        b.onclick = () => { state.topics.has(t) ? state.topics.delete(t) : state.topics.add(t); b.classList.toggle('on'); sync(); startSummary(); };
-        chips.appendChild(b);
+        b.onclick = () => { const on = !state.topics.has(t); on ? state.topics.add(t) : state.topics.delete(t); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); sync(); startSummary(); };
+        list.appendChild(b);
       });
-      box.appendChild(chips); sync();
+      box.appendChild(list); sync();
       wrap.appendChild(box);
     });
+    // the quick start leans on your weakest topics once there are some
+    const weak = Object.values(prMine).filter(r => r.out_of >= 2 && !skip.has(r.topic) && byTopic[r.topic]).sort((a, b) => a.score / a.out_of - b.score / b.out_of).slice(0, 3);
+    $('pr-smart-sub').textContent = weak.length ? `Mostly ${weak.map(w => topicName(w.topic)).join(', ')}, the topics costing you the most marks.` : 'A mix of every topic you\'ve learnt, ones you haven\'t done yet.';
+    $('pr-smart').onclick = async () => {
+      $('pr-error').hidden = true;
+      const keep = new Set(state.topics);
+      state.topics = new Set(weak.length ? weak.map(w => w.topic) : all.filter(t => !skip.has(t)));
+      try { await busy(() => buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1 })); location.hash = '#set'; }
+      catch (err) { $('pr-error').textContent = err.message; $('pr-error').hidden = false; }
+      finally { state.topics = keep; }
+    };
     filterTopics(); startSummary();
     $('topics-all').onclick = () => { Object.keys(byTopic).filter(t => !skip.has(t)).forEach(t => state.topics.add(t)); renderBuild(); };
     $('topics-learnt').onclick = () => openLearnt(Object.keys(byTopic).sort());
     $('topics-none').onclick = () => { state.topics.clear(); renderBuild(); };
   }
+  $('pr-paper').onclick = () => { const c = $('cp-card'); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse'); };
+  $('pr-opts-btn').onclick = () => { const o = $('pr-opts'), open = o.hidden; o.hidden = !open; $('pr-opts-btn').setAttribute('aria-expanded', open); $('pr-opts-btn').textContent = open ? 'Done' : 'Options'; };
   function filterTopics() {
     const q = $('topic-filter').value.trim().toLowerCase();
-    document.querySelectorAll('#topic-chips .chip').forEach(b => { b.hidden = q && !b.dataset.t.includes(q); });
-    document.querySelectorAll('#topic-chips .tgroup').forEach(g => { g.hidden = !g.querySelector('.chip:not([hidden])'); });
+    document.querySelectorAll('#topic-chips .tp').forEach(b => { b.hidden = q && !b.dataset.t.includes(q); });
+    document.querySelectorAll('#topic-chips .tgroup').forEach(g => { g.hidden = !g.querySelector('.tp:not([hidden])'); });
   }
   $('topic-filter').oninput = filterTopics;
   function startSummary() {
     const n = state.topics.size, o = state.opts;
-    $('start-summary').textContent = n ? `${o.count} questions from ${n} topic${n === 1 ? '' : 's'}` : 'Pick at least one topic';
+    const type = { all: '', mcq: ' multiple choice', short: ' written' }[o.type] || '';
+    $('start-summary').textContent = n ? `${o.count}${type} questions from ${n} topic${n === 1 ? '' : 's'}` : 'Pick a topic to start';
     const names = [...state.topics].map(topicName).sort();
-    $('pr-picked').textContent = !n ? 'Tap topics to add them.' : names.length <= 4 ? names.join(', ') : `${names.slice(0, 3).join(', ')} and ${names.length - 3} more`;
+    $('pr-picked').textContent = !n ? 'Tap any topic above.' : (names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`) + (o.diff !== 'all' ? ` · ${o.diff.toLowerCase()} papers` : '');
     $('start').disabled = !n;
+    $('pr-bar').classList.toggle('ready', !!n);
   }
   document.querySelectorAll('.seg').forEach(seg => {
     seg.querySelectorAll('button').forEach(b => b.onclick = () => {
@@ -881,19 +901,78 @@
 
   // ---------- progress ----------
   async function renderProgress() {
-    const [{ data: mine }, { data: cohort }] = await Promise.all([
+    $('pg-error').hidden = true;
+    const since = new Date(Date.now() - 14 * 864e5).toISOString();
+    const [{ data: mine }, { data: cohort }, counts, { data: recent }] = await Promise.all([
       sb.from('my_topic_stats').select('*').eq('subject', state.subject),
       sb.rpc('cohort_topic_stats', { subj: state.subject }),
+      loadTopicCounts().catch(() => []),
+      sb.from('attempts').select('score, out_of, created_at, questions!inner(papers!inner(subject))').eq('user_id', state.user.id)
+        .eq('questions.papers.subject', state.subject).gte('created_at', since).limit(2000),
     ]);
-    bars($('my-bars'), mine || [], 'Nothing attempted yet in this subject.');
-    hscPredictions().then(p => {   // a one-line teaser for the HSC estimate page
+    const name = C.subjects[state.subject] || state.subject;
+    const my = {}; (state.preview ? [] : mine || []).forEach(r => { my[r.topic] = r; });
+    const year = {}; (cohort || []).forEach(r => { year[r.topic] = r; });
+    const tot = Object.values(my).reduce((a, r) => ({ s: a.s + Number(r.score || 0), o: a.o + Number(r.out_of || 0), n: a.n + Number(r.n || r.attempts || 0) }), { s: 0, o: 0, n: 0 });
+    const pct = tot.o ? Math.round(100 * tot.s / tot.o) : null;
+    // the headline: how you're going overall, and the one thing to do next
+    const tried = Object.values(my).filter(r => r.out_of > 0);
+    const worst = tried.filter(r => r.out_of >= 2).sort((a, b) => a.score / a.out_of - b.score / b.out_of)[0];
+    $('pg-sub').textContent = name;
+    $('pg-hero').innerHTML = pct == null
+      ? `<p class="pg-k">How you're going</p><div class="pg-big muted">No answers yet</div><p class="muted">Answer a few questions in ${esc(name)} and your marks by topic show up here.</p><button class="primary" id="pg-go">Start practising</button>`
+      : `<p class="pg-k">Marks you're getting in ${esc(name)}</p><div class="pg-big ${pct < 50 ? 'low' : pct < 75 ? 'mid' : 'high'}">${pct}%</div>
+         <p class="muted">${tot.s} of ${tot.o} marks across ${tried.length} topic${tried.length === 1 ? '' : 's'}.</p>
+         ${worst ? `<button class="primary" id="pg-go">Work on ${esc(topicName(worst.topic))}</button>` : `<button class="primary" id="pg-go">Keep practising</button>`}`;
+    $('pg-go').onclick = () => worst ? pgDrill(worst.topic, $('pg-go')) : (location.hash = '#practise');
+    // last 14 days: questions answered each day
+    const days = []; for (let i = 13; i >= 0; i--) days.push(dayOf(new Date(Date.now() - i * 864e5)));
+    const per = Object.fromEntries(days.map(d => [d, { n: 0, s: 0, o: 0 }]));
+    (state.preview ? [] : recent || []).forEach(a => { const d = per[dayOf(new Date(a.created_at))]; if (d) { d.n++; d.s += Number(a.score || 0); d.o += Number(a.out_of || 0); } });
+    const maxN = Math.max(1, ...Object.values(per).map(d => d.n)), weekN = days.slice(7).reduce((a, d) => a + per[d].n, 0), activeDays = days.filter(d => per[d].n).length;
+    $('pg-week-sum').textContent = activeDays ? `${weekN} question${weekN === 1 ? '' : 's'} this week · ${activeDays} of 14 days` : 'Nothing yet';
+    $('pg-days').innerHTML = days.map((d, i) => { const x = per[d], h = x.n ? Math.max(8, Math.round(100 * x.n / maxN)) : 0, dt = new Date(d + 'T12:00:00');
+      return `<div class="pg-day${d === dayOf() ? ' today' : ''}" title="${dt.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short' })}: ${x.n} question${x.n === 1 ? '' : 's'}${x.o ? `, ${Math.round(100 * x.s / x.o)}% of marks` : ''}">
+        <span class="pg-n">${x.n || ''}</span><span class="pg-col"><i style="height:${h}%"></i></span><span class="pg-d">${dt.toLocaleDateString('en-AU', { weekday: 'narrow' })}</span></div>`; }).join('');
+    // every topic in the course, in syllabus order, with the year's average as a tick
+    const have = new Set((counts || []).filter(r => r.subject === state.subject).map(r => r.topic));
+    const skip = skipped();
+    const groups = (TOPIC_GROUPS[state.subject] || []).map(([g, ts]) => [g, ts.filter(t => have.has(t) || my[t])]);
+    const placed = new Set(groups.flatMap(g => g[1]));
+    const other = [...new Set([...have, ...Object.keys(my)])].filter(t => !placed.has(t));
+    if (other.length) groups.push([groups.length ? 'Other' : 'Topics', other.sort((a, b) => topicName(a).localeCompare(topicName(b)))]);
+    const box = $('my-bars'); box.innerHTML = '';
+    groups.filter(g => g[1].length).forEach(([g, ts]) => {
+      const sec = mk('div', 'pg-group', `<h3>${esc(g)}</h3>`);
+      ts.forEach(t => {
+        const r = my[t], p = r && r.out_of ? Math.round(100 * r.score / r.out_of) : null, y = year[t] && year[t].out_of ? Math.round(100 * year[t].score / year[t].out_of) : null;
+        const lv = p == null ? 'new' : p < 50 ? 'low' : p < 75 ? 'mid' : 'high';
+        const row = mk('div', `pg-row ${lv}${skip.has(t) ? ' later' : ''}`);
+        row.innerHTML = `<span class="pg-t">${esc(topicName(t))}${skip.has(t) ? ' <small>not learnt yet</small>' : ''}</span>
+          <span class="pg-track">${p != null ? `<i class="pg-fill" style="width:${Math.max(3, p)}%"></i>` : ''}${y != null ? `<i class="pg-tick" style="left:${y}%" title="Year average ${y}%"></i>` : ''}</span>
+          <span class="pg-p">${p == null ? '<em>Not tried</em>' : `<b>${p}%</b><small>${r.score}/${r.out_of}</small>`}</span>
+          <button class="secondary small pg-do">Practise</button>`;
+        row.querySelector('.pg-do').onclick = (ev) => pgDrill(t, ev.currentTarget);
+        sec.appendChild(row);
+      });
+      box.appendChild(sec);
+    });
+    if (!box.children.length) box.innerHTML = '<p class="muted small">No topics in this subject yet.</p>';
+    hscPredictions().then(p => {   // predicted band, linking to the full HSC estimate
       const x = p[state.subject], t = $('hsc-teaser'); if (!t) return;
-      t.hidden = false;
-      t.innerHTML = x?.ready ? `<span class="small muted">Predicted in ${esc(C.subjects[state.subject])}</span><b>${x.band}</b><span class="hsc-teaser-go">Your HSC estimate and ATAR →</span>`
-        : `<span class="small muted">Predicted band</span><b>${x ? `${Math.ceil(x.need)} more marks to go` : 'Answer some questions first'}</b><span class="hsc-teaser-go">HSC estimate and ATAR →</span>`;
+      const need = x && !x.ready ? Math.max(0, Math.ceil(x.need)) : 40, got = 40 - need;
+      t.innerHTML = x?.ready ? `<p class="pg-k">Predicted HSC band</p><div class="pg-bandv">${x.band}</div><span class="small muted">About ${x.raw}% raw · from ${x.marks} marks</span><span class="pg-more">HSC estimate and ATAR →</span>`
+        : `<p class="pg-k">Predicted HSC band</p><div class="pg-bandv muted">${need} marks to go</div><span class="pg-unlock"><i style="width:${Math.round(100 * got / 40)}%"></i></span><span class="small muted">Answer ${need} more marks of questions to see it.</span><span class="pg-more">HSC estimate and ATAR →</span>`;
     }).catch(() => {});
     renderLostBars();
-    bars($('cohort-bars'), (cohort || []).map(r => ({ ...r, extra: `${r.students} student${r.students == 1 ? '' : 's'}` })), 'No attempts yet.');
+  }
+  async function pgDrill(topic, btn) {
+    $('pg-error').hidden = true;
+    const keep = new Set(state.topics); state.topics = new Set([topic]);
+    if (btn) btn.disabled = true;
+    try { await buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1, allowSkipped: true }); location.hash = '#set'; }
+    catch (err) { $('pg-error').textContent = err.message; $('pg-error').hidden = false; $('pg-error').scrollIntoView({ block: 'center' }); }
+    finally { state.topics = keep; if (btn) btn.disabled = false; }
   }
   // ---------- predicted band and ATAR estimate (hsc.js; HSC is already the list of course names above) ----------
   const HSCX = window.HSC;
@@ -2955,7 +3034,11 @@
         : tile('–', 'Free', lite ? 'Unlocks after trials' : 'Not on your plan', 'off'),
     ].join('');
     const pct = c.poolTotal ? Math.round(100 * c.poolLeft / c.poolTotal) : 0;
-    $('mk-balance').innerHTML = `
+    const chip = $('mk-chip'); chip.hidden = false;
+    chip.className = 'mk-chip' + (!c.unlimited && !c.total ? ' out' : '');
+    chip.innerHTML = c.unlimited ? '<b>∞</b> papers' : `<b>${c.total}</b> paper${c.total === 1 ? '' : 's'} left`;
+    chip.onclick = () => $('mk-balance').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('mk-balance').innerHTML = `<h2>Your marking</h2>
       <div class="mk-big"><b>${c.unlimited ? '∞' : c.total}</b><span>${c.unlimited ? 'unlimited marks (admin)' : `paper${c.total === 1 ? '' : 's'} you can get marked right now`}</span></div>
       <div class="mk-tiles">${tiles}</div>
       <div class="mk-pool">
