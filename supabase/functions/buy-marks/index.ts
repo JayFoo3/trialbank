@@ -1,7 +1,7 @@
 // Trialbank: start a Stripe Checkout for a pack of auto-marks or a Pro subscription, or open the billing portal.
 // Returns the Stripe page URL.
 // Secrets: STRIPE_SECRET_KEY, STRIPE_PRICES = {"10":"prod_...","25":"prod_...","60":"prod_..."} (product or price ids),
-//          STRIPE_PRO_PRICES = {"monthly":"price_...","annual":"price_..."}
+//          STRIPE_PRO_PRICES = {"monthly":"price_...","annual":"price_..."} (optional: without it, Pro is priced in the checkout itself)
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 
 const SITE = 'https://jayfoo3.github.io/trialbank/';
@@ -55,16 +55,26 @@ Deno.serve(async (req) => {
   // Pro: monthly or annual subscription
   if (body.plan) {
     const plan = String(body.plan);
-    const price = proPrices[plan];
-    if (!price || !['monthly', 'annual'].includes(plan)) return json({ error: 'Pro is not set up yet.' }, 503);
+    if (!['monthly', 'annual'].includes(plan)) return json({ error: 'Unknown plan' }, 400);
+    const price = proPrices[plan];   // optional: Stripe price ids; otherwise the prices below are sent with the checkout
+    const PRO_PLANS: Record<string, { cents: number; interval: string; name: string }> = {
+      monthly: { cents: 1299, interval: 'month', name: 'Trialbank Pro (monthly)' },
+      annual: { cents: 9900, interval: 'year', name: 'Trialbank Pro (annual)' },
+    };
     const { data: info } = await admin.rpc('access_info', { uid: user.id });
     const { data: st } = await admin.from('settings').select('value').eq('key', 'pro_sales').maybeSingle();
     const sale = st?.value ?? 'admin';
     if (sale !== 'on' && !(sale === 'admin' && info?.level === 'admin')) return json({ error: 'Pro opens soon.' }, 403);
     if (sub && ['active', 'trialing', 'past_due'].includes(sub.status ?? '') && new Date(sub.period_end) > new Date()) return json({ error: "You're already on Pro." }, 400);
+    const pp = PRO_PLANS[plan];
     const form = new URLSearchParams({
       mode: 'subscription',
-      'line_items[0][price]': price,
+      ...(price ? { 'line_items[0][price]': price } : {
+        'line_items[0][price_data][currency]': 'aud',
+        'line_items[0][price_data][unit_amount]': String(pp.cents),
+        'line_items[0][price_data][recurring][interval]': pp.interval,
+        'line_items[0][price_data][product_data][name]': pp.name,
+      }),
       'line_items[0][quantity]': '1',
       success_url: `${base0}?pro=${plan}#home`,
       cancel_url: `${base0}#home`,
