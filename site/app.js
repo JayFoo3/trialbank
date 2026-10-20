@@ -89,7 +89,7 @@
       if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
       if (h === 'mark') { show('mark'); await renderMark(); return; }
       if (h === 'tutor' && tutorUsable()) { show('tutor'); await renderTutor(); return; }
-      if (h === 'tutor' && proOpen()) { history.replaceState(null, '', '#home'); show('home'); await renderHome(); openPro('tutor'); return; }
+      if (h === 'tutor' && proOpen()) { show('tutor'); renderTutorIntro(); return; }   // not Pro: show what the tutor is, then the ways in
       if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
       if (h === 'examrun' || h === 'exam') {
         if (state.exam) return show('examrun');
@@ -4064,7 +4064,26 @@
     return `<p>${s}</p>`;
   }
 
+  // the Tutor tab for someone without access: a short video of a real session, then the ways in
+  function renderTutorIntro() {
+    ['tu-modes', 'tu-modehint', 'tu-start', 'tu-session', 'tu-end', 'tu-left'].forEach(id => { const e = $(id); if (e) e.hidden = true; });
+    $('tu-sub').textContent = 'Watch a real session, 54 seconds';
+    $('tu-intro').hidden = false;
+    const p = state.pro || {}, trialsOpen = p.trials === 'on' || (p.trials === 'admin' && state.admin);
+    const canTrial = trialsOpen && !p.active && !p.pass && !p.trial_used;
+    $('tu-intro-go').innerHTML = (canTrial ? `<button class="primary" data-k="trial">Try Pro free for 7 days</button><p class="small muted">No card needed.</p>` : `<button class="primary" data-k="pro">See Pro</button>`)
+      + (packsOpen() ? `<button class="link" data-k="packs">Or just buy tutor messages, from A$4.99</button>` : '');
+    $('tu-intro-go').onclick = (ev) => {
+      const b = ev.target.closest('[data-k]'); if (!b) return;
+      if (b.dataset.k === 'packs') return openTutorPacks();
+      openPro('tutor');
+      if (b.dataset.k === 'trial') setTimeout(() => document.querySelector('.pro-modal .pro-trial')?.focus(), 300);
+    };
+    const v = $('tu-intro-v');
+    if (v && v.paused && !v.dataset.played) { v.dataset.played = '1'; v.play().catch(() => {}); }   // starts on its own (muted); controls let them replay
+  }
   async function renderTutor() {
+    $('tu-intro').hidden = true; ['tu-modes', 'tu-modehint'].forEach(id => { const e = $(id); if (e) e.hidden = false; });
     loadKatex().catch(() => {});
     const subj = tuSubject();
     if (tu.active && tu.subject && tu.subject !== subj) { tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; tu.topic = ''; }   // switched subject: start fresh in the new one
@@ -4356,7 +4375,7 @@
     $('tu-send').disabled = tu.busy;
     const last = d ? box : th.lastElementChild;
     if (!last) return;
-    requestAnimationFrame(() => last.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
+    requestAnimationFrame(() => requestAnimationFrame(() => last.scrollIntoView({ block: d ? 'nearest' : 'end', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })));   // like a chat: the newest message sits just above the message box
   }
 
   // ---------- tutor allowance: "286 of 300 messages left this month" ----------

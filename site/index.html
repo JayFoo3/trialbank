@@ -394,6 +394,20 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div class="tu-left" id="tu-left" hidden><span class="tu-left-n" id="tu-left-n"></span><span class="tu-left-bar"><i id="tu-left-fill"></i></span><span class="tu-left-r small muted" id="tu-left-r" data-base="tu-left-r small"></span></div>
       <button class="link small" id="tu-end" hidden>New session</button>
     </div>
+    <div class="tu-intro" id="tu-intro" hidden>
+      <div class="tu-intro-video"><video id="tu-intro-v" playsinline muted controls preload="metadata" poster="media/tutor-intro.jpg">
+        <source src="media/tutor-intro.webm" type="video/webm"><source src="media/tutor-intro.mp4" type="video/mp4"></video></div>
+      <div class="tu-intro-copy">
+        <h2>Your own HSC tutor</h2>
+        <ul class="tu-intro-why">
+          <li><b>It has the marking guidelines</b><span>It tells you which line earns the mark, and which way of writing it loses one.</span></li>
+          <li><b>It remembers you</b><span>Your usual slips and how you learn best, every session.</span></li>
+          <li><b>You do the thinking</b><span>One step at a time, with the full answer whenever you ask for it.</span></li>
+          <li><b>One tap from any wrong answer</b><span>Explain my mistake opens it right on that question.</span></li>
+        </ul>
+        <div class="tu-intro-go" id="tu-intro-go"></div>
+      </div>
+    </div>
     <div class="tu-modes" role="tablist" aria-label="How do you want to work?" id="tu-modes"></div>
     <p class="small muted tu-modehint" id="tu-modehint"></p>
     <div class="card tu-start" id="tu-start">

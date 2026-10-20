@@ -1858,3 +1858,18 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .tp-packs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .buy-price { font-weight: 800; font-size: 18px; margin-top: 6px; }
 .pro-packs { margin: 12px 0 0; }
+/* keep the newest tutor message clear of the sticky message box when it scrolls into view */
+.tu-thread > *, .tu-done { scroll-margin-bottom: 230px; }
+
+/* Tutor tab for students without it: the video, then the ways in */
+.tu-intro { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 8px; }
+.tu-intro-video { border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow); background: #0e111c; }
+.tu-intro-video video { display: block; width: 100%; height: auto; aspect-ratio: 1024 / 680; }
+.tu-intro-copy h2 { margin: 0 0 12px; font-size: 26px; }
+.tu-intro-why { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 12px; }
+.tu-intro-why li { display: grid; gap: 2px; }
+.tu-intro-why span { color: var(--muted); font-size: 14px; }
+.tu-intro-go { display: grid; gap: 8px; justify-items: start; }
+.tu-intro-go .primary { font-size: 17px; padding: 13px 22px; }
+.tu-intro-go p { margin: 0; }
+@media (max-width: 760px) { .tu-intro { grid-template-columns: 1fr; } }
