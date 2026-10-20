@@ -77,6 +77,7 @@
     const [h, arg] = (location.hash || '#home').slice(1).split('/');
     if (h !== 'study' && st.ch) stLeave();   // left a study session
     if (!state.user) return show('auth');
+    if (!stBooted && !state.preview) { stBooted = true; loadFriends().catch(() => {}); }   // friends can see you online (and invite you) from any page
     drawSubject();
     if (!state.preview) sb.rpc('log_visit', { v: h || 'home' }).then(() => {}, () => {});   // engagement stats for the Admin page
     return busy(async () => {
@@ -4763,7 +4764,7 @@
     st.ch = null; st.code = null; document.body.classList.remove('st-hosting'); stUnwatch();
   }
   // ---- invites: everyone with friends listens on their own inbox channel. Being there is how friends see them as online. ----
-  let stIn = null;
+  let stIn = null, stBooted = false;
   function stInbox() {
     if (stIn || !state.user || state.preview) return;
     stIn = sb.channel(`inbox:${state.user.id}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
