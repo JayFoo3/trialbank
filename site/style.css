@@ -1937,3 +1937,11 @@ body.st-hosting .st-board canvas { cursor: crosshair; }
   .st-main { grid-template-columns: 1fr; }
   .st-qform input { width: 170px; }
 }
+.st-friends { display: grid; gap: 6px; }
+.st-fr { display: flex; align-items: center; gap: 8px; min-height: 34px; }
+.st-fr i { width: 9px; height: 9px; border-radius: 50%; background: var(--rule-strong); flex: none; }
+.st-fr.on i { background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+.st-fr b { flex: 1; font-size: .93rem; }
+.st-fr:not(.on) b { color: var(--muted); font-weight: 600; }
+.st-fr button.small { padding: 5px 12px; font-size: .82rem; }
+.st-codein { width: 150px; font: inherit; text-transform: uppercase; letter-spacing: .12em; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--rule); background: var(--soft); color: var(--ink); }

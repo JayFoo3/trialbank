@@ -341,6 +341,10 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
         <div class="st-board" id="st-board"><img id="st-bg" alt="" hidden><canvas id="st-canvas"></canvas><div class="st-over" id="st-over" hidden></div></div>
       </div>
       <aside class="st-side">
+        <div class="card st-panel" id="st-invite" hidden>
+          <div class="st-ph"><b>Invite friends</b><span class="small muted" id="st-inv-n"></span></div>
+          <div class="st-friends" id="st-friends"></div>
+        </div>
         <div class="card st-panel" id="st-coach">
           <div class="st-ph"><b>Your coach</b><span class="small muted">Only you see this</span></div>
           <div class="st-msgs" id="st-coach-msgs"></div>

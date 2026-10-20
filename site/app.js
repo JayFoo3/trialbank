@@ -3323,6 +3323,7 @@
       const { data: urls } = await sb.storage.from('profile').createSignedUrls(paths, 3600);
       (urls || []).forEach(u => { const f = fs.find(x => x.photo === u.path); if (f && u.signedUrl) f.photoUrl = u.signedUrl; });
     }
+    if (fs.length) stInbox();   // friends can see you're online and invite you to study
     return (state.friends = fs);
   }
   let myCode = null;
@@ -4607,7 +4608,7 @@
   // ---------- Study together (beta, admins host): a shared whiteboard, a coach for the teacher, and a chat ----------
   // Runs on Supabase Realtime broadcast: nothing is stored on the server. Strokes use 0..1 coordinates so any screen size works.
   const ST_COLOURS = ['#1b1f2e', '#2f5be7', '#e5484d', '#1f9d55', '#f5a524'], ST_SIZES = [2, 4, 8];
-  const st = { code: null, host: false, ch: null, strokes: [], live: {}, bg: null, tool: { c: ST_COLOURS[0], w: 4, e: false }, people: [], coach: [], chat: [], ended: false, flushT: null };
+  const st = { code: null, host: false, ch: null, strokes: [], live: {}, bg: null, tool: { c: ST_COLOURS[0], w: 4, e: false }, people: [], ids: [], coach: [], chat: [], ended: false, flushT: null };
   const stKey = (code) => `tb_study_${code}`;
   const stName = () => String(state.user?.user_metadata?.first_name || state.user?.email || 'Someone').trim().split(/\s+/)[0];
   const stCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), b => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[b % 31]).join('');
@@ -4692,7 +4693,7 @@
       + (st.coachBusy ? '<div class="tu-msg tutor typing"><span></span><span></span><span></span></div>' : '')
       || '<p class="small muted">Tell it what you\'re teaching and it plans the session: what to explain first, what to draw, and what to ask her.</p>';
     box.querySelectorAll('[data-share]').forEach(b => b.onclick = () => {
-      const m = st.coach[+b.dataset.share]; const msg = { name: stName() + ' (coach notes)', text: m.text, coach: true, at: Date.now() };
+      const m = st.coach[+b.dataset.share]; const msg = { name: stName() + "'s notes", text: m.text, coach: true, at: Date.now() };
       st.chat.push({ ...msg, me: true }); stSend('chat', msg); stDrawChat(); b.textContent = 'Shared';
     });
     box.scrollTop = box.scrollHeight;
@@ -4714,11 +4715,12 @@
   async function stJoin(code, host) {
     if (st.ch && st.code === code) return;
     stLeave(true);
-    Object.assign(st, { code, host, strokes: [], live: {}, bg: null, people: [], coach: [], chat: [], ended: false });
+    Object.assign(st, { code, host, strokes: [], live: {}, bg: null, people: [], ids: [], coach: [], chat: [], ended: false });
     if (host) { const saved = lsGet(stKey(code)); if (saved) { st.strokes = saved.strokes || []; st.bg = saved.bg || null; st.coach = saved.coach || []; } }
     $('st-lobby').hidden = true; $('st-main').hidden = false;
     document.body.classList.toggle('st-hosting', host);
-    $('st-tools').hidden = !host; $('st-coach').hidden = !host;
+    $('st-tools').hidden = !host; $('st-coach').hidden = !host; $('st-invite').hidden = !host;
+    if (host) stFriends();
     $('st-over').hidden = true;
     const link = `${location.origin}${location.pathname}#study/${code}`;
     $('st-room').innerHTML = host ? `<span class="small muted">Room <b>${code}</b></span><button class="secondary" id="st-copy">Copy invite link</button><button class="link small" id="st-end">End session</button>`
@@ -4746,7 +4748,7 @@
         st.strokes.push(...payload.strokes); stRedraw(); })
       .on('broadcast', { event: 'ended' }, () => { if (st.host) return; st.ended = true; $('st-over').hidden = false; $('st-over').innerHTML = '<div><b>The session has ended.</b><span>Thanks for studying together.</span></div>'; })
       .on('presence', { event: 'sync' }, () => {
-        const ps = ch.presenceState(); st.people = Object.values(ps).map(v => v[0]).filter(Boolean); stDrawPeople();
+        const ps = ch.presenceState(); st.ids = Object.keys(ps); st.people = Object.values(ps).map(v => v[0]).filter(Boolean); stDrawPeople(); stDrawFriends();
         if (!st.host && !st.people.some(p => p.host) && !st.ended) { $('st-over').hidden = false; $('st-over').innerHTML = '<div><b>Waiting for the teacher…</b><span>The board appears as soon as they\'re here.</span></div>'; }
         else if (!st.ended) $('st-over').hidden = true;
       })
@@ -4758,8 +4760,47 @@
   }
   function stLeave(quiet) {
     if (st.ch) { try { sb.removeChannel(st.ch); } catch {} }
-    st.ch = null; document.body.classList.remove('st-hosting');
+    st.ch = null; st.code = null; document.body.classList.remove('st-hosting'); stUnwatch();
   }
+  // ---- invites: everyone with friends listens on their own inbox channel. Being there is how friends see them as online. ----
+  let stIn = null;
+  function stInbox() {
+    if (stIn || !state.user || state.preview) return;
+    stIn = sb.channel(`inbox:${state.user.id}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
+    stIn.on('broadcast', { event: 'study' }, async ({ payload }) => {
+      const code = String(payload?.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+      if (!code || st.code === code) return;
+      window.Juice?.sfx?.pop?.();
+      const k = await choiceBox(`<b>${esc(String(payload.from || 'A friend').slice(0, 30))}</b> invited you to study together`, [['join', 'Join now', 'primary'], ['no', 'Not now', 'secondary']]);
+      if (k === 'join') location.hash = `#study/${code}`;
+    }).subscribe((s) => { if (s === 'SUBSCRIBED') stIn.track({ on: 1 }); });
+  }
+  const stWatch = {}, stInvited = new Set();   // friend id -> a channel watching their inbox (to see them online and send the invite)
+  const stOnline = (f) => !!stWatch[f.friend_id]?.presenceState?.()?.[f.friend_id];
+  async function stFriends() {
+    await loadFriends().catch(() => []);
+    state.friends.forEach(f => {
+      if (stWatch[f.friend_id]) return;
+      const c = stWatch[f.friend_id] = sb.channel(`inbox:${f.friend_id}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
+      c.on('presence', { event: 'sync' }, stDrawFriends).subscribe();
+    });
+    stDrawFriends();
+  }
+  function stDrawFriends() {
+    const box = $('st-friends'); if (!box || !st.host) return;
+    const fs = [...state.friends].sort((a, b) => stOnline(b) - stOnline(a) || a.name.localeCompare(b.name));
+    $('st-inv-n').textContent = fs.length ? `${fs.filter(stOnline).length} online` : '';
+    box.innerHTML = fs.length ? fs.map(f => {
+      const here = st.ids.includes(f.friend_id), on = here || stOnline(f), sent = stInvited.has(f.friend_id);
+      return `<div class="st-fr${on ? ' on' : ''}"><i></i><b>${esc(f.name)}</b>${here ? '<span class="small muted">In the room</span>'
+        : on ? `<button class="${sent ? 'secondary' : 'primary'} small" data-inv="${esc(f.friend_id)}">${sent ? 'Invite again' : 'Invite'}</button>` : '<span class="small muted">Offline</span>'}</div>`;
+    }).join('') : '<p class="small muted">Add friends on your profile and they show up here when they\'re online. Or send the invite link.</p>';
+    box.querySelectorAll('[data-inv]').forEach(b => b.onclick = () => {
+      const id = b.dataset.inv; stWatch[id]?.send({ type: 'broadcast', event: 'study', payload: { code: st.code, from: stName() } });
+      stInvited.add(id); toast(`Invite sent to <b>${esc(state.friends.find(f => f.friend_id === id)?.name || 'your friend')}</b>.`); stDrawFriends();
+    });
+  }
+  function stUnwatch() { Object.keys(stWatch).forEach(id => { try { sb.removeChannel(stWatch[id]); } catch {} delete stWatch[id]; }); stInvited.clear(); }
   async function renderStudy(arg) {
     if (arg) return stJoin(String(arg).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8), state.admin && !state.viewAs && lsGet('tb_study_host') === String(arg).toUpperCase());
     stLeave();
@@ -4769,7 +4810,9 @@
     $('st-lobby').innerHTML = state.admin && !state.viewAs
       ? `<h2>Start a study session</h2><p class="muted">You get a whiteboard and a coach. Send your friend the invite link and they watch your board live, from anywhere. Talk over a phone or Discord call.</p>
          <div class="row"><button class="primary" id="st-start">Start a session</button>${resume ? `<button class="link" id="st-resume">Back to room ${esc(resume)}</button>` : ''}</div>`
-      : `<h2>Study together</h2><p class="muted">Got an invite link? Open it to join your friend's session.</p>`;
+      : `<h2>Study together</h2><p class="muted">When a friend invites you, a message pops up here on Trialbank. Or type the room code they sent you.</p>
+         <form class="row" id="st-joinf"><input id="st-joinc" placeholder="Room code" maxlength="8" autocomplete="off" class="st-codein"><button class="primary">Join</button></form>`;
+    if ($('st-joinf')) $('st-joinf').onsubmit = (ev) => { ev.preventDefault(); const c = $('st-joinc').value.toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length >= 4) location.hash = `#study/${c}`; };
     if ($('st-start')) $('st-start').onclick = () => { const c = stCode(); lsSet('tb_study_host', c); location.hash = `#study/${c}`; };
     if ($('st-resume')) $('st-resume').onclick = () => { location.hash = `#study/${resume}`; };
   }
