@@ -1873,3 +1873,18 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .tu-intro-go .primary { font-size: 17px; padding: 13px 22px; }
 .tu-intro-go p { margin: 0; }
 @media (max-width: 760px) { .tu-intro { grid-template-columns: 1fr; } }
+
+/* flag a question */
+.flag-card { text-align: left; max-width: 460px; }
+.flag-reasons { display: grid; gap: 8px; margin: 14px 0 10px; }
+.flag-r { text-align: left; padding: 10px 14px; border-radius: var(--r); border: 2px solid var(--rule); background: var(--paper); font-weight: 600; cursor: pointer; }
+.flag-r.on { border-color: var(--biro); background: var(--biro-soft); color: var(--biro-dark); }
+.flag-card textarea { width: 100%; margin-bottom: 12px; }
+.tu-qacts { display: inline-flex; gap: 12px; }
+.flags-card .flag-row { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 12px 0; border-top: 1px solid var(--rule); }
+.flag-row img, .flag-noimg { width: 140px; max-height: 110px; object-fit: contain; object-position: top left; border: 1px solid var(--rule); border-radius: var(--r-sm); background: #fff; display: block; }
+.flag-noimg { height: 60px; display: grid; place-items: center; font-size: 12px; color: var(--muted); }
+.flag-info { display: grid; gap: 4px; }
+.flag-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.flag-chips em { font-style: normal; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--bad-soft); color: var(--bad-dark); }
+@media (max-width: 560px) { .flags-card .flag-row { grid-template-columns: 90px minmax(0, 1fr); } .flag-row img, .flag-noimg { width: 90px; } .flags-card .flag-row button { grid-column: 1 / -1; } }

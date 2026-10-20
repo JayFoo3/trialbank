@@ -39,6 +39,9 @@ How you always teach:
 - Maths in LaTeX: inline $...$, display $$...$$. Never use \\( \\) or \\[ \\].
 - If the question has several parts and the student names one (e.g. "11a" or "part (ii)"), work on that part. If they don't say, ask which part.
 - Photos of handwriting: read carefully, and if a symbol is unclear, ask rather than guess.
+- Broken questions: if the question image you were given is cropped wrong or cut off, is missing the actual question (e.g. only an
+  equation or a fragment), hides the multiple-choice options, or its answer or marking guideline looks wrong, set flag_question so it
+  gets fixed, then still help: say briefly what's missing and work from what the student can tell you (or what you can infer).
 - If they ask you to explain something differently, use a genuinely different angle: a numerical example, a picture described in words,
   an analogy, or a different method.
 - Quick questions: if no past question is loaded and the student just asks something (e.g. "what is the range in projectile motion?"),
@@ -82,6 +85,10 @@ const TOOL = {
       say: { type: 'string', description: 'The message the student sees. Short, one step. LaTeX in $...$.' },
       off_topic: { type: 'boolean', description: 'True if this message declined an out-of-scope request (code, files, essays, general tasks, batch marking).' },
       full_paper: { type: 'boolean', description: 'True if they sent a whole paper or several questions to be marked at once, so the app should offer Auto-mark.' },
+      flag_question: {
+        type: ['object', 'null'], description: 'Only when the loaded past question itself is broken (bad crop, missing question text, options not visible, wrong answer or guideline). Otherwise null.',
+        properties: { reason: { type: 'string', enum: ['crop', 'missing', 'options', 'answer', 'solution', 'other'] }, note: { type: 'string', description: 'Under 150 characters: what exactly is wrong.' } },
+      },
       done: { type: 'boolean', description: 'True when this question is finished (solved, marked, or they chose to move on).' },
       awarded: { type: ['integer', 'null'], description: 'When done: the marks they would have earned on their own in an exam (hints given reduce this). Otherwise null.' },
       slip: {
@@ -260,13 +267,18 @@ Deno.serve(async (req) => {
     const done = !!t.done;
     const awarded = done && q && Number.isFinite(Number(t.awarded)) && t.awarded !== null ? Math.max(0, Math.min(marks, Math.round(Number(t.awarded)))) : null;
     const slip = t.slip && typeof t.slip.what === 'string' && t.slip.what.trim() ? { what: t.slip.what.trim().slice(0, 120), kind: KINDS.includes(t.slip.kind) ? t.slip.kind : null } : null;
+    const fq = t.flag_question;
+    if (q && fq && typeof fq.reason === 'string') {   // the tutor noticed a broken question: report it for the admin to fix (once per student and reason)
+      const reason = ['crop', 'missing', 'options', 'answer', 'solution', 'other'].includes(fq.reason) ? fq.reason : 'other';
+      await admin.from('question_flags').insert({ question_id: q.id, user_id: user.id, reason, note: typeof fq.note === 'string' ? fq.note.slice(0, 300) : null, source: 'tutor' }).then(() => {}, () => {});
+    }
     if (slip) await admin.from('tutor_slips').insert({ user_id: user.id, subject, question_id: q?.id ?? null, topic: q?.topic ?? null, kind: slip.kind, what: slip.what });
     const note = typeof t.style_note === 'string' ? t.style_note.trim().slice(0, 160) : '';
     if (note) {
       const list = [...(notes?.notes ?? []).filter((x: string) => x !== note), note].slice(-8);
       await admin.from('tutor_notes').upsert({ user_id: user.id, subject, notes: list, updated_at: new Date().toISOString() });
     }
-    return json({ say, done, awarded, out_of: q ? marks : null, slip, next_level: ['easier', 'same', 'harder'].includes(t.next_level) ? t.next_level : null, learnt: note || null, full_paper: !!t.full_paper, cost_usd: Number(cost.toFixed(5)),
+    return json({ say, done, awarded, out_of: q ? marks : null, slip, next_level: ['easier', 'same', 'harder'].includes(t.next_level) ? t.next_level : null, learnt: note || null, full_paper: !!t.full_paper, flagged: !!(q && fq && fq.reason), cost_usd: Number(cost.toFixed(5)),
       left: isAdmin ? null : Math.max(0, allowance - (monthCount ?? 0) - (fromPack ? 0 : 1)), allowance, credits: Math.max(0, packLeft - (fromPack ? 1 : 0)) });
   } catch (err) {
     await refund();

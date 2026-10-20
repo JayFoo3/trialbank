@@ -618,6 +618,7 @@
     $('star').textContent = '☆ Star';
     loadStars().then(s => { $('star').textContent = s.has(x.id) ? '★ Starred' : '☆ Star'; });
     $('star').onclick = () => toggleStar(x.id, $('star'));
+    $('flag-q').textContent = '⚑ Flag'; $('flag-q').onclick = () => flagQuestion(x, $('flag-q'));
     $('ask-tutor').hidden = !(tutorUsable() && tuSubjects().includes(x.papers.subject) && x.image_path && !x.content);
     $('ask-tutor').onclick = () => askTutor(x);
     $('explain-mistake').hidden = true;
@@ -700,6 +701,38 @@
     else { s.results[s.i].attemptId = row.id; if (s.results[s.i].lost?.length) saveLost(s.results[s.i]); }
     const ch = await srsAnswer(x, score, outOf).catch(e => { console.warn('srs', e.message); return null; });
     if (s.daily) { s.daily.changes.push(ch); dailyMark(x, score, outOf); }
+  }
+  // ---------- flag a broken question: wrong crop, missing text, options cut off, wrong answer ----------
+  const FLAG_REASONS = [
+    ['crop', 'Cropped wrong or cut off'], ['missing', "The question itself is missing"], ['options', "Can't see the answer options"],
+    ['answer', 'The answer or marks look wrong'], ['solution', 'Solution missing or wrong'], ['other', 'Something else'],
+  ];
+  function flagQuestion(q, btn) {
+    const m = mk('div', 'modal buy');
+    m.innerHTML = `<div class="modal-card buy-card flag-card" role="dialog" aria-modal="true" aria-labelledby="flag-h">
+      <button class="link buy-x" data-x aria-label="Close">✕</button>
+      <h2 id="flag-h">What's wrong with this question?</h2>
+      <p class="small muted">${esc(q.papers?.school || '')} ${q.papers?.year || ''} ${esc(label(q))}. Thanks: it gets fixed for everyone.</p>
+      <div class="flag-reasons">${FLAG_REASONS.map(([k, t]) => `<button class="flag-r" data-r="${k}">${esc(t)}</button>`).join('')}</div>
+      <textarea id="flag-note" rows="2" maxlength="300" placeholder="Anything else? (optional)"></textarea>
+      <button class="primary" data-go disabled>Send</button>
+    </div>`;
+    let reason = null;
+    const close = () => m.remove();
+    m.onclick = async (ev) => {
+      if (ev.target === m || ev.target.closest('[data-x]')) return close();
+      const r = ev.target.closest('[data-r]');
+      if (r) { reason = r.dataset.r; m.querySelectorAll('.flag-r').forEach(b => b.classList.toggle('on', b === r)); m.querySelector('[data-go]').disabled = false; return; }
+      if (!ev.target.closest('[data-go]') || !reason) return;
+      const note = m.querySelector('#flag-note').value.trim().slice(0, 300) || null;
+      ev.target.closest('[data-go]').disabled = true;
+      const { error } = state.preview ? { error: null } : await sb.from('question_flags').insert({ question_id: q.id, user_id: state.user.id, reason, note, source: 'student' });
+      if (error && !/duplicate|unique/i.test(error.message)) { ev.target.closest('[data-go]').disabled = false; return toast(esc(error.message)); }
+      close();
+      if (btn) btn.textContent = '⚑ Flagged';
+      toast(location.hash === '#set' ? 'Thanks, flagged. You can <b>skip it</b> for now.' : 'Thanks, flagged. It will get fixed.', 5000);
+    };
+    document.body.appendChild(m);
   }
   // ---------- "Explain my mistake": straight into the tutor on this question, knowing what went wrong ----------
   function showExplain(x, score, outOf, chosen, res) {
@@ -1163,8 +1196,31 @@
       toast(`Tutor cap set to <b>US$${v}</b> a month.`); renderUsage();
     };
   }
+  const FLAG_NAME = Object.fromEntries(FLAG_REASONS);
+  async function renderFlags() {
+    const box = $('flags-list'); if (!box) return;
+    const { data, error } = await sb.rpc('admin_flags');
+    if (error) { box.innerHTML = `<p class="error small">${esc(error.message)}</p>`; return; }
+    $('flags-count').textContent = data.length ? `${data.length} open` : '';
+    if (!data.length) { box.innerHTML = '<p class="muted small">Nothing flagged. Nice.</p>'; return; }
+    const urls = await signed(data.map(r => r.image_path).filter(Boolean)).catch(() => ({}));
+    box.innerHTML = data.map((r, i) => `<div class="flag-row">
+      ${r.image_path && urls[r.image_path] ? `<a href="${urls[r.image_path]}" target="_blank" rel="noopener"><img src="${urls[r.image_path]}" alt="" loading="lazy"></a>` : '<div class="flag-noimg">No image</div>'}
+      <div class="flag-info"><b>${esc(r.school || r.question_id)} ${r.year || ''} ${r.number ? `Q${r.number}${r.part ? `(${esc(r.part)})` : ''}` : ''}</b>
+        <span class="small muted">${esc(C.subjects[r.subject] || r.subject || '')} · ${r.students ? `${r.students} student${r.students == 1 ? '' : 's'}` : ''}${r.students && r.tutor ? ' + ' : ''}${r.tutor ? 'the tutor' : ''} · ${day(r.last_at)}</span>
+        <span class="flag-chips">${(r.reasons || []).map(k => `<em>${esc(FLAG_NAME[k] || k)}</em>`).join('')}</span>
+        ${(r.notes || []).length ? `<span class="small">${r.notes.map(n => `“${esc(n)}”`).join(' · ')}</span>` : ''}
+        <span class="small muted">${esc(r.question_id)}</span></div>
+      <button class="secondary small" data-fix="${i}">Mark fixed</button></div>`).join('');
+    box.querySelectorAll('[data-fix]').forEach(b => b.onclick = async () => {
+      b.disabled = true; const r = data[+b.dataset.fix];
+      const { error } = await sb.rpc('admin_resolve_flags', { qid: r.question_id });
+      if (error) { b.disabled = false; return toast(esc(error.message)); }
+      b.closest('.flag-row').remove(); toast('Marked fixed.');
+    });
+  }
   async function renderAdmin() {
-    renderStats(); renderUsage();
+    renderStats(); renderUsage(); renderFlags();
     const [{ data: settings }, { data: emails }, { data: users }, { data: roster }] = await Promise.all([
       sb.from('settings').select('*'),
       sb.from('allowed_emails').select('email').order('email'),
@@ -4242,7 +4298,7 @@
   // load a question (or none, for their own) as a fresh conversation
   async function tuLoad(q) {
     await tuCleanup();
-    tu.session = Date.now().toString(36); tu.msgs = []; tu.chunks = {}; tu.done = null; tu.slipped = false; tu.n = 0;
+    tu.session = Date.now().toString(36); tu.msgs = []; tu.chunks = {}; tu.done = null; tu.slipped = false; tu.n = 0; tu.flagged = false;
     tu.q = q; tu.subject = tuSubject();
     if (q) {
       await attachUrls([q]);
@@ -4281,6 +4337,7 @@
     const im = $('tu-qimg'); im.dataset.trimmed = ''; im.crossOrigin = 'anonymous'; im.onload = () => trimImg(im); im.src = q.imageUrl;
     card.classList.remove('folded'); $('tu-qtoggle').textContent = 'Hide';
   }
+  $('tu-qflag').onclick = () => tu.q && flagQuestion(tu.q, $('tu-qflag'));
   $('tu-qtoggle').onclick = () => { const f = $('tu-q').classList.toggle('folded'); $('tu-qtoggle').textContent = f ? 'Show question' : 'Hide'; };
 
   // the tutor spotted a whole paper: offer to send it to Auto-mark, with a clear "this uses 1 mark" before anything happens
@@ -4484,6 +4541,7 @@
       else if (tuLeft?.unlimited) loadTuLeft();
       if (data.slip) tu.slipped = true;
       if (data.full_paper && tu.msgs.some(m => m.images?.length)) tu.msgs.push({ role: 'offer' });
+      if (data.flagged && !tu.flagged) { tu.flagged = true; tu.msgs.push({ sys: true, text: 'The tutor flagged this question so it gets fixed.' }); }
       if (data.done && !tu.done) await tuFinish(data);
     } catch (err) {
       tu.msgs.push({ role: 'tutor', error: true, text: err.message || String(err), buy: !!err.out });

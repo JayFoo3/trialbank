@@ -261,6 +261,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <span class="small" id="set-pos"></span>
       <button class="link calc-open-btn" data-calc title="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01M8.5 18.5h.01M12 18.5h3.5"/></svg><span>Calculator</span></button>
       <button class="link" id="star">☆ Star</button>
+      <button class="link" id="flag-q" title="Report a problem with this question">⚑ Flag</button>
       <button class="link" id="ask-tutor" hidden>Ask the tutor</button>
     </div>
     <div class="progress"><div id="set-bar"></div></div>
@@ -425,7 +426,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </div>
     <div id="tu-session" hidden>
       <div class="card question tu-q" id="tu-q">
-        <div class="tu-qbar small"><span id="tu-qmeta"></span><button class="link small" id="tu-qtoggle">Hide</button></div>
+        <div class="tu-qbar small"><span id="tu-qmeta"></span><span class="tu-qacts"><button class="link small" id="tu-qflag" title="Report a problem with this question">⚑ Flag</button><button class="link small" id="tu-qtoggle">Hide</button></span></div>
         <img id="tu-qimg" alt="The question">
       </div>
       <div class="tu-thread" id="tu-thread" aria-live="polite"></div>
@@ -515,6 +516,12 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div class="stat-charts" id="st-charts"></div>
       <div class="stat-lists" id="st-lists"></div>
       <div class="row stats-foot"><label class="small"><input type="checkbox" id="st-admins"> Include admin accounts</label><button class="link small" id="st-csv">Download daily CSV</button><span class="muted small" id="st-since"></span></div>
+    </div>
+
+    <div class="card flags-card" id="flags-card">
+      <div class="between"><h2>Flagged questions</h2><span class="small muted" id="flags-count"></span></div>
+      <p class="small muted">Problems students (or the tutor) reported. Fix the question, then mark it fixed.</p>
+      <div id="flags-list"><p class="muted small">Loading…</p></div>
     </div>
 
     <div class="card au" id="usage-card">
