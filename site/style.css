@@ -2158,3 +2158,4 @@ body.st-hosting .st-board canvas { cursor: crosshair; }
 .up-step i { width: 16px; height: 16px; flex: none; border-radius: 5px; border: 2px solid var(--rule-strong); }
 .up-step.done { background: var(--biro-soft); border-color: transparent; }
 .up-step.done i { background: var(--biro); border-color: var(--biro); }
+.up-step { justify-content: flex-start; } .up-step span { flex: 1; }
