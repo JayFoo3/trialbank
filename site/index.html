@@ -562,6 +562,13 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div class="row stats-foot"><label class="small"><input type="checkbox" id="st-admins"> Include admin accounts</label><button class="link small" id="st-csv">Download daily CSV</button><span class="muted small" id="st-since"></span></div>
     </div>
 
+    <div class="card steps-card" id="steps-card">
+      <div class="pg-ch"><h2>Syllabus steps</h2><span class="small muted">Tag each question with the parts of its topic it needs</span></div>
+      <div class="steps-top"><select id="steps-topic" aria-label="Topic"></select><span class="small muted" id="steps-count"></span><button class="primary" id="steps-run">Tag the rest</button></div>
+      <p class="small muted" id="steps-status"></p>
+      <div class="steps-legend small" id="steps-legend"></div>
+      <div class="steps-list" id="steps-list"></div>
+    </div>
     <div class="card flags-card" id="flags-card">
       <div class="between"><h2>Flagged questions</h2><span class="small muted" id="flags-count"></span></div>
       <p class="small muted">Problems students (or the tutor) reported. Fix the question, then mark it fixed.</p>

@@ -444,6 +444,22 @@
       ['From the Universe to the Atom', ['Origins of the Elements', 'Structure of the Atom', 'Quantum Mechanical Nature of the Atom', 'Properties of the Nucleus', 'Deep Inside the Atom']],
     ],
   };
+  // syllabus steps inside a topic, in teaching order. Questions get tagged with the steps they need (Admin > Syllabus steps),
+  // so a student can say how far into the topic their class is. Ids are stored on questions.skills: never rename one.
+  const STEPS = {
+    Physics: {
+      'Projectile Motion': [
+        ['pm1', 'Splitting velocity into horizontal and vertical parts'],
+        ['pm2', 'Launched horizontally from a height'],
+        ['pm3', 'Launched at an angle from level ground: time of flight, maximum height, range'],
+        ['pm4', 'Launched at an angle from a height, or landing at a different height'],
+        ['pm5', 'Velocity at any point, including the speed and angle it lands at'],
+        ['pm6', 'Graphs of the motion, the shape of the path, and how angle and speed change it'],
+        ['pm7', 'Investigations: checking the relationships, air resistance and errors'],
+      ],
+    },
+  };
+  const topicSteps = (t, subj = state.subject) => (STEPS[subj] || {})[t] || null;
   let topicCounts = null;   // [{subject, topic, type, n}]
   async function loadTopicCounts() {
     if (topicCounts) return topicCounts;
@@ -523,7 +539,7 @@
     filterTopics(); startSummary();
     $('topics-all').onclick = () => { Object.keys(byTopic).filter(t => !skip.has(t)).forEach(t => state.topics.add(t)); renderBuild(); };
     $('topics-learnt').onclick = () => openLearnt(Object.keys(byTopic));
-    { const pos = classPos(); $('pr-up-t').textContent = pos ? topicName(pos) : skip.size ? `${all.length - later.length} of ${all.length} topics` : 'Set it'; $('topics-learnt').classList.toggle('unset', !pos && !skip.size); }
+    { const pos = classPos(); $('pr-up-t').textContent = pos ? topicName(pos) + (classStep() && topicSteps(pos) ? ` · part ${topicSteps(pos).findIndex(([id]) => id === classStep()) + 1} of ${topicSteps(pos).length}` : '') : skip.size ? `${all.length - later.length} of ${all.length} topics` : 'Set it'; $('topics-learnt').classList.toggle('unset', !pos && !skip.size); }
     $('topics-none').onclick = () => { state.topics.clear(); renderBuild(); };
   }
   $('pr-paper').onclick = () => { const c = $('cp-card'); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse'); };
@@ -600,7 +616,7 @@
     if (error) throw error;
     if (!data.length) throw new Error('No questions match that. Widen the filters.');
 
-    const tooHard = hardQs();
+    await loadStepBlock(); const tooHard = blockedQs();
     let pool = data.filter(x => !tooHard.has(x.id) && !x.syllabus_note && hasKey(x));
     if (!pool.length) throw new Error('No questions match that. Widen the filters.');
     if (o.fresh) {
@@ -1303,8 +1319,52 @@
       b.closest('.flag-row').remove(); toast('Marked fixed.');
     });
   }
+  // ---------- Admin: tag questions with syllabus steps, then check them ----------
+  let stepsFilter = '';
+  async function renderSteps() {
+    const sel = $('steps-topic'); if (!sel) return;
+    const opts = Object.entries(STEPS).flatMap(([subj, ts]) => Object.keys(ts).map(t => [`${subj}|${t}`, `${C.subjects[subj] || subj} · ${topicName(t)}`]));
+    if (!sel.options.length) { sel.innerHTML = opts.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join(''); sel.onchange = () => { stepsFilter = ''; renderSteps(); }; }
+    const [subj, topic] = sel.value.split('|'), steps = STEPS[subj][topic], name = Object.fromEntries(steps);
+    const { data, error } = await sb.from('questions').select('id, qid, marks, image_path, skills, papers!inner(subject, school, year)')
+      .eq('papers.subject', subj).eq('topic', topic).not('image_path', 'is', null).limit(2000);
+    if (error) { $('steps-status').textContent = error.message.includes('skills') ? 'Run the skills column SQL first (questions.skills).' : error.message; return; }
+    const tagged = (data || []).filter(q => q.skills), n = (data || []).length;
+    $('steps-count').textContent = `${tagged.length} of ${n} tagged`;
+    $('steps-run').hidden = tagged.length === n;
+    $('steps-legend').innerHTML = steps.map(([id, l], i) => { const k = tagged.filter(q => q.skills.includes(id)).length;
+      return `<button class="chip${stepsFilter === id ? ' on' : ''}" data-f="${id}" title="${esc(l)}"><b>${i + 1}</b> ${esc(l.length > 38 ? l.slice(0, 36) + '…' : l)}<span class="n">${k}</span></button>`; }).join('')
+      + `<button class="chip${stepsFilter === 'outside' ? ' on' : ''}" data-f="outside">Needs another topic<span class="n">${tagged.filter(q => q.skills.includes('outside')).length}</span></button>`;
+    $('steps-legend').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { stepsFilter = stepsFilter === b.dataset.f ? '' : b.dataset.f; renderSteps(); });
+    const show = (stepsFilter ? tagged.filter(q => q.skills.includes(stepsFilter)) : tagged).slice(0, 40);
+    const urls = show.length ? await signed(show.map(q => q.image_path)) : {};
+    const ix = (id) => steps.findIndex(([x]) => x === id) + 1;
+    $('steps-list').innerHTML = show.map(q => `<div class="steps-q"><div class="steps-qh small"><b>${esc(q.papers.school)} ${q.papers.year} ${esc(q.qid)}</b>
+        <span>${q.skills.filter(x => x !== 'outside').map(x => `<em title="${esc(name[x] || x)}">${ix(x)}</em>`).join('')}${q.skills.includes('outside') ? '<em class="out">+ other topic</em>' : ''}</span>
+        <button class="link small" data-redo="${esc(String(q.id))}">Redo</button></div><img loading="lazy" src="${urls[q.image_path] || ''}" alt=""></div>`).join('')
+      || `<p class="small muted">${tagged.length ? 'None with that step.' : 'Nothing tagged yet.'}</p>`;
+    $('steps-list').querySelectorAll('[data-redo]').forEach(b => b.onclick = async () => {
+      b.disabled = true; b.textContent = 'Redoing…';
+      const { data: r, error: e } = await sb.functions.invoke('tag-skills', { body: { subject: subj, subject_name: C.subjects[subj], topic, steps: steps.map(([id, label]) => ({ id, label })), retag: [b.dataset.redo] } });
+      if (e || r?.error) { b.textContent = 'Failed'; return; }
+      renderSteps();
+    });
+    $('steps-run').onclick = async () => {
+      const btn = $('steps-run'); btn.disabled = true; let cost = 0, done = 0;
+      try {
+        for (let guard = 0; guard < 400; guard++) {
+          const { data: r, error: e } = await sb.functions.invoke('tag-skills', { body: { subject: subj, subject_name: C.subjects[subj], topic, steps: steps.map(([id, label]) => ({ id, label })) } });
+          if (e) { let m = e.message; try { m = (await e.context.json()).error || m; } catch {} throw new Error(m); }
+          cost += r.cost_usd || 0; done += r.done || 0;
+          $('steps-status').textContent = `Tagged ${done} so far · ${r.left} left · US$${cost.toFixed(2)} spent${r.failed ? ` · ${r.failed} failed (will retry)` : ''}`;
+          if (!r.left || (!r.done && r.failed)) break;
+        }
+      } catch (err) { $('steps-status').textContent = err.message || String(err); }
+      finally { btn.disabled = false; renderSteps(); }
+    };
+  }
   async function renderAdmin() {
-    renderStats(); renderUsage(); renderFlags();
+    renderStats(); renderUsage(); renderFlags(); renderSteps();
     const [{ data: settings }, { data: emails }, { data: users }, { data: roster }] = await Promise.all([
       sb.from('settings').select('*'),
       sb.from('allowed_emails').select('email').order('email'),
@@ -1662,7 +1722,8 @@
     ]);
     if (error) throw error;
     const skip = skipped(subj);
-    let qs = (pool_ || []).filter(q => q.topic && !skip.has(q.topic));
+    await loadStepBlock(subj); const blk = blockedQs();
+    let qs = (pool_ || []).filter(q => q.topic && !skip.has(q.topic) && !blk.has(q.id));
     if (cpOpt.focus === 'picked') {
       if (!state.topics.size) throw new Error('Pick some topics above first, or choose another focus.');
       qs = qs.filter(q => state.topics.has(q.topic));
@@ -2622,7 +2683,7 @@
           .eq('type', 'mcq').not('answer', 'is', null).or('image_path.not.is.null,content.not.is.null').not('topic', 'is', null).limit(800);
         if (error) throw error;
         const byTopic = {};
-        shuffle((data || []).filter(q => !hardQs().has(q.id) && !q.syllabus_note)).forEach(q => { (byTopic[q.topic] = byTopic[q.topic] || []).push(q); });
+        shuffle((data || []).filter(q => !blockedQs().has(q.id) && !q.syllabus_note)).forEach(q => { (byTopic[q.topic] = byTopic[q.topic] || []).push(q); });
         const skipC = skipped();
         const topics = shuffle(Object.keys(byTopic).filter(t => !skipC.has(t))).slice(0, 12);
         if (!topics.length) throw new Error('No questions ready for a check-up in this subject yet.');
@@ -2686,6 +2747,24 @@
     advance();
   };
   // single questions that go further than the class has learnt so far
+  // questions past the step the class is up to, in the topic it's learning now (needs the questions tagged)
+  let stepBlock = { key: '', ids: new Set() };
+  const classStep = (subj = state.subject) => (state.preview ? previewFlags.step : state.user?.user_metadata?.class_step)?.[subj] || null;
+  async function loadStepBlock(subj = state.subject) {
+    const t = classPos(subj), st = classStep(subj), steps = t && topicSteps(t, subj);
+    const key = `${subj}|${t}|${st}`;
+    if (stepBlock.key === key) return stepBlock.ids;
+    const ids = new Set();
+    const at = steps ? steps.findIndex(([id]) => id === st) : -1;
+    if (at >= 0 && at < steps.length - 1) {
+      const later = new Set(steps.slice(at + 1).map(([id]) => id));
+      const { data, error } = await sb.from('questions').select('id, skills, papers!inner(subject)').eq('papers.subject', subj).eq('topic', t).not('skills', 'is', null).limit(3000);
+      if (!error) (data || []).forEach(q => { if ((q.skills || []).some(x => later.has(x))) ids.add(q.id); });
+    }
+    stepBlock = { key, ids };
+    return ids;
+  }
+  const blockedQs = () => new Set([...hardQs(), ...stepBlock.ids]);
   function hardQs() {
     return new Set(state.preview ? (previewFlags.hardQs || []) : (state.user?.user_metadata?.skip_qs || []));
   }
@@ -2713,7 +2792,7 @@
   }
   function openLearnt(topics) {
     const order = teachingOrder(topics), skip = skipped();
-    let pos = classPos(), free = !!(pos === null && skip.size);   // free = ticking topics one by one (class goes in a different order)
+    let pos = classPos(), step = classStep(), free = !!(pos === null && skip.size);   // free = ticking topics one by one (class goes in a different order)
     if (pos && !order.some(([, t]) => t === pos)) pos = null;
     const draw = () => {
       const grid = $('learnt-grid'), idx = order.findIndex(([, t]) => t === pos);
@@ -2724,13 +2803,17 @@
       grid.innerHTML = order.map(([g, t], i) => {
         const head = g !== last ? `<h3>${esc(g)}</h3>` : ''; last = g;
         const done = free ? !skip.has(t) : idx >= 0 && i < idx, now = !free && i === idx;
-        return `${head}<button class="up-row${done ? ' done' : ''}${now ? ' now' : ''}" data-i="${i}"><i aria-hidden="true"></i><span>${esc(topicName(t))}</span><em>${now ? 'Learning now' : done ? (free ? 'Learnt' : 'Done') : free ? 'Not yet' : ''}</em></button>`;
+        const st = now && topicSteps(t), si = st ? st.findIndex(([id]) => id === step) : -1;
+        const sub = st ? `<div class="up-steps"><p class="small"><b>How far into ${esc(topicName(t))}?</b> <span class="muted">Tap the last part you've learnt. Questions that need later parts stay hidden.</span></p>${st.map(([id, lab], j) =>
+          `<button class="up-step${si >= 0 && j <= si ? ' done' : ''}" data-s="${id}"><i aria-hidden="true"></i><span>${esc(lab)}</span></button>`).join('')}${si >= 0 ? '<button class="link small" data-s="">All of it, show every question</button>' : ''}</div>` : '';
+        return `${head}<button class="up-row${done ? ' done' : ''}${now ? ' now' : ''}" data-i="${i}"><i aria-hidden="true"></i><span>${esc(topicName(t))}</span><em>${now ? 'Learning now' : done ? (free ? 'Learnt' : 'Done') : free ? 'Not yet' : ''}</em></button>${sub}`;
       }).join('');
       grid.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
         const t = order[+b.dataset.i][1];
-        if (free) { skip.has(t) ? skip.delete(t) : skip.add(t); } else pos = t;
+        if (free) { skip.has(t) ? skip.delete(t) : skip.add(t); } else { if (pos !== t) step = null; pos = t; }
         draw();
       });
+      grid.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { step = b.dataset.s || null; draw(); });
     };
     $('learnt-mode').onclick = () => {
       if (!free) { free = true; skip.clear(); const idx = order.findIndex(([, t]) => t === pos); if (idx >= 0) order.slice(idx + 1).forEach(([, t]) => skip.add(t)); }
@@ -2744,16 +2827,16 @@
       $('learnt-save').disabled = true;
       let next = skip;
       if (!free) { const idx = order.findIndex(([, t]) => t === pos); next = new Set(idx >= 0 ? order.slice(idx + 1).map(([, t]) => t) : []); }
-      await saveSkipped(next); await saveClassPos(free ? null : pos);
+      await saveSkipped(next); await saveClassPos(free ? null : pos, free ? null : step);
       $('learnt-save').disabled = false; $('learnt-modal').hidden = true;
       toast(free ? 'Saved. Practice only uses the topics you ticked.' : pos ? `Saved. You're up to <b>${esc(topicName(pos))}</b>.` : 'Saved. Every topic is in.');
       if (location.hash.startsWith('#progress')) renderProgress(); else renderBuild();
     };
   }
-  async function saveClassPos(t, subj = state.subject) {
-    if (state.preview) { previewFlags.pos = { ...(previewFlags.pos || {}), [subj]: t }; return; }
-    const all = { ...(state.user?.user_metadata?.class_pos || {}), [subj]: t };
-    const { data, error } = await sb.auth.updateUser({ data: { class_pos: all } });
+  async function saveClassPos(t, st, subj = state.subject) {
+    if (state.preview) { previewFlags.pos = { ...(previewFlags.pos || {}), [subj]: t }; previewFlags.step = { ...(previewFlags.step || {}), [subj]: st }; return; }
+    const all = { ...(state.user?.user_metadata?.class_pos || {}), [subj]: t }, steps = { ...(state.user?.user_metadata?.class_step || {}), [subj]: st };
+    const { data, error } = await sb.auth.updateUser({ data: { class_pos: all, class_step: steps } });
     if (!error && data?.user) state.user = data.user;
   }
 
@@ -3159,7 +3242,7 @@
   }
   // pick today's five: up to 2 questions they got wrong, then topics due back, then new topics, each at the student's level for that topic
   async function buildDaily(subj = state.subject) {
-    const today = dayOf(), skip = skipped(subj), tooHard = hardQs();
+    await loadStepBlock(subj); const today = dayOf(), skip = skipped(subj), tooHard = blockedQs();
     // three requests at once: where they are on each topic, what they've answered, and a random sample of every question they can see
     const [srs, { data: att }, { data: poolRows, error: poolErr }] = await Promise.all([
       loadSrs(subj),
@@ -4351,8 +4434,9 @@
       .eq('papers.subject', subj).eq('topic', topic).eq('type', 'short').not('image_path', 'is', null).not('solution_path', 'is', null).is('syllabus_note', null).limit(300);
     let { data, error } = await base().gte('marks', lo).lte('marks', hi);
     if (error) throw error;
-    let pool = (data || []).filter(q => !seenIds.has(q.id));
-    if (!pool.length) { ({ data } = await base()); pool = (data || []).filter(q => !seenIds.has(q.id)); if (!pool.length) pool = data || []; }
+    await loadStepBlock(subj); const blk = blockedQs();
+    let pool = (data || []).filter(q => !seenIds.has(q.id) && !blk.has(q.id));
+    if (!pool.length) { ({ data } = await base()); const ok = (data || []).filter(q => !blk.has(q.id)); pool = ok.filter(q => !seenIds.has(q.id)); if (!pool.length) pool = ok; }
     return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
   }
 

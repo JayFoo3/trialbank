@@ -2138,3 +2138,23 @@ body.st-hosting .st-board canvas { cursor: crosshair; }
 .up-row:not(.done):not(.now) span { color: var(--muted); }
 .up-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--rule); }
 .up-acts { display: flex; gap: 10px; margin-left: auto; }
+
+/* ---------- Admin: syllabus steps ---------- */
+.steps-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.steps-top select { flex: 1; min-width: 200px; margin: 0; }
+.steps-legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+.steps-legend .chip { font-size: .82rem; padding: 5px 10px; box-shadow: none; }
+.steps-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.steps-q { border: 2px solid var(--rule); border-radius: var(--r); padding: 8px; background: var(--paper); }
+.steps-qh { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.steps-qh b { flex: 1; }
+.steps-qh em { font-style: normal; font-weight: 800; background: var(--biro); color: #fff; border-radius: 6px; padding: 1px 7px; margin-left: 3px; }
+.steps-qh em.out { background: var(--mid); }
+.steps-q img { width: 100%; border-radius: 8px; background: #fff; }
+/* how far into the topic */
+.up-steps { margin: 2px 0 8px 32px; display: grid; gap: 4px; }
+.up-steps p { margin: 4px 0; }
+.up-step { display: flex; align-items: center; gap: 10px; text-align: left; padding: 7px 10px; border-radius: var(--r-sm); box-shadow: none; font-family: var(--font); font-weight: 600; font-size: .9rem; }
+.up-step i { width: 16px; height: 16px; flex: none; border-radius: 5px; border: 2px solid var(--rule-strong); }
+.up-step.done { background: var(--biro-soft); border-color: transparent; }
+.up-step.done i { background: var(--biro); border-color: var(--biro); }
