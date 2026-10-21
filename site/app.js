@@ -522,7 +522,8 @@
     };
     filterTopics(); startSummary();
     $('topics-all').onclick = () => { Object.keys(byTopic).filter(t => !skip.has(t)).forEach(t => state.topics.add(t)); renderBuild(); };
-    $('topics-learnt').onclick = () => openLearnt(Object.keys(byTopic).sort());
+    $('topics-learnt').onclick = () => openLearnt(Object.keys(byTopic));
+    { const pos = classPos(); $('pr-up-t').textContent = pos ? topicName(pos) : skip.size ? `${all.length - later.length} of ${all.length} topics` : 'Set it'; $('topics-learnt').classList.toggle('unset', !pos && !skip.size); }
     $('topics-none').onclick = () => { state.topics.clear(); renderBuild(); };
   }
   $('pr-paper').onclick = () => { const c = $('cp-card'); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse'); };
@@ -2702,17 +2703,58 @@
     t.querySelector('#undo-hard').onclick = async () => { const s2 = hardQs(); s2.delete(x.id); await saveHardQs(s2); t.hidden = true; };
     advance();
   };
+  // ---------- where your class is up to: topics in teaching order; everything after the current one counts as not learnt yet ----------
+  const classPos = (subj = state.subject) => (state.preview ? previewFlags.pos : state.user?.user_metadata?.class_pos)?.[subj] || null;
+  function teachingOrder(topics, subj = state.subject) {
+    const have = new Set(topics), out = [];
+    (TOPIC_GROUPS[subj] || []).forEach(([g, ts]) => ts.forEach(t => { if (have.has(t)) { out.push([g, t]); have.delete(t); } }));
+    [...have].sort((a, b) => topicName(a).localeCompare(topicName(b))).forEach(t => out.push([out.length ? 'Other' : 'Topics', t]));
+    return out;
+  }
   function openLearnt(topics) {
-    const skip = skipped(), grid = $('learnt-grid'); grid.innerHTML = '';
-    topics.sort((a, b) => topicName(a).localeCompare(topicName(b))).forEach(t => {
-      const b = document.createElement('button');
-      b.className = 'subj' + (skip.has(t) ? '' : ' on'); b.innerHTML = `<span>${esc(topicName(t))}</span>`;
-      b.onclick = () => { skip.has(t) ? skip.delete(t) : skip.add(t); b.classList.toggle('on'); };
-      grid.appendChild(b);
-    });
+    const order = teachingOrder(topics), skip = skipped();
+    let pos = classPos(), free = !!(pos === null && skip.size);   // free = ticking topics one by one (class goes in a different order)
+    if (pos && !order.some(([, t]) => t === pos)) pos = null;
+    const draw = () => {
+      const grid = $('learnt-grid'), idx = order.findIndex(([, t]) => t === pos);
+      $('learnt-sub').textContent = free ? 'Tick every topic your class has covered. Unticked ones stay out of your practice, Daily 5, practice papers and the tutor.'
+        : "Tap the topic you're learning now. Anything after it stays out of your practice, Daily 5, practice papers and the tutor until you get there.";
+      $('learnt-mode').textContent = free ? 'Go back to "up to here"' : 'My class goes in a different order';
+      let last = '';
+      grid.innerHTML = order.map(([g, t], i) => {
+        const head = g !== last ? `<h3>${esc(g)}</h3>` : ''; last = g;
+        const done = free ? !skip.has(t) : idx >= 0 && i < idx, now = !free && i === idx;
+        return `${head}<button class="up-row${done ? ' done' : ''}${now ? ' now' : ''}" data-i="${i}"><i aria-hidden="true"></i><span>${esc(topicName(t))}</span><em>${now ? 'Learning now' : done ? (free ? 'Learnt' : 'Done') : free ? 'Not yet' : ''}</em></button>`;
+      }).join('');
+      grid.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+        const t = order[+b.dataset.i][1];
+        if (free) { skip.has(t) ? skip.delete(t) : skip.add(t); } else pos = t;
+        draw();
+      });
+    };
+    $('learnt-mode').onclick = () => {
+      if (!free) { free = true; skip.clear(); const idx = order.findIndex(([, t]) => t === pos); if (idx >= 0) order.slice(idx + 1).forEach(([, t]) => skip.add(t)); }
+      else free = false;
+      draw();
+    };
+    draw();
     $('learnt-modal').hidden = false;
     $('learnt-cancel').onclick = () => { $('learnt-modal').hidden = true; };
-    $('learnt-save').onclick = async () => { $('learnt-save').disabled = true; await saveSkipped(skip); $('learnt-save').disabled = false; $('learnt-modal').hidden = true; renderBuild(); };
+    $('learnt-save').onclick = async () => {
+      $('learnt-save').disabled = true;
+      let next = skip;
+      if (!free) { const idx = order.findIndex(([, t]) => t === pos); next = new Set(idx >= 0 ? order.slice(idx + 1).map(([, t]) => t) : []); }
+      await saveSkipped(next); await saveClassPos(free ? null : pos);
+      $('learnt-save').disabled = false; $('learnt-modal').hidden = true;
+      toast(free ? 'Saved. Practice only uses the topics you ticked.' : pos ? `Saved. You're up to <b>${esc(topicName(pos))}</b>.` : 'Saved. Every topic is in.');
+      if (location.hash.startsWith('#progress')) renderProgress(); else renderBuild();
+    };
+  }
+  async function saveClassPos(t, subj = state.subject) {
+    if (state.preview) { previewFlags.pos = { ...(previewFlags.pos || {}), [subj]: t }; return; }
+    const all = { ...(state.user?.user_metadata?.class_pos || {}), [subj]: t };
+    const { data, error } = await sb.auth.updateUser({ data: { class_pos: all } });
+    if (!error && data?.user) state.user = data.user;
   }
 
   // ---------- personalise: photo, colour, theme, background ----------

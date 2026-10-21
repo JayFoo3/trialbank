@@ -82,11 +82,11 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </div>
 </div>
 <div class="modal" id="learnt-modal" hidden>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="learnt-title">
-    <h2 id="learnt-title">Topics you've learnt</h2>
-    <p class="muted small">Untick anything your class hasn't covered yet. It stays out of quick sets, check-ups and weak spots until you tick it.</p>
-    <div class="subj-grid" id="learnt-grid"></div>
-    <div class="row end"><button class="link" id="learnt-cancel">Cancel</button><button class="primary" id="learnt-save">Save</button></div>
+  <div class="modal-card up-card" role="dialog" aria-modal="true" aria-labelledby="learnt-title">
+    <h2 id="learnt-title">Where's your class up to?</h2>
+    <p class="muted small" id="learnt-sub">Tap the topic you're learning now. Anything after it stays out of your practice, Daily 5, practice papers and the tutor until you get there.</p>
+    <div class="up-list" id="learnt-grid"></div>
+    <div class="up-foot"><button class="link small" id="learnt-mode">My class goes in a different order</button><span class="up-acts"><button class="link" id="learnt-cancel">Cancel</button><button class="primary" id="learnt-save">Save</button></span></div>
   </div>
 </div>
 <div class="modal" id="me-modal" hidden>
@@ -206,7 +206,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <section id="view-practise" class="view" hidden>
     <div class="pr-head">
       <div><h1>Practise</h1><p class="muted" id="pr-sub">Let Trialbank pick, or choose your own topics below.</p></div>
-      <div class="pr-headlinks"><button class="link small" id="topics-learnt">Topics I've learnt</button><button class="secondary small" id="open-syllabus">Syllabus</button></div>
+      <div class="pr-headlinks"><button class="pr-up" id="topics-learnt"><span class="small muted">Class up to</span><b id="pr-up-t">Set it</b></button><button class="secondary small" id="open-syllabus">Syllabus</button></div>
     </div>
     <div class="pr-quick">
       <button class="pr-q main" id="pr-smart"><span class="pr-q-k">Quickest start</span><b>10 questions picked for you</b><span class="pr-q-s" id="pr-smart-sub">From your weakest topics, ones you haven't done yet.</span></button>

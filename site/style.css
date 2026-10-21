@@ -2115,3 +2115,26 @@ body.st-hosting .st-board canvas { cursor: crosshair; }
 .mk-priv { margin: 10px 0 0; }
 @media (max-width: 720px) { .mk-drops { grid-template-columns: 1fr; } .mk-drop { min-height: 0; } }
 .mk-drop, .mk-drop b { color: var(--ink); }
+
+/* ---------- where your class is up to ---------- */
+.pr-up { display: grid; text-align: left; line-height: 1.2; padding: 7px 14px; border-radius: var(--r); }
+.pr-up b { font-size: .95rem; }
+.pr-up.unset { background: var(--hl); border-color: var(--hl-edge); box-shadow: 0 4px 0 var(--hl-edge); }
+.pr-up.unset .muted { color: var(--ink); opacity: .7; }
+.up-card { max-width: 520px; width: 100%; max-height: calc(100dvh - 32px); display: flex; flex-direction: column; }
+.up-list { overflow-y: auto; margin: 6px -4px 0; padding: 0 4px 4px; display: grid; gap: 4px; }
+.up-list h3 { font-size: .9rem; margin: 12px 0 2px; color: var(--muted); }
+.up-list h3:first-child { margin-top: 4px; }
+.up-row { display: flex; align-items: center; gap: 12px; text-align: left; padding: 9px 12px; border-radius: var(--r); box-shadow: none; border-width: 2px; font-family: var(--font); font-weight: 700; }
+.up-row i { width: 20px; height: 20px; flex: none; border-radius: 50%; border: 2px solid var(--rule-strong); display: grid; place-items: center; }
+.up-row span { flex: 1; }
+.up-row em { font-style: normal; font-size: .8rem; color: var(--muted); font-weight: 700; }
+.up-row.done { background: var(--good-soft); border-color: transparent; }
+.up-row.done i { background: var(--good); border-color: var(--good); }
+.up-row.done i::after { content: ''; width: 9px; height: 5px; border: 2.5px solid #fff; border-top: 0; border-right: 0; transform: translateY(-1px) rotate(-45deg); }
+.up-row.now { background: var(--biro-soft); border-color: var(--biro); }
+.up-row.now i { border-color: var(--biro); background: var(--paper); box-shadow: inset 0 0 0 4px var(--biro); }
+.up-row.now em { color: var(--biro); }
+.up-row:not(.done):not(.now) span { color: var(--muted); }
+.up-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--rule); }
+.up-acts { display: flex; gap: 10px; margin-left: auto; }
