@@ -481,7 +481,7 @@
     const placed = new Set(groups.flatMap(g => g[1]));
     const other = all.filter(t => !placed.has(t) && !skip.has(t));
     if (other.length) groups.push([groups.length ? 'Other' : 'Topics', other.sort((a, b) => topicName(a).localeCompare(topicName(b)))]);
-    const later = all.filter(t => skip.has(t));
+    const later = teachingOrder(all.filter(t => skip.has(t))).map(([, t]) => t);
     if (later.length) groups.push(["Not learnt yet", later]);
     groups.filter(g => g[1].length).forEach(([name, ts]) => {
       const box = mk('div', 'tgroup' + (name === 'Not learnt yet' ? ' later' : ''));
