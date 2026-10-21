@@ -73,7 +73,7 @@ const SUBJECTS: Record<string, string> = { Adv: 'Mathematics Advanced', Ext1: 'M
   Physics: 'Physics', Eng: 'Engineering Studies', SE: 'Software Engineering', Bio: 'Biology', Econ: 'Economics' };
 const CUSTOM = (subject: string) => `You are an experienced NSW HSC marker for ${subject}.
 You are given, in order: the pages of an exam paper (the questions), the school's solutions / marking guidelines if the student has them,
-and photos or scans of ONE student's handwritten responses.
+and photos or scans of ONE student's handwritten responses. Often the student instead uploads one annotated paper: the printed questions with their working and multiple choice answers written on the same pages. Then read the questions and the responses from those pages together.
 
 Mark the whole paper:
 - Go through the paper in order and make one entry per marked item: each multiple choice question ("Q1", "Q2", ...) and each part that carries its own marks ("Q11(a)", "Q11(b)(ii)", ...). Take each item's marks from the paper.
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
   const user = ures?.user;
   if (uerr || !user) return json({ error: 'Please sign in again.' }, 401);
   let body: { paper_id?: number; pages?: string[]; question_ids?: string[]; chunks?: Record<string, string[]>; session?: string;
-    custom?: boolean; paper_pages?: string[]; sol_pages?: string[]; subject?: string };
+    custom?: boolean; annotated?: boolean; paper_pages?: string[]; sol_pages?: string[]; subject?: string };
   try { body = await req.json(); } catch { return json({ error: 'Bad request' }, 400); }
   const { paper_id, pages, question_ids } = body;
   // tall question/solution images arrive pre-sliced by the browser (the API caps image size)
@@ -145,13 +145,14 @@ Deno.serve(async (req) => {
   const custom = body.custom === true;
   const mine = (a: unknown, lo: number, hi: number) => Array.isArray(a) && a.length >= lo && a.length <= hi &&
     a.every((p) => typeof p === 'string' && p.startsWith(user.id + '/') && !p.includes('..'));
+  const annotated = custom && body.annotated === true;   // one PDF with the questions and the student's working on the same pages
   if (custom) {
-    if (!mine(body.paper_pages, 1, 24)) return json({ error: 'Upload the paper: between 1 and 24 pages.' }, 400);
+    if (!mine(body.paper_pages ?? [], annotated ? 0 : 1, 24)) return json({ error: 'Upload the paper: between 1 and 24 pages.' }, 400);
     if (!mine(body.sol_pages ?? [], 0, 24)) return json({ error: 'Upload at most 24 pages of solutions.' }, 400);
-    if (!mine(pages, 1, 30)) return json({ error: 'Upload your working: between 1 and 30 pages.' }, 400);
+    if (!mine(pages, 1, annotated ? 40 : 30)) return json({ error: `Upload your working: between 1 and ${annotated ? 40 : 30} pages.` }, 400);
   }
   if (!custom && !Number.isInteger(paper_id)) return json({ error: 'Bad paper' }, 400);
-  if (!Array.isArray(pages) || !pages.length || pages.length > 30 ||
+  if (!Array.isArray(pages) || !pages.length || pages.length > (annotated ? 40 : 30) ||
       pages.some((p) => typeof p !== 'string' || !p.startsWith(user.id + '/') || p.includes('..')))
     return json({ error: 'Upload between 1 and 30 pages.' }, 400);
   if (!custom && (!Array.isArray(question_ids) || !question_ids.length || question_ids.length > 24))
@@ -214,10 +215,10 @@ Deno.serve(async (req) => {
         const ims = await Promise.all(list.map((p) => img('submissions', p)));
         ims.forEach((im, i) => content.push({ type: 'text', text: `page ${i + 1}` }, im));
       };
-      await add(`THE EXAM PAPER (${body.paper_pages!.length} pages):`, body.paper_pages!);
+      await add(`THE EXAM PAPER (${(body.paper_pages ?? []).length} pages):`, body.paper_pages ?? []);
       await add(`THE SOLUTIONS / MARKING GUIDELINES (${(body.sol_pages ?? []).length} pages):`, body.sol_pages ?? []);
       if (!(body.sol_pages ?? []).length) content.push({ type: 'text', text: 'No solutions were uploaded: solve each question yourself before marking it.' });
-      await add(`THE STUDENT'S RESPONSES (${pages!.length} pages):`, pages!);
+      await add(annotated ? `THE STUDENT'S ANNOTATED PAPER (${pages!.length} pages): the printed questions with the student's handwritten working and multiple choice answers on the same pages:` : `THE STUDENT'S RESPONSES (${pages!.length} pages):`, pages!);
       content.push({ type: 'text', text: 'Mark every item in the paper now.' });
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -228,7 +229,7 @@ Deno.serve(async (req) => {
       const u = out.usage ?? {};
       const cost = ((u.input_tokens ?? 0) * PRICE.in + (u.output_tokens ?? 0) * PRICE.out +
         (u.cache_creation_input_tokens ?? 0) * PRICE.cw + (u.cache_read_input_tokens ?? 0) * PRICE.cr) / 1e6;
-      const n = (body.paper_pages!.length) + (body.sol_pages ?? []).length + pages!.length;
+      const n = (body.paper_pages ?? []).length + (body.sol_pages ?? []).length + pages!.length;
       await admin.from('automark_runs').insert({ user_id: user.id, paper_id: null, n_questions: 0, n_pages: n,
         input_tokens: u.input_tokens, output_tokens: u.output_tokens, cache_write: u.cache_creation_input_tokens, cache_read: u.cache_read_input_tokens,
         cost_usd: cost, error: r.ok ? null : JSON.stringify(out.error ?? out).slice(0, 500), paid, session_id: session });

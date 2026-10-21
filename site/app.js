@@ -2131,7 +2131,16 @@
   }
   $('mark-search').oninput = drawMarkSearch;
   $('mark-results').onclick = (ev) => { const b = ev.target.closest('.mk-hit'); if (!b) return; const p = markPapers.find(x => x.id === Number(b.dataset.id)); if (p) markPaper(p); };
-  $('own-open').onclick = () => { $('mk-own').hidden = false; $('mk-own').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  // the file pickers show what's been chosen
+  [['own-work', 'drop-work'], ['own-sol', 'drop-sol'], ['own-paper', 'drop-paper']].forEach(([id, drop]) => {
+    const inp = $(id), lab = $(id + '-f'), box = $(drop);
+    const show = () => { const f = [...inp.files]; box.classList.toggle('has', !!f.length);
+      lab.textContent = !f.length ? 'Choose file' : f.length === 1 ? f[0].name : `${f.length} files`; };
+    inp.onchange = show;
+    box.ondragover = (ev) => { ev.preventDefault(); box.classList.add('over'); };
+    box.ondragleave = () => box.classList.remove('over');
+    box.ondrop = (ev) => { ev.preventDefault(); box.classList.remove('over'); if (ev.dataTransfer.files.length) { inp.files = ev.dataTransfer.files; show(); } };
+  });
 
   // ---------- marking any paper: the student uploads the paper, their working and the solutions ----------
   const OWN_KEY = () => 'tb_own_marks_' + (state.user?.id || '');
@@ -2152,10 +2161,10 @@
         return out;
       };
       const paper_pages = await up(P, 'q', 24, 'Paper');
-      const pages = await up(W, 'p', 30, 'Your working');
+      const pages = await up(W, 'p', P.length ? 30 : 40, P.length ? 'Your working' : 'Your paper');
       const sol_pages = S.length ? await up(S, 's', 24, 'Solutions') : [];
       say('Marking the whole paper… this takes one to two minutes. Keep this page open.');
-      const { data, error } = await sb.functions.invoke('automark', { body: { custom: true, subject: state.subject, paper_pages, sol_pages, pages, session } });
+      const { data, error } = await sb.functions.invoke('automark', { body: { custom: true, annotated: !paper_pages.length, subject: state.subject, paper_pages, sol_pages, pages, session } });
       if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
       const rec = { at: Date.now(), subject: state.subject, title: data.title || 'Your uploaded paper', results: data.results, sol: !!sol_pages.length };
       const hist = (lsGet(OWN_KEY()) || []).filter(Boolean); hist.unshift(rec); lsSet(OWN_KEY(), hist.slice(0, 12));
@@ -2166,8 +2175,8 @@
   async function runOwnMark() {
     const say = (t, err) => { $('own-status').textContent = t; $('own-status').className = 'small ' + (err ? 'error' : 'muted'); };
     const P = $('own-paper').files, W = $('own-work').files, S = $('own-sol').files;
-    if (!P.length) return say('Add the paper first.', true);
-    if (!W.length) return say('Add your working.', true);
+    if (!W.length) return say('Add your annotated paper first.', true);
+    if (!S.length && (await choiceBox('Mark it without solutions?<span class="cb-sub">The marker works each question out itself first. It\'s usually right, but marking against the real solutions is more reliable.</span>', [['no', 'Add solutions', 'secondary'], ['yes', 'Mark without them', 'primary']])) !== 'yes') return;
     const btn = $('own-go'); btn.disabled = true; $('own-result').innerHTML = '';
     try { const rec = await ownMark(P, W, S, say); say(''); $('own-result').appendChild(ownResult(rec)); }
     catch (err) { say(err.message || String(err), true); }
