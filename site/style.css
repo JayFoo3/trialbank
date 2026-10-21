@@ -2114,3 +2114,4 @@ body.st-hosting .st-board canvas { cursor: crosshair; }
 .mk-main .mk-row { align-items: center; margin-top: 14px; }
 .mk-priv { margin: 10px 0 0; }
 @media (max-width: 720px) { .mk-drops { grid-template-columns: 1fr; } .mk-drop { min-height: 0; } }
+.mk-drop, .mk-drop b { color: var(--ink); }
