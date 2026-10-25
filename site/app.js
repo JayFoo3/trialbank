@@ -269,7 +269,7 @@
     if (/Database error saving new user/i.test(msg)) return 'Sign-up was refused. Check your email and invite code, or ask Jayden.';
     return msg;
   }
-  $('signout').onclick = () => sb.auth.signOut();
+  $('signout').onclick = async () => { clearDeviceData(); await sb.auth.signOut(); };
   $('calc-btn').onclick = () => window.Calc && Calc.toggle();
   document.querySelectorAll('[data-calc]').forEach(b => { b.onclick = () => window.Calc && Calc.toggle(); });   // inside questions and exams, where the top bar is hidden
   const drawSound = () => { if (window.Juice) $('sound-toggle').textContent = `Sounds: ${Juice.soundLabel()}`; };
@@ -3470,6 +3470,62 @@
       box.result.then(k => { if (k === 'yes' && items.length) location.hash = '#profile'; });
     } finally { lvlChecking = false; }
   }
+  // ---------- data protection: download everything, clear the tutor's memory, delete the account ----------
+  function dataErr(msg) { const e = $('pf-data-err'); if (e) { e.textContent = msg; e.hidden = !msg; } }
+  function drawDataControls() {
+    if (!$('pf-data')) return;
+    $('pf-export').onclick = async (ev) => {
+      const b = ev.currentTarget; b.disabled = true; dataErr('');
+      try {
+        const { data, error } = await sb.rpc('my_data'); if (error) throw error;
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `trialbank-my-data-${dayOf()}.json`;
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      } catch (err) { dataErr(err.message || String(err)); } finally { b.disabled = false; }
+    };
+    $('pf-forget').onclick = async () => {
+      const b = $('pf-forget');
+      if (!(await confirmBox('Clear what the tutor remembers about how you learn?', 'Clear it', 'Keep it'))) return;
+      b.disabled = true; dataErr('');
+      const { error } = await sb.rpc('clear_my_tutor_memory');
+      b.disabled = false; if (error) return dataErr(error.message);
+      clearDeviceData(true); toast('Done. The tutor starts fresh with you.');
+    };
+    $('pf-delete').onclick = async () => {
+      const b = $('pf-delete'); window.__delTyped = '';
+      const ok = await choiceBox(`Delete your Trialbank account?<span class="cb-sub">Your progress, uploads, marking packs and friends are removed for good. Type DELETE to confirm.</span><input id="del-confirm" class="del-confirm" autocomplete="off" aria-label="Type DELETE">`,
+        [['no', 'Keep my account', 'secondary'], ['yes', 'Delete it', 'danger']]);
+      if (ok !== 'yes') return;
+      if ((window.__delTyped || '').trim().toUpperCase() !== 'DELETE') return dataErr('Type DELETE in the box to confirm.');
+      b.disabled = true; dataErr('');
+      try {
+        const uid = state.user.id;
+        for (const bucket of ['profile', 'submissions']) {   // your files first (each student can delete their own)
+          const { data: dirs } = await sb.storage.from(bucket).list(uid, { limit: 1000 });
+          const paths = [];
+          for (const d of dirs || []) {
+            if (d.id) paths.push(`${uid}/${d.name}`);   // a file
+            else { const { data: inner } = await sb.storage.from(bucket).list(`${uid}/${d.name}`, { limit: 1000 }); (inner || []).forEach(f => paths.push(`${uid}/${d.name}/${f.name}`)); }
+          }
+          for (let i = 0; i < paths.length; i += 100) await sb.storage.from(bucket).remove(paths.slice(i, i + 100));
+        }
+        const { error } = await sb.rpc('delete_my_account'); if (error) throw error;
+        clearDeviceData(); await sb.auth.signOut().catch(() => {});
+        toast('Your account has been deleted.', 8000); location.hash = '#home';
+      } catch (err) { dataErr(err.message || String(err)); b.disabled = false; }
+    };
+  }
+  document.addEventListener('input', (ev) => { if (ev.target && ev.target.id === 'del-confirm') window.__delTyped = ev.target.value; });
+  // shared computers: signing out leaves nothing personal behind (tutor chat, marking results, photos list, caches)
+  function clearDeviceData(tutorOnly) {
+    try {
+      Object.keys(localStorage).forEach(k => {
+        if (!k.startsWith('tb_')) return;
+        if (tutorOnly ? k.startsWith('tb_tu_') : !['tb_prefs'].includes(k)) localStorage.removeItem(k);
+      });
+      if (!tutorOnly) sessionStorage.clear();
+    } catch {}
+  }
   async function renderProfile() {
     const [lv] = await Promise.all([myLevel(), loadFriends()]);
     const pr = myProfile(), st = streakData(), L = lv.level, lo = xpFor(L), hi = xpFor(L + 1);
@@ -3495,8 +3551,17 @@
       <div class="pf-grid borders" id="pf-borders">${BORDERS.map(x => tile('border', x[0], `${petBadge({ ...pr, border: x[0] }, 'sm')}<span>${x[1]}</span>`, x[2], x[3], (pr.border || 'none') === x[0])).join('')}</div>
       <div class="sec-head"><h2 class="sec">Friends</h2><button class="link small" id="pf-fr">Add a friend</button></div>
       <div class="friends pf-friends" id="pf-friends">${state.friends.length ? [meRow(), ...state.friends].sort((a, b) => (b.level || 1) - (a.level || 1) || b.streak - a.streak).map(friendChip).join('')
-        : '<p class="small muted">Add friends to see their pets, levels and streaks here.</p>'}</div>`;
+        : '<p class="small muted">Add friends to see their pets, levels and streaks here.</p>'}</div>
+      <div class="card pf-data" id="pf-data">
+        <h2>Your data</h2>
+        <p class="small muted">What Trialbank keeps about you, and how to take it with you or remove it. <a href="info.html#privacy">How your data is used</a></p>
+        <div class="pf-data-row"><div><b>Download my data</b><span class="small muted">Your answers, scores, settings, marking and tutor records, as a file.</span></div><button class="secondary" id="pf-export">Download</button></div>
+        <div class="pf-data-row"><div><b>Clear what the tutor remembers</b><span class="small muted">Its notes on how you learn and your recent slips. Your tutor chat is only kept on this device.</span></div><button class="secondary" id="pf-forget">Clear</button></div>
+        <div class="pf-data-row"><div><b>Delete my account</b><span class="small muted">Removes your account, progress, uploads and friends for good. This can't be undone.</span></div><button class="danger" id="pf-delete">Delete</button></div>
+        <p class="error" id="pf-data-err" hidden></p>
+      </div>`;
     $('pf-fr').onclick = () => openFriends().then(() => {});
+    drawDataControls();
     el.querySelectorAll('.pf-tile').forEach(b => b.onclick = async () => {
       const { kind, k, lvl, pro } = b.dataset, pr = myProfile();
       if (k === 'photo' && (!media.av || pr.pet === 'photo')) return $('pf-photo-file').click();   // no photo yet, or tapping it again: upload a new one

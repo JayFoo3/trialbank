@@ -131,21 +131,50 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 
   <h2 id="privacy">Privacy</h2>
   <div class="policy">
+    <p>Trialbank is built for HSC students, many of whom are under 18, so we collect as little as we can and keep it only as long as we need it.</p>
     <h3>What we collect</h3>
     <ul>
-      <li>Your email address, first name and the subjects you choose.</li>
-      <li>Your answers, scores and progress, so the site can track your weak spots.</li>
-      <li>Photos of working you upload for auto-marking.</li>
-      <li>A record of marking packs you've bought. Card details go directly to Stripe and never reach us.</li>
+      <li><b>Your account:</b> email address, first name, the subjects you choose, and your profile look (pet, colours, an optional photo).</li>
+      <li><b>Your practice:</b> the questions you answer, your scores, which topics you've learnt, starred questions and timed papers.</li>
+      <li><b>Uploads:</b> photos or PDFs of your working for marking, photos you send the tutor, and photos put up in Study together.</li>
+      <li><b>The tutor:</b> a short note of how you learn best and your recent slips, so it can help you better. Your tutor chat itself is kept only in your browser, not on our servers.</li>
+      <li><b>Usage:</b> which pages you open each day, and a record of each marking or tutor request (for limits and costs, not the content).</li>
+      <li><b>Payments:</b> what you've bought and your Pro status. Card details go straight to Stripe and never reach us.</li>
     </ul>
-    <h3>How it's used and stored</h3>
-    <p>Your information is used only to run Trialbank: your account, your progress and your marking. It's stored with our hosting providers (Supabase for the database and images, Backblaze for paper PDFs). Uploaded working is sent to Anthropic's Claude to be marked. We don't sell your information or use it for advertising.</p>
+    <h3>Who sees it</h3>
+    <ul>
+      <li><b>Friends you add</b> see your first name, level, streak and pet or photo. Nothing else.</li>
+      <li><b>Study together:</b> people in a session see your first name and what's written in the chat and on the board. Nothing from a session is saved on our servers.</li>
+      <li><b>Year averages</b> only appear for topics where at least 5 students have answered, so no one's own scores can be picked out.</li>
+      <li><b>The Trialbank admin</b> can see accounts, usage and marking records to run the site and help you.</li>
+    </ul>
+    <h3>Where it's stored and who processes it</h3>
+    <ul>
+      <li><b>Supabase</b> hosts the database, sign-in and uploaded images, encrypted in transit and at rest.</li>
+      <li><b>Anthropic (Claude)</b> marks uploaded working and runs the tutor. Pages and messages are sent to it only to answer that request. Under Anthropic's commercial terms they aren't used to train its AI.</li>
+      <li><b>Stripe</b> handles payments. <b>Backblaze</b> stores the exam paper PDFs (no personal information).</li>
+      <li>Fonts and code libraries load from Google Fonts, jsDelivr and cdnjs, which see your IP address like any website you visit.</li>
+    </ul>
+    <h3>How long we keep it</h3>
+    <ul>
+      <li>Pages uploaded for marking are deleted as soon as they're marked. Tutor and Study together photos are deleted after 7 days.</li>
+      <li>Page-visit records are deleted after 13 months.</li>
+      <li>Everything else stays while you have an account and is deleted when you delete it.</li>
+    </ul>
     <h3>Your choices</h3>
-    <p>You can ask to see, correct or delete your information at any time; deleting your account removes your progress and uploads. Email us at the contact address above.</p>
-    <p>The site stores your sign-in and display settings on your device so you stay logged in; it doesn't use advertising or tracking cookies.</p>
+    <ul>
+      <li><b>Download all your data</b> or <b>delete your account</b> any time from your Profile page, under Your data. Deleting removes your account, progress, uploads and friends for good.</li>
+      <li><b>Clear what the tutor remembers</b> about you from the same place.</li>
+      <li>Change your name, subjects and topics whenever you like, or email us to see or correct anything else.</li>
+      <li>Signing out clears your tutor chat and marking results from that device, so shared computers are safe to use.</li>
+    </ul>
+    <h3>Cookies and tracking</h3>
+    <p>The site stores your sign-in and display settings on your device so you stay logged in. There are no advertising or tracking cookies, and we don't sell your information or use it for advertising.</p>
+    <h3>If something goes wrong</h3>
+    <p>If we ever learn of a data breach that could harm you, we'll tell you and, where required, the Office of the Australian Information Commissioner. Questions or complaints: email us at the contact address above.</p>
   </div>
 
-  <p class="info-foot">Trialbank is a JAI-OPS product. Last updated 19 October 2026 · <a href="./">Back to Trialbank</a></p>
+  <p class="info-foot">Trialbank is a JAI-OPS product. Last updated 26 October 2026 · <a href="./">Back to Trialbank</a></p>
 </main>
 <script src="config.js?v=dev"></script>
 <script>

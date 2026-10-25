@@ -2159,3 +2159,16 @@ body.st-hosting .st-board canvas { cursor: crosshair; }
 .up-step.done { background: var(--biro-soft); border-color: transparent; }
 .up-step.done i { background: var(--biro); border-color: var(--biro); }
 .up-step { justify-content: flex-start; } .up-step span { flex: 1; }
+
+/* ---------- Your data (Profile) ---------- */
+.pf-data { margin-top: 22px; }
+.pf-data h2 { margin-bottom: 2px; }
+.pf-data-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 2px solid var(--rule); }
+.pf-data-row:first-of-type { margin-top: 10px; }
+.pf-data-row > div { flex: 1; display: grid; gap: 2px; }
+.pf-data-row button { flex: none; min-width: 108px; }
+.danger, .danger:hover { background: var(--paper); color: var(--bad); border-color: var(--bad-soft); box-shadow: 0 4px 0 var(--bad-soft); }
+.danger:hover { background: var(--bad-soft); }
+.modal .danger { background: var(--bad); color: #fff; border-color: var(--bad-dark); box-shadow: 0 4px 0 var(--bad-dark); }
+.del-confirm { display: block; width: 100%; margin: 14px 0 0; font: inherit; font-size: 1rem; letter-spacing: .1em; text-transform: uppercase; padding: 10px 14px; border-radius: var(--r-sm); border: 2px solid var(--rule); background: var(--soft); color: var(--ink); }
+@media (max-width: 560px) { .pf-data-row { flex-wrap: wrap; } .pf-data-row button { width: 100%; } }

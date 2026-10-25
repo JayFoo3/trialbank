@@ -18,3 +18,7 @@ verify_jwt = true
 # admins only: switch into, or reset, the test account
 [functions.test-account]
 verify_jwt = true
+
+# the nightly data clean-up: takes no input and only deletes what is past its keep-by date
+[functions.cleanup]
+verify_jwt = false
