@@ -54,7 +54,8 @@ Deno.serve(async (req) => {
   const user = ures?.user;
   if (!user) return json({ error: 'Please sign in again.' }, 401);
   const { data: srow } = await admin.from('settings').select('value').eq('key', 'admin_emails').maybeSingle();
-  const isAdmin = String(srow?.value ?? '').toLowerCase().split(/[\s,]+/).includes(String(user.email ?? '').toLowerCase());
+  const me = user.email_confirmed_at ? String(user.email ?? '').trim().toLowerCase() : '';
+  const isAdmin = !!me && String(srow?.value ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean).includes(me);
   if (!isAdmin) return json({ error: 'Admins only.' }, 403);
 
   let body: { subject?: string; subject_name?: string; topic?: string; steps?: { id: string; label: string }[]; retag?: string[] };
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
   // this topic's questions in the subject; tag the untagged ones (or the ones asked to be redone)
   const { data: qs, error } = await admin.from('questions').select('id, image_path, skills, papers!inner(subject)')
     .eq('papers.subject', body.subject).eq('topic', body.topic).not('image_path', 'is', null).limit(2000);
-  if (error) return json({ error: error.message }, 500);
+  if (error) { console.error(error); return json({ error: 'Could not read the questions.' }, 500); }
   const redo = new Set((body.retag ?? []).map(String));
   const todo = (qs ?? []).filter((q) => redo.size ? redo.has(String(q.id)) : q.skills == null).slice(0, PER_CALL);
   let cost = 0, failed = 0;

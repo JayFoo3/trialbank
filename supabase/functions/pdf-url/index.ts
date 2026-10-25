@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
   if (!u?.user) return json({ error: 'Please sign in again.' }, 401);
   const { data: rows, error } = await sb.from('papers').select('id')
     .or(`pdf_path.eq.${path},pdf_sol_path.eq.${path}`).limit(1);
-  if (error) return json({ error: error.message }, 500);
+  if (error) { console.error(error); return json({ error: 'Could not check that paper.' }, 500); }
   if (!rows?.length) return json({ error: "That paper isn't open on your account." }, 403);
 
   const region = endpoint.split('.')[1] ?? 'us-west-004';          // s3.<region>.backblazeb2.com

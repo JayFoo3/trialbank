@@ -137,14 +137,16 @@ Deno.serve(async (req) => {
     custom?: boolean; annotated?: boolean; paper_pages?: string[]; sol_pages?: string[]; subject?: string };
   try { body = await req.json(); } catch { return json({ error: 'Bad request' }, 400); }
   const { paper_id, pages, question_ids } = body;
+  // only this student's own uploads, in the shapes the site makes (blocks %2e%2e and other path tricks)
+  const OWN = new RegExp(`^${user.id}/[A-Za-z0-9_-]{1,80}/[A-Za-z0-9_-]{1,64}\\.(?:jpe?g|png|webp)$`);
+  const own = (p: unknown): p is string => typeof p === 'string' && OWN.test(p);
   // tall question/solution images arrive pre-sliced by the browser (the API caps image size)
   const chunks: Record<string, string[]> = {};
   for (const [k, v] of Object.entries(body.chunks ?? {})) {
-    if (Array.isArray(v) && v.length <= 12 && v.every((p) => typeof p === 'string' && p.startsWith(user.id + '/') && !p.includes('..'))) chunks[k] = v;
+    if (Array.isArray(v) && v.length <= 12 && v.every(own)) chunks[k] = v;
   }
   const custom = body.custom === true;
-  const mine = (a: unknown, lo: number, hi: number) => Array.isArray(a) && a.length >= lo && a.length <= hi &&
-    a.every((p) => typeof p === 'string' && p.startsWith(user.id + '/') && !p.includes('..'));
+  const mine = (a: unknown, lo: number, hi: number) => Array.isArray(a) && a.length >= lo && a.length <= hi && a.every(own);
   const annotated = custom && body.annotated === true;   // one PDF with the questions and the student's working on the same pages
   if (custom) {
     if (!mine(body.paper_pages ?? [], annotated ? 0 : 1, 24)) return json({ error: 'Upload the paper: between 1 and 24 pages.' }, 400);
@@ -153,7 +155,7 @@ Deno.serve(async (req) => {
   }
   if (!custom && !Number.isInteger(paper_id)) return json({ error: 'Bad paper' }, 400);
   if (!Array.isArray(pages) || !pages.length || pages.length > (annotated ? 40 : 30) ||
-      pages.some((p) => typeof p !== 'string' || !p.startsWith(user.id + '/') || p.includes('..')))
+      !pages.every(own))
     return json({ error: 'Upload between 1 and 30 pages.' }, 400);
   if (!custom && (!Array.isArray(question_ids) || !question_ids.length || question_ids.length > 24))
     return json({ error: 'Bad question list' }, 400);
@@ -162,15 +164,27 @@ Deno.serve(async (req) => {
   // paid or free? One upload (session) uses one bought mark, claimed when its first section is marked.
   // A student with bought marks skips the free pool and the release dial; everyone else uses the free pool.
   const session = typeof body.session === 'string' && /^[\w-]{8,64}$/.test(body.session) ? body.session : null;
-  let paid = false;
+  const pagesKey = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode([...pages, ...(body.paper_pages ?? []), ...(body.sol_pages ?? [])].sort().join('|')))))
+    .map((b) => b.toString(16).padStart(2, '0')).join('');
+  let paid = false, claimedNow = false;
   if (session) {
     const { data: already } = await admin.rpc('session_paid', { uid: user.id, sess: session, paper: paperKey });
-    if (already) paid = true;
-    else {   // a Pro account's monthly marks, or bought marks
+    if (already) {
+      if (custom) return json({ error: 'That upload has already been marked. Start a new upload to mark another paper.' }, 409);
+      const { data: same } = await admin.rpc('mark_session_pages', { uid: user.id, sess: session, pk: pagesKey });
+      if (!same) return json({ error: 'Start a new upload to mark a different set of pages.' }, 409);
+      paid = true;
+    } else {   // a Pro account's monthly marks, or bought marks: claimed now, before any AI cost, and given back if marking fails
       const { data: ok } = await admin.rpc('can_claim', { uid: user.id });
-      paid = !!ok;
+      if (ok) {
+        const { data: claimed } = await admin.rpc('claim_mark', { uid: user.id, sess: session, paper: paperKey });
+        if (claimed) { paid = true; claimedNow = true; await admin.rpc('mark_session_pages', { uid: user.id, sess: session, pk: pagesKey }); }
+      }
     }
   }
+  let runId: number | null = null;
+  const refundMark = async () => { if (claimedNow && session) { claimedNow = false; await admin.rpc('refund_mark', { uid: user.id, sess: session, keep: runId }); } };
+  const failRun = async (msg: string) => { if (runId) await admin.from('automark_runs').update({ cost_usd: 0, error: msg.slice(0, 200) }).eq('id', runId); await refundMark(); };
   if (!paid) {   // release dial: free auto-marking opens at 75 (see supabase/release.sql)
     const { data: dial } = await admin.rpc('release_for', { uid: user.id });
     if (dial !== null && Number(dial) < 75) return json({ error: 'Auto-marking is not open yet.' }, 403);
@@ -179,30 +193,28 @@ Deno.serve(async (req) => {
   // limits
   const { data: srows } = await admin.from('settings').select('key, value').or('key.like.automark_%,key.eq.admin_emails');
   const s = Object.fromEntries((srows ?? []).map((r) => [r.key, r.value]));
-  if (s.automark_enabled === 'off') return json({ error: 'Auto-marking is switched off right now.' }, 403);
+  if (s.automark_enabled === 'off') { await refundMark(); return json({ error: 'Auto-marking is switched off right now.' }, 403); }
   const cap = Number(paid ? s.automark_paid_cap_usd ?? 50 : s.automark_monthly_cap_usd ?? 20);
   const perDay = Number(paid ? s.automark_paid_daily_calls ?? 60 : s.automark_daily_calls ?? 16);
-  const month = new Date(); month.setUTCDate(1); month.setUTCHours(0, 0, 0, 0);
-  // the free pool and the paid pool are counted separately, so buyers never use up the free marks
-  const { data: spent } = await admin.from('automark_runs').select('cost_usd').eq('paid', paid).gte('created_at', month.toISOString());
-  const total = (spent ?? []).reduce((a, r) => a + Number(r.cost_usd), 0);
-  if (total >= cap) return json({ error: paid ? 'Paid marking is paused for a moment. Your marks are safe; try again later.'
-    : "Auto-marking has used this month's budget. Mark this one yourself against the solutions." }, 429);
-  const { count } = await admin.from('automark_runs').select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id).eq('paid', paid).gte('created_at', new Date(Date.now() - 864e5).toISOString());
-  if ((count ?? 0) >= perDay) return json({ error: "You've hit today's auto-marking limit. Try again tomorrow." }, 429);
-  // per-student monthly budget on the free pool (admins and paid runs exempt)
-  const isAdmin = String(s.admin_emails ?? '').toLowerCase().split(/[\s,]+/).includes(String(user.email ?? '').toLowerCase());
+  const me = user.email_confirmed_at ? String(user.email ?? '').trim().toLowerCase() : '';
+  const isAdmin = !!me && String(s.admin_emails ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean).includes(me);
   const userCap = Number(s.automark_user_monthly_usd ?? 2);
-  if (!paid && !isAdmin && userCap > 0) {
-    const { data: mine } = await admin.from('automark_runs').select('cost_usd').eq('user_id', user.id).eq('paid', false).gte('created_at', month.toISOString());
-    const used = (mine ?? []).reduce((a, r) => a + Number(r.cost_usd), 0);
-    if (used >= userCap) return json({ error: "You've used your auto-marking for this month. It resets on the 1st." }, 429);
+  const { data: rv, error: rerr } = await admin.rpc('automark_reserve', { uid: user.id, is_paid: paid, est: custom ? 0.5 : 0.15, per_day: perDay,
+    user_cap: paid || isAdmin ? 0 : userCap, pool_cap: cap, sess: session, paper: paperKey, npages: pages.length + (body.paper_pages ?? []).length + (body.sol_pages ?? []).length });
+  if (rerr || !rv?.id) {
+    await refundMark();
+    if (rerr) { console.error(rerr); return json({ error: 'Auto-marking hit a problem. Try again in a minute.' }, 500); }
+    return json({ error: rv?.err === 'day' ? "You've hit today's auto-marking limit. Try again tomorrow."
+      : rv?.err === 'user' ? "You've used your auto-marking for this month. It resets on the 1st."
+      : paid ? 'Paid marking is paused for a moment. Your marks are safe; try again later.'
+      : "Auto-marking has used this month's budget. Mark this one yourself against the solutions." }, 429);
   }
+  runId = Number(rv.id);
 
   const img = async (bucket: string, path: string) => {
     const { data, error } = await admin.storage.from(bucket).download(path);
-    if (error || !data) throw new Error(`missing ${bucket}/${path}`);
+    if (error || !data) throw new Error('A page could not be read. Upload it again.');
+    if (data.size > 4_500_000) throw new Error('A page image is too large.');
     return { type: 'image', source: { type: 'base64', media_type: mediaType(path, data.type), data: encodeBase64(new Uint8Array(await data.arrayBuffer())) } };
   };
   if (custom) {
@@ -230,41 +242,48 @@ Deno.serve(async (req) => {
       const cost = ((u.input_tokens ?? 0) * PRICE.in + (u.output_tokens ?? 0) * PRICE.out +
         (u.cache_creation_input_tokens ?? 0) * PRICE.cw + (u.cache_read_input_tokens ?? 0) * PRICE.cr) / 1e6;
       const n = (body.paper_pages ?? []).length + (body.sol_pages ?? []).length + pages!.length;
-      await admin.from('automark_runs').insert({ user_id: user.id, paper_id: null, n_questions: 0, n_pages: n,
+      await admin.from('automark_runs').update({ n_questions: 0, n_pages: n,
         input_tokens: u.input_tokens, output_tokens: u.output_tokens, cache_write: u.cache_creation_input_tokens, cache_read: u.cache_read_input_tokens,
-        cost_usd: cost, error: r.ok ? null : JSON.stringify(out.error ?? out).slice(0, 500), paid, session_id: session });
-      if (!r.ok) return json({ error: `The marker failed (${out.error?.type ?? r.status}). Try again in a minute.` }, 502);
+        cost_usd: cost, error: r.ok ? null : JSON.stringify(out.error ?? out).slice(0, 500) }).eq('id', runId);
+      if (!r.ok) { await refundMark(); return json({ error: `The marker failed (${out.error?.type ?? r.status}). Try again in a minute.` }, 502); }
       let call = (out.content ?? []).find((c: { type: string; name?: string }) => c.type === 'tool_use' && c.name === 'record_paper');
       if (!call) {
         const txt = (out.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('\n');
         const m = txt.match(/\{[\s\S]*"results"[\s\S]*\}/);
         if (m) { try { call = { input: JSON.parse(m[0]) }; } catch { /* ignore */ } }
       }
-      if (!call) return json({ error: 'The marker did not return marks. Try again.' }, 502);
+      if (!call) { await refundMark(); return json({ error: 'The marker did not return marks. Try again.' }, 502); }
       const results = ((call.input?.results ?? []) as Record<string, unknown>[]).slice(0, 120).map((x) => {
         const max = Math.max(0, Math.min(30, Math.round(Number(x.out_of) || 0)));
-        const choice = String(x.choice ?? ''), correct = String(x.correct ?? '');
+        const letter = (v: unknown) => { const t = String(v ?? '').trim().toUpperCase(); return /^[A-E]$/.test(t) ? t : ''; };
+        const choice = letter(x.choice), correct = letter(x.correct);
         const isMcq = !!correct;
         const awarded = isMcq ? (choice && choice === correct ? 1 : 0) : Math.max(0, Math.min(max, Math.round(Number(x.awarded) || 0)));
         const lost = Array.isArray(x.lost) ? (x.lost as { mark: number; reason: string }[]).filter((l) => REASONS.includes(l.reason) && l.mark >= 1 && l.mark <= max).slice(0, max) : [];
         return { label: String(x.label ?? '').slice(0, 24), out_of: isMcq ? 1 : max, awarded, found: !!x.found, choice, correct, feedback: String(x.feedback ?? '').slice(0, 400), lost };
       });
-      if (!results.length) return json({ error: "The marker couldn't find any questions in that paper. Check the pages and try again." }, 502);
-      if (paid && session) await admin.rpc('claim_mark', { uid: user.id, sess: session, paper: null });
+      if (!results.length) { await refundMark(); return json({ error: "The marker couldn't find any questions in that paper. Check the pages and try again." }, 502); }
       return json({ title: String(call.input?.title ?? '').slice(0, 80), results, cost_usd: Number(cost.toFixed(4)), paid });
     } catch (err) {
-      return json({ error: String((err as Error).message ?? err) }, 500);
+      console.error(err); await failRun(String((err as Error).message ?? err));
+      return json({ error: /could not be read|too large/.test(String((err as Error).message)) ? (err as Error).message : 'Something went wrong reading your pages. Try again.' }, 500);
     }
   }
 
   // the questions
-  const { data: qs, error: qerr } = await admin.from('questions')
+  // read the questions as the student, so papers they can't see stay out of reach
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  const asUser = anonKey ? createClient(url, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } }) : admin;
+  const { data: qs, error: qerr } = await asUser.from('questions')
     .select('id, number, part, type, marks, answer, image_path, solution_path, subparts')
-    .eq('paper_id', paper_id).in('id', question_ids);
-  if (qerr || !qs?.length) return json({ error: 'Questions not found' }, 400);
+    .eq('paper_id', paper_id!).in('id', question_ids!);
+  if (qerr || !qs?.length) { await failRun('questions not found'); return json({ error: 'Questions not found' }, 400); }
   qs.sort((a, b) => a.number - b.number || String(a.part ?? '').localeCompare(String(b.part ?? '')));
 
   const pics = async (path: string) => chunks[path] ? Promise.all(chunks[path].map((c) => img('submissions', c))) : [await img('questions', path)];
+  const nImg = pages.length + qs.reduce((a, q) => a + (q.image_path ? (chunks[q.image_path]?.length ?? 1) : 0), 0)
+    + [...new Set(qs.filter((q) => q.type !== 'mcq' && q.solution_path).map((q) => q.solution_path))].reduce((a, p) => a + (chunks[p]?.length ?? 1), 0);
+  if (nImg > 80) { await failRun('too many images'); return json({ error: 'Too many images in one section.' }, 400); }
 
   try {
     // student pages first (identical across a paper's groups, so they are cached after the first call)
@@ -300,13 +319,12 @@ Deno.serve(async (req) => {
     const u = out.usage ?? {};
     const cost = ((u.input_tokens ?? 0) * PRICE.in + (u.output_tokens ?? 0) * PRICE.out +
       (u.cache_creation_input_tokens ?? 0) * PRICE.cw + (u.cache_read_input_tokens ?? 0) * PRICE.cr) / 1e6;
-    await admin.from('automark_runs').insert({
-      user_id: user.id, paper_id, n_questions: qs.length, n_pages: pages.length,
+    await admin.from('automark_runs').update({
+      n_questions: qs.length, n_pages: pages.length,
       input_tokens: u.input_tokens, output_tokens: u.output_tokens, cache_write: u.cache_creation_input_tokens,
       cache_read: u.cache_read_input_tokens, cost_usd: cost, error: r.ok ? null : JSON.stringify(out.error ?? out).slice(0, 500),
-      paid, session_id: session,
-    });
-    if (!r.ok) return json({ error: `The marker failed (${out.error?.type ?? r.status}). Try again in a minute.` }, 502);
+    }).eq('id', runId);
+    if (!r.ok) { await refundMark(); return json({ error: `The marker failed (${out.error?.type ?? r.status}). Try again in a minute.` }, 502); }
 
     let call = (out.content ?? []).find((c: { type: string; name?: string }) => c.type === 'tool_use' && c.name === 'record_marks');
     if (!call) {   // fallback: JSON written as plain text
@@ -314,24 +332,23 @@ Deno.serve(async (req) => {
       const m = txt.match(/\{[\s\S]*"results"[\s\S]*\}/);
       if (m) { try { call = { input: JSON.parse(m[0]) }; } catch { /* ignore */ } }
     }
-    if (!call) return json({ error: 'The marker did not return marks for this section. Tap Re-mark to try again.' }, 502);
+    if (!call) { await refundMark(); return json({ error: 'The marker did not return marks for this section. Tap Re-mark to try again.' }, 502); }
     const byId = new Map(qs.map((q) => [q.id, q]));
     const results = ((call?.input?.results ?? []) as Record<string, unknown>[])
       .filter((x) => byId.has(String(x.id)))
       .map((x) => {
         const q = byId.get(String(x.id))!;
         const max = q.type === 'mcq' ? 1 : (q.marks ?? 0);
-        const choice = q.type === 'mcq' ? String(x.choice ?? '') : '';
+        const raw = String(x.choice ?? '').trim().toUpperCase(), choice = q.type === 'mcq' && /^[A-E]$/.test(raw) ? raw : '';
         const awarded = q.type === 'mcq' ? (choice && q.answer && choice === q.answer ? 1 : 0)
           : Math.max(0, Math.min(max, Math.round(Number(x.awarded) || 0)));
         const lost = Array.isArray(x.lost) ? (x.lost as { mark: number; reason: string }[])
           .filter((l) => REASONS.includes(l.reason) && l.mark >= 1 && l.mark <= max).slice(0, max) : [];
         return { id: q.id, found: !!x.found, choice, awarded, out_of: max, feedback: String(x.feedback ?? '').slice(0, 600), lost };
       });
-    // charge the mark (Pro monthly first, then bought) only once a section has actually been marked, so failed runs cost nothing
-    if (paid && session) await admin.rpc('claim_mark', { uid: user.id, sess: session, paper: paper_id });
     return json({ results, cost_usd: Number(cost.toFixed(4)), paid });
   } catch (err) {
-    return json({ error: String((err as Error).message ?? err) }, 500);
+    console.error(err); await failRun(String((err as Error).message ?? err));
+    return json({ error: /could not be read|too large/.test(String((err as Error).message)) ? (err as Error).message : 'Something went wrong reading your pages. Try again.' }, 500);
   }
 });

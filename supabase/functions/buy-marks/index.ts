@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
   // tutor message packs: anyone can buy them; priced right here, so no Stripe products are needed
   if (body.tutor) {
     const TUTOR_PACKS: Record<string, number> = { '150': 499, '300': 899 };   // messages: price in cents (AUD, GST included)
-    const n = String(body.tutor), cents = TUTOR_PACKS[n];
+    const n = String(body.tutor), cents = Object.hasOwn(TUTOR_PACKS, n) ? TUTOR_PACKS[n] : 0;
     if (!cents) return json({ error: 'Unknown pack' }, 400);
     const { data: info } = await admin.rpc('access_info', { uid: user.id });
     const { data: st } = await admin.from('settings').select('value').eq('key', 'tutor_packs').maybeSingle();
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
   const { data: allowed } = await admin.rpc('can_buy_for', { uid: user.id });
   if (!allowed) return json({ error: "Marking packs aren't available on your account yet." }, 403);
   const pack = String(body.pack ?? '');
-  let price = prices[pack];
+  let price = Object.hasOwn(prices, pack) ? prices[pack] : '';
   const marks = Number(pack);
   if (!price || !Number.isInteger(marks) || marks <= 0) return json({ error: 'Unknown pack' }, 400);
   if (price.startsWith('prod_')) {      // a product id: use its default price

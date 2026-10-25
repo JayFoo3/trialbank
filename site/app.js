@@ -854,7 +854,7 @@
       .select('question_id, lost, created_at, questions!inner(topic, papers!inner(subject))')
       .eq('user_id', state.user.id).eq('questions.papers.subject', state.subject)
       .not('lost', 'is', null).order('created_at', { ascending: false }).limit(1000);
-    if (error) { el.innerHTML = `<p class="muted small">${error.message}</p>`; return; }
+    if (error) { el.innerHTML = `<p class="muted small">${esc(error.message)}</p>`; return; }
     const by = {};
     (data || []).forEach(a => (a.lost || []).forEach(l => {
       const r = by[l.reason] = by[l.reason] || { n: 0, topics: {}, ids: new Set() };
@@ -1018,7 +1018,8 @@
     if (!x || !x.ready) {
       box.innerHTML = `<p class="hsc-kick">Predicted band · ${esc(name)}</p><h2 class="hsc-big muted">Not enough yet</h2>
         <p>Answer about <b>${Math.max(1, Math.ceil(x?.need ?? 40))} more marks</b> of questions in ${esc(name)} and your predicted band appears here.</p>
-        <button class="primary" onclick="location.hash='#home'">Do today's Daily 5</button>`;
+        <button class="primary" id="hsc-daily">Do today's Daily 5</button>`;
+      $('hsc-daily').onclick = () => { location.hash = '#home'; };
     } else {
       const range = x.bandLo === x.bandHi ? `Very likely ${x.band}` : `Somewhere from ${x.bandLo} to ${x.bandHi}`;
       box.innerHTML = `<p class="hsc-kick">Predicted band · ${esc(name)}</p>
@@ -1054,7 +1055,7 @@
           <p class="small muted">${r.ok ? `Aggregate ${r.aggregate} of 500 · best 10 units, including 2 of English` : esc(r.why)}</p></div></div>
         <div class="atar-rows">${rows.map((row, i) => { const c = HSCX.SCALING[row.code]; return `
           <div class="atar-row"><select data-i="${i}" data-k="code" aria-label="Course">${opts(row.code)}</select>
-            <label class="atar-mark"><input data-i="${i}" data-k="mark" type="number" inputmode="decimal" min="0" max="${c?.max || 100}" step="1" value="${row.mark ?? ''}" placeholder="–"><span class="muted small">/ ${c?.max || 100}</span></label>
+            <label class="atar-mark"><input data-i="${i}" data-k="mark" type="number" inputmode="decimal" min="0" max="${c?.max || 100}" step="1" value="${esc(row.mark ?? '')}" placeholder="–"><span class="muted small">/ ${c?.max || 100}</span></label>
             <span class="atar-sc small">${r.perUnit?.[row.code] != null ? `<b>${r.perUnit[row.code]}</b> scaled${r.counted?.[row.code] ? '' : ' · <span class="muted">not counted</span>'}` : row.auto ? '<span class="muted">predicted</span>' : ''}</span>
             <button class="link small atar-x" data-x="${i}" aria-label="Remove">✕</button></div>`; }).join('')}</div>
         ${rows.some(x => x.code === 'Ext1') && !rows.some(x => x.code === 'Adv' || x.code === 'Ext2') ? '<p class="small atar-hint">Doing Extension 1? Add <b>Mathematics Advanced</b> too: you get a mark in both.</p>' : ''}
@@ -1386,7 +1387,7 @@
     const tb = $('users-table').querySelector('tbody'); tb.innerHTML = '';
     (users || []).forEach(u => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${u.email}</td><td>${u.given_name ? esc(u.given_name) : '-'}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? esc(u.roster_name) + (u.matched_by === 'name' ? ' <span class="muted small">(by name)</span>' : '') : '<b style="color:#c0392b">Not on list</b>') : '-'}</td><td class="lv-cell"></td><td></td>`;
+      tr.innerHTML = `<td>${esc(u.email)}</td><td>${u.given_name ? esc(u.given_name) : '-'}</td><td>${day(u.created_at)}</td><td>${day(u.last_sign_in_at)}</td><td>${u.attempts}</td><td>${rosterN ? (u.roster_name ? esc(u.roster_name) + (u.matched_by === 'name' ? ' <span class="muted small">(by name)</span>' : '') : '<b style="color:#c0392b">Not on list</b>') : '-'}</td><td class="lv-cell"></td><td></td>`;
       tr.querySelector('.lv-cell').appendChild(accessPicker(u));
       const b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
       b.onclick = async () => {
@@ -1406,7 +1407,7 @@
     const ul = $('allowed-list'); ul.innerHTML = '';
     allowed.filter(e => e.includes(f)).forEach(e => {
       const li = document.createElement('li');
-      li.innerHTML = `<span>${e}</span>`;
+      li.innerHTML = `<span>${esc(e)}</span>`;
       const b = document.createElement('button'); b.className = 'link'; b.textContent = 'Remove';
       b.onclick = async () => {
         const { error } = await sb.from('allowed_emails').delete().eq('email', e);
@@ -1936,10 +1937,10 @@
         a.href = '#paper/' + encodeURIComponent(p.slug);
         a.title = `${p.school} ${p.year}`;
         const url = thumbs[`${p.slug}/thumb.webp`];
-        a.innerHTML = `<div class="pthumb${url ? ' loading' : ''}">${url ? `<img loading="lazy" decoding="async" alt="" src="${url}" onload="this.parentNode.classList.remove('loading')" onerror="this.parentNode.classList.remove('loading')">` : `<span>${esc(p.school)}<br>${p.year}</span>`}${best[p.id] != null ? `<span class="tag">${best[p.id]}%</span>` : ''}</div>
-          <div class="pname"><strong>${p.year}</strong>${levelBadge(p, false)}</div>`;
+        a.innerHTML = `<div class="pthumb${url ? ' loading' : ''}">${url ? `<img loading="lazy" decoding="async" alt="" src="${esc(url)}">` : `<span>${esc(p.school)}<br>${p.year}</span>`}${best[p.id] != null ? `<span class="tag">${best[p.id]}%</span>` : ''}</div>
+          <div class="pname"><strong>${esc(p.year)}</strong>${levelBadge(p, false)}</div>`;
         const im = a.querySelector('img');
-        if (im) im.onerror = () => { im.replaceWith(Object.assign(mk('span', '', `${esc(p.school)}<br>${p.year}`))); };
+        if (im) { const done = () => im.parentNode?.classList.remove('loading'); im.onload = done; im.onerror = () => { done(); im.replaceWith(mk('span', '', `${esc(p.school)}<br>${esc(p.year)}`)); }; }
         grid.appendChild(a);
       });
       sec.appendChild(grid);
@@ -1975,7 +1976,7 @@
     try {
       const [lib, url] = await Promise.all([loadPdfJs(), pdfLink(p[key], 3600)]);
       // one plain download (B2 links don't take the partial requests pdf.js would otherwise make)
-      const doc = await lib.getDocument({ url, disableRange: true, disableStream: true }).promise;
+      const doc = await lib.getDocument({ url, disableRange: true, disableStream: true, isEvalSupported: false }).promise;
       if (view.dataset.for !== id) return;
       pdfState[viewId] = { doc, i: 1, n: doc.numPages, countId, cache: new Map() };
       view.innerHTML = '<div class="pdfstage"><button class="pdfhit prev" data-go="-1" aria-label="Previous page"></button><button class="pdfhit next" data-go="1" aria-label="Next page"></button></div>';
@@ -2059,7 +2060,7 @@
       drawSubject();
     }
     const { data: qs, error } = await sb.from('questions').select(QCOLS).eq('paper_id', p.id).limit(300);
-    if (error) { box.innerHTML = `<p class="error">${error.message}</p>`; return; }
+    if (error) { box.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
     qs.sort(byOrder);
     const urls = await signed(qs.flatMap(q => [q.image_path, q.solution_path]));
     qs.forEach(q => { q.imageUrl = urls[q.image_path]; q.solutionUrl = q.solution_path ? urls[q.solution_path] : null; });
@@ -2113,7 +2114,7 @@
       if (q.solution_path || q.answer || q.content) {
         const sb_ = mk('button', 'link', 'Show solution'), solBox = mk('div'); solBox.hidden = true;
         if (q.content) solBox.appendChild(Online.solution(q));
-        else solBox.innerHTML = (q.answer ? `<p><strong>Answer: ${q.answer}</strong></p>` : '') + (q.solution_path ? `<div class="card scroll"><img loading="lazy" src="${urls[q.solution_path]}" alt="Solution"></div>` : '');
+        else solBox.innerHTML = (q.answer ? `<p><strong>Answer: ${esc(q.answer)}</strong></p>` : '') + (q.solution_path ? `<div class="card scroll"><img loading="lazy" src="${esc(urls[q.solution_path] || '')}" alt="Solution"></div>` : '');
         sb_.onclick = () => { solBox.hidden = !solBox.hidden; sb_.textContent = solBox.hidden ? 'Show solution' : 'Hide solution'; };
         row.appendChild(sb_); c.appendChild(row); c.appendChild(solBox);
       } else c.appendChild(row);
@@ -2252,8 +2253,8 @@
     c.innerHTML = `<div class="own-total"><b>${got}</b><span>/ ${of}</span><em>${of ? Math.round(100 * got / of) : 0}%</em></div>
       <p class="small muted">${esc(rec.title)} · ${C.subjects[rec.subject] || ''}${rec.sol ? '' : ' · marked without solutions, so double-check anything surprising'}</p>
       <table class="own-tbl"><tbody>${rec.results.map(r => `<tr class="${r.awarded === r.out_of ? 'full' : r.awarded === 0 ? 'zero' : 'part'}">
-        <td class="ol">${esc(r.label)}</td><td class="om">${r.awarded}/${r.out_of}${r.correct ? `<small>${esc(r.choice || '–')} → ${esc(r.correct)}</small>` : ''}</td>
-        <td class="of">${esc(r.feedback || '')}${(r.lost || []).filter(l => l.reason !== 'cfpe').length ? `<small>Lost: ${(r.lost || []).filter(l => l.reason !== 'cfpe').map(l => LOST_NAME[l.reason] || l.reason).join(', ')}</small>` : ''}</td></tr>`).join('')}</tbody></table>`;
+        <td class="ol">${esc(r.label)}</td><td class="om">${int(r.awarded)}/${int(r.out_of)}${r.correct ? `<small>${esc(r.choice || '–')} → ${esc(r.correct)}</small>` : ''}</td>
+        <td class="of">${esc(r.feedback || '')}${(r.lost || []).filter(l => l.reason !== 'cfpe').length ? `<small>Lost: ${(r.lost || []).filter(l => l.reason !== 'cfpe').map(l => esc(LOST_NAME[l.reason] || l.reason)).join(', ')}</small>` : ''}</td></tr>`).join('')}</tbody></table>`;
     return c;
   }
   function drawOwnHistory() {
@@ -2461,7 +2462,7 @@
         chip.classList.add('done'); body.appendChild(c); return;
       }
       const ai = marking && e.ai && e.ai[q.id];
-      if (ai) c.appendChild(mk('p', 'ai-note', `<b>Auto-marker: ${ai.found ? `${ai.awarded}/${ai.out_of}` : 'not found in your upload'}</b> ${esc(ai.feedback || '')}`));
+      if (ai) c.appendChild(mk('p', 'ai-note', `<b>Auto-marker: ${ai.found ? `${int(ai.awarded)}/${int(ai.out_of)}` : 'not found in your upload'}</b> ${esc(ai.feedback || '')}`));
       if (q.content && Online.objective(q)) {
         if (marking) { c.appendChild(mk('p', 'small', `<b>${Online.score(q, e.answers[q.id])} / ${q.marks}</b>`)); c.appendChild(Online.solution(q)); }
         body.appendChild(c); return;
@@ -2481,14 +2482,14 @@
           ch.appendChild(b);
         });
         c.appendChild(ch);
-        if (marking) c.appendChild(mk('p', 'muted small', q.answer ? `You: ${e.answers[q.id] || 'blank'} · Answer: ${q.answer}` : 'No answer key for this one (not counted).'));
+        if (marking) c.appendChild(mk('p', 'muted small', q.answer ? `You: ${esc(e.answers[q.id] || 'blank')} · Answer: ${esc(q.answer)}` : 'No answer key for this one (not counted).'));
       } else if (!marking) {
         if (!q.content) c.appendChild(mk('p', 'muted small', 'Write your working on paper.'));
       } else {
         const sol = mk('button', 'secondary', q.solutionUrl || q.content ? 'Show solution' : 'No solution available'); sol.disabled = !q.solutionUrl && !q.content;
         const solBox = mk('div'); solBox.hidden = true;
         sol.onclick = () => {
-          if (!solBox.innerHTML) { if (q.content) solBox.appendChild(Online.solution(q)); else solBox.innerHTML = `<div class="card scroll"><img src="${q.solutionUrl}" alt="Solution"></div>`; }
+          if (!solBox.innerHTML) { if (q.content) solBox.appendChild(Online.solution(q)); else solBox.innerHTML = `<div class="card scroll"><img src="${esc(q.solutionUrl || '')}" alt="Solution"></div>`; }
           solBox.hidden = !solBox.hidden; sol.textContent = solBox.hidden ? 'Show solution' : 'Hide solution';
         };
         c.appendChild(sol); c.appendChild(solBox);
@@ -2565,7 +2566,7 @@
     const tb = $('exam-history').querySelector('tbody'); tb.innerHTML = '';
     (ex || []).forEach(r => {
       const tr = mk('tr');
-      tr.innerHTML = `<td>${day(r.started_at)}</td><td>${r.papers.school} ${r.papers.year}</td><td>${r.score}/${r.out_of} (${r.out_of ? Math.round(100 * r.score / r.out_of) : 0}%)</td><td>${r.work_minutes ? `${Math.round((r.seconds_used || 0) / 60)} of ${r.work_minutes} min` : 'Uploaded'}</td>`;
+      tr.innerHTML = `<td>${day(r.started_at)}</td><td>${esc(r.papers.school)} ${esc(r.papers.year)}</td><td>${int(r.score)}/${int(r.out_of)} (${r.out_of ? Math.round(100 * r.score / r.out_of) : 0}%)</td><td>${r.work_minutes ? `${Math.round((r.seconds_used || 0) / 60)} of ${r.work_minutes} min` : 'Uploaded'}</td>`;
       tb.appendChild(tr);
     });
     $('exam-history-empty').hidden = !!(ex && ex.length);
@@ -2923,7 +2924,7 @@
       const b = mk('button', 'bgopt' + (meP.bg === k && (k !== 'photo' || media.bg) ? ' on' : ''));
       b.dataset.v = k;
       const photo = k === 'photo' && media.bg;
-      b.innerHTML = `<i${photo ? ` style="background-image:url('${media.bg}')"` : ''}>${k === 'photo' && !photo ? '+' : ''}</i>${k === 'photo' && meP.bg === 'photo' && photo ? 'Change' : label}`;
+      b.innerHTML = `<i${photo ? ` style="background-image:url('${esc(media.bg)}')"` : ''}>${k === 'photo' && !photo ? '+' : ''}</i>${k === 'photo' && meP.bg === 'photo' && photo ? 'Change' : label}`;
       b.onclick = () => {
         if (k === 'photo' && (!media.bg || meP.bg === 'photo')) return $('me-bg-file').click();
         meP.bg = k; drawBgOpts(); applyPrefs(meP);
@@ -3053,7 +3054,7 @@
       toast(b.dataset.k === 'portal' ? 'Opening your subscription…' : 'Opening secure checkout…');
       const { data, error } = await sb.functions.invoke('buy-marks', { body });
       if (error || !data?.url) { let msg = error?.message || 'Could not start the payment.'; try { msg = (await error.context.json()).error || msg; } catch {} b.disabled = false; return toast(esc(msg)); }
-      location.href = data.url;
+      goStripe(data.url);
     };
     document.addEventListener('keydown', k); document.body.appendChild(m);
   }
@@ -3126,7 +3127,7 @@
       try { msg = (await error.context.json()).error || msg; } catch {}
       return toast(esc(msg));
     }
-    location.href = data.url;               // Stripe's own payment page; it sends them back here afterwards
+    goStripe(data.url);               // Stripe's own payment page; it sends them back here afterwards
   }
   $('buy-marks').onclick = () => { $('account-menu').hidden = true; openBuy(); };
   setTimeout(() => afterCheckout(), 0);   // back from Stripe (defined further down, once everything it uses exists)
@@ -3422,7 +3423,7 @@
   // a pet on its colour, inside its border; f is { pet, color, border }
   const photoOf = (f) => f.pet === 'photo' ? (f.me || f.self ? media.av : f.photoUrl) : null;
   const petBadge = (f, size = 'md') => { const ph = photoOf(f);
-    return `<span class="pet pet-${size} bd-${esc(f.border || 'none')}${ph ? ' is-photo' : ''}" style="--pc:${colorCss(f.color)}">${ph ? `<img class="ph" src="${ph}" alt="" draggable="false">` : petImg(f.pet === 'photo' ? null : f.pet)}</span>`; };
+    return `<span class="pet pet-${size} bd-${esc(f.border || 'none')}${ph ? ' is-photo' : ''}" style="--pc:${colorCss(f.color)}">${ph ? `<img class="ph" src="${esc(ph)}" alt="" draggable="false">` : petImg(f.pet === 'photo' ? null : f.pet)}</span>`; };
   const locked = (lvl, pro) => pro ? !isProUser() : (state.lvl?.level || 1) < lvl;
   const lockText = (lvl, pro) => pro ? 'Pro' : `Level ${lvl}`;
   const xpFor = (L) => 50 * L * (L - 1);
@@ -3553,9 +3554,9 @@
   }
   const inviteLink = (code) => location.origin + location.pathname + '#friend=' + code;
   const meRow = () => { const st = streakData(), pr = myProfile(); return { friend_id: 'me', name: 'You', streak: liveStreak(st), done_today: st.last === dayOf(), me: true, level: state.lvl?.level || 1, ...pr }; };
-  const friendChip = (f) => `<div class="fr${f.done_today ? ' done' : ''}${f.me ? ' me' : ''}" title="${esc(f.name)}: level ${f.level || 1}, ${f.streak} day streak${f.done_today ? ', done today' : ''}">
+  const friendChip = (f) => `<div class="fr${f.done_today ? ' done' : ''}${f.me ? ' me' : ''}" title="${esc(f.name)}: level ${int(f.level) || 1}, ${int(f.streak)} day streak${f.done_today ? ', done today' : ''}">
       ${petBadge(f, 'md')}<b>${esc(f.name)}</b>
-      <small class="fr-meta"><span class="fr-fl">${flame(f.streak)}</span>${f.streak} · Lv ${f.level || 1}</small>
+      <small class="fr-meta"><span class="fr-fl">${flame(int(f.streak))}</span>${int(f.streak)} · Lv ${int(f.level) || 1}</small>
       <small class="fr-st">${f.done_today ? 'Done today' : 'Not yet'}</small></div>`;
   async function drawFriends() {
     const box = $('friends'), head = $('friends-head');
@@ -3592,7 +3593,7 @@
     const err = (msg) => { $('fr-err').textContent = msg; $('fr-err').hidden = !msg; };
     const list = async () => {
       const fs = await loadFriends();
-      $('fr-list').innerHTML = fs.length ? fs.map(f => `<div class="fr-li">${petBadge(f, 'sm')}<b>${esc(f.name)} <span class="small muted">Lv ${f.level || 1} · ${f.streak} day streak</span></b><span class="small muted">${f.done_today ? 'Done today' : 'Not yet today'}</span><button class="link small" data-rm="${f.friend_id}" data-n="${esc(f.name)}">Remove</button></div>`).join('')
+      $('fr-list').innerHTML = fs.length ? fs.map(f => `<div class="fr-li">${petBadge(f, 'sm')}<b>${esc(f.name)} <span class="small muted">Lv ${int(f.level) || 1} · ${int(f.streak)} day streak</span></b><span class="small muted">${f.done_today ? 'Done today' : 'Not yet today'}</span><button class="link small" data-rm="${esc(f.friend_id)}" data-n="${esc(f.name)}">Remove</button></div>`).join('')
         : '<p class="small muted">No friends added yet.</p>';
     };
     $('fr-list').onclick = async (ev) => {
@@ -3651,10 +3652,10 @@
     const b = $('streak'); b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
     return st;
   }
-  const flame = (n, big) => `<svg viewBox="0 0 32 38" aria-hidden="true" class="${n ? '' : 'out'}">
+  const flame = (n, big) => { n = int(n); return `<svg viewBox="0 0 32 38" aria-hidden="true" class="${n ? '' : 'out'}">
     <g class="fl"><path class="fo" d="M16 1c1.2 7 9.5 11.2 11.3 20.2C29 30 23.4 37 16 37S3 31.2 4.6 22.6c1-5.6 4.6-8 5.9-12.6 1.8 2.7 2 5.5 3.6 6.6C16 11.8 15.4 6.6 16 1z"/>
     <path class="fi" d="M16 16.5c1.2 4.2 6.3 6.3 6.3 11.4 0 4.4-2.9 7.6-6.3 7.6s-6.3-3.2-6.3-7.4c0-3.3 2-4.5 3.1-7.4 1 1.3 1.8 2.9 2.8 3.1.3-2.5.2-4.8.4-7.3z"/></g>
-    <text x="16" y="29.6" text-anchor="middle" style="font-size:${n > 99 ? 9.5 : n > 9 ? 11.5 : 13}px">${n}</text></svg>`;
+    <text x="16" y="29.6" text-anchor="middle" style="font-size:${n > 99 ? 9.5 : n > 9 ? 11.5 : 13}px">${n}</text></svg>`; };
   function drawStreak(st = streakData(), bumped = false) {
     const b = $('streak'), n = liveStreak(st);
     b.hidden = false; b.innerHTML = flame(n); b.title = `${n} day streak`; b.setAttribute('aria-label', `${n} day streak`);
@@ -3868,7 +3869,9 @@
   }
 
   // ---------- automarker ----------
-  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const goStripe = (u) => { try { const x = new URL(u); if (x.protocol === 'https:' && /(^|\.)stripe\.com$/.test(x.hostname)) { location.href = x.href; return; } } catch {} toast("Couldn't start the payment. Try again."); };
+  const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const int = (v) => Math.max(0, Math.floor(Number(v) || 0));   // numbers from other people's accounts: never trust them as text
 
   // ---------- celebration popups: Trialbank's own blue card (like Home's), one big word or number, the mascot ----------
   // kind: 'buy' | 'level' | 'pro' | 'subject'. panel() builds the top card; the rest is a title, a line and one button.
@@ -4033,7 +4036,7 @@
       $('viewas-name').textContent = { free: 'Free', lite: 'Lite', full: 'Full', pro: 'Pro' }[state.viewAs] || '';
     }
     const tb = $('test-bar'); if (tb) {
-      let back = null; try { back = JSON.parse(localStorage.getItem('tb_admin_return') || 'null'); } catch {}
+      let back = null; try { back = JSON.parse(sessionStorage.getItem('tb_admin_return') || 'null'); } catch {}
       tb.hidden = !(back && state.user && state.user.email !== back.email);
     }
   }
@@ -4055,9 +4058,9 @@
       const { data: cur } = await sb.auth.getSession();
       const { data, error } = await sb.functions.invoke('test-account', { body: { action: 'switch' } });
       if (error || !data?.token_hash) { let msg = data?.error; try { msg = msg || (await error.context.json()).error; } catch {} throw new Error(msg || 'Could not switch.'); }
-      localStorage.setItem('tb_admin_return', JSON.stringify({ email: state.user.email, access_token: cur.session.access_token, refresh_token: cur.session.refresh_token }));
+      sessionStorage.setItem('tb_admin_return', JSON.stringify({ email: state.user.email, access_token: cur.session.access_token, refresh_token: cur.session.refresh_token }));
       const { error: e2 } = await sb.auth.verifyOtp({ token_hash: data.token_hash, type: 'magiclink' });
-      if (e2) { localStorage.removeItem('tb_admin_return'); throw e2; }
+      if (e2) { sessionStorage.removeItem('tb_admin_return'); throw e2; }
       location.hash = '#home';
     } catch (err) { $('test-msg').textContent = err.message; }
     finally { btn.disabled = false; }
@@ -4070,10 +4073,10 @@
     if (!msg) renderAdmin();
   };
   $('test-back').onclick = async () => {
-    let back = null; try { back = JSON.parse(localStorage.getItem('tb_admin_return') || 'null'); } catch {}
+    let back = null; try { back = JSON.parse(sessionStorage.getItem('tb_admin_return') || 'null'); } catch {}
     if (!back) return;
     const { error } = await sb.auth.setSession({ access_token: back.access_token, refresh_token: back.refresh_token });
-    localStorage.removeItem('tb_admin_return');
+    sessionStorage.removeItem('tb_admin_return');
     if (error) { toast('Please sign in to your own account again.'); await sb.auth.signOut(); return; }
     location.hash = '#admin';
   };
@@ -4101,7 +4104,7 @@
       if (out.length >= MAX_PAGES) break;
       if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
         const lib = await loadPdfJs();
-        const doc = await lib.getDocument({ data: await f.arrayBuffer() }).promise;
+        const doc = await lib.getDocument({ data: await f.arrayBuffer(), isEvalSupported: false }).promise;
         for (let i = 1; i <= doc.numPages && out.length < MAX_PAGES; i++) {
           step(`Reading page ${out.length + 1}…`);
           const pg = await doc.getPage(i);
@@ -4244,7 +4247,7 @@
     e.ai = e.ai || {}; e.lost = e.lost || {};
     (results || []).forEach(x => {
       const q = e.qs.find(q => q.id === x.id); if (!q) return;
-      if (q.type === 'mcq') { if (x.choice) e.answers[q.id] = x.choice; }
+      if (q.type === 'mcq') { const ch = String(x.choice || '').trim().toUpperCase(); if (/^[A-E]$/.test(ch)) e.answers[q.id] = ch; }
       else { e.marks[q.id] = x.awarded; if (x.lost && x.lost.length) e.lost[q.id] = x.lost; else delete e.lost[q.id]; }
       e.ai[q.id] = { found: x.found, awarded: x.awarded, out_of: x.out_of, feedback: x.feedback };
     });
@@ -4291,7 +4294,7 @@
       b.disabled = true; toast('Opening secure checkout…');
       const { data, error } = await sb.functions.invoke('buy-marks', { body: { tutor: b.dataset.k } });
       if (error || !data?.url) { let msg = error?.message || 'Could not start the payment.'; try { msg = (await error.context.json()).error || msg; } catch {} b.disabled = false; return toast(esc(msg)); }
-      location.href = data.url;
+      goStripe(data.url);
     };
     document.body.appendChild(m);
   }
@@ -4330,7 +4333,7 @@
   // a little markdown (bold, italics, paragraphs) with LaTeX maths rendered by KaTeX
   function tuRich(t) {
     const math = [];
-    let s = String(t || '').replace(/\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\$([^$\n]+?)\$|\\\(([\s\S]+?)\\\)/g, (m, a, b, c, d) => {
+    let s = String(t || '').replace(/\u0000/g, '').replace(/\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\$([^$\n]+?)\$|\\\(([\s\S]+?)\\\)/g, (m, a, b, c, d) => {
       math.push([a ?? b ?? c ?? d, a != null || b != null]); return `\u0000${math.length - 1}\u0000`;
     });
     s = esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, '$1<i>$2</i>')
@@ -4891,8 +4894,13 @@
     const from = s.p.length; s.p.push(...p);
     stStroke(stCanvas().getContext('2d'), s, from);
   }
+  // anyone with a room code can send to the room, so everything that arrives is checked before it's used
+  const stBgOk = (u) => { try { const x = new URL(u); return x.origin === new URL(C.supabaseUrl).origin && x.pathname.startsWith('/storage/v1/object/sign/'); } catch { return false; } };
+  const stStrokeOk = (s) => s && typeof s.id === 'string' && s.id.length <= 40 && ST_COLOURS.includes(s.c) && ST_SIZES.includes(s.w)
+    && Array.isArray(s.p) && s.p.length <= 20000 && s.p.every(v => typeof v === 'number' && v >= 0 && v <= 1);
   function stSetBg(bg) {
-    st.bg = bg || null; const im = $('st-bg');
+    bg = bg && typeof bg.url === 'string' && stBgOk(bg.url) ? { url: bg.url, label: String(bg.label || '').slice(0, 80), qid: bg.qid == null ? null : String(bg.qid).slice(0, 80) } : null;
+    st.bg = bg; const im = $('st-bg');
     im.hidden = !st.bg; if (st.bg) im.src = st.bg.url; else im.removeAttribute('src');
     $('st-bgoff').hidden = !(st.host && st.bg);
     $('st-sub').textContent = st.bg?.label ? `On the board: ${st.bg.label}` : (st.host ? 'You are teaching. Draw on the board; everyone sees it live.' : 'Watching live. Ask anything in the chat.');
@@ -4952,19 +4960,22 @@
     stSetBg(st.bg); stDrawChat(); stDrawCoach(); stDrawPeople();
     requestAnimationFrame(stResize);
     const ch = st.ch = sb.channel(`study:${code}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
-    ch.on('broadcast', { event: 'seg' }, ({ payload }) => stOnSeg(payload))
-      .on('broadcast', { event: 'end' }, ({ payload }) => { delete st.live[payload.id]; })
-      .on('broadcast', { event: 'undo' }, ({ payload }) => { st.strokes = st.strokes.filter(s => s.id !== payload.id); stRedraw(); })
-      .on('broadcast', { event: 'clear' }, () => { st.strokes = []; st.live = {}; stRedraw(); })
-      .on('broadcast', { event: 'bg' }, ({ payload }) => stSetBg(payload.bg))
-      .on('broadcast', { event: 'chat' }, ({ payload }) => { st.chat.push(payload); stDrawChat(); if (st.host && !payload.coach) window.Juice?.sfx?.pop?.(); })
+    ch.on('broadcast', { event: 'seg' }, ({ payload }) => { if (!st.host && stStrokeOk(payload)) stOnSeg(payload); })   // only the teacher draws: the teacher's page ignores board events from others
+      .on('broadcast', { event: 'end' }, ({ payload }) => { if (payload && typeof payload.id === 'string') delete st.live[payload.id]; })
+      .on('broadcast', { event: 'undo' }, ({ payload }) => { if (st.host) return; st.strokes = st.strokes.filter(s => s.id !== payload?.id); stRedraw(); })
+      .on('broadcast', { event: 'clear' }, () => { if (st.host) return; st.strokes = []; st.live = {}; stRedraw(); })
+      .on('broadcast', { event: 'bg' }, ({ payload }) => { if (!st.host) stSetBg(payload?.bg); })
+      .on('broadcast', { event: 'chat' }, ({ payload }) => { if (!payload || typeof payload.text !== 'string') return;
+        st.chat.push({ name: String(payload.name || 'Someone').slice(0, 40), text: payload.text.slice(0, payload.coach ? 4000 : 500), coach: !!payload.coach, at: Date.now() });
+        st.chat = st.chat.slice(-200); stDrawChat(); if (st.host && !payload.coach) window.Juice?.sfx?.pop?.(); })
       .on('broadcast', { event: 'hello' }, () => { if (!st.host) return;   // someone joined: send them the board so far, in pieces
         const parts = []; for (let i = 0; i < st.strokes.length; i += 40) parts.push(st.strokes.slice(i, i + 40));
         if (!parts.length) parts.push([]);
         parts.forEach((strokes, i) => stSend('sync', { part: i, total: parts.length, strokes, bg: i === 0 ? st.bg : undefined })); })
       .on('broadcast', { event: 'sync' }, ({ payload }) => { if (st.host) return;
+        if (!payload || !Array.isArray(payload.strokes)) return;
         if (payload.part === 0) { st.strokes = []; st.live = {}; stSetBg(payload.bg); }
-        st.strokes.push(...payload.strokes); stRedraw(); })
+        st.strokes.push(...payload.strokes.filter(stStrokeOk).slice(0, 2000)); stRedraw(); })
       .on('broadcast', { event: 'ended' }, () => { if (st.host) return; st.ended = true; $('st-over').hidden = false; $('st-over').innerHTML = '<div><b>The session has ended.</b><span>Thanks for studying together.</span></div>'; })
       .on('presence', { event: 'sync' }, () => {
         const ps = ch.presenceState(); st.ids = Object.keys(ps); st.people = Object.values(ps).map(v => v[0]).filter(Boolean); stDrawPeople(); stDrawFriends();

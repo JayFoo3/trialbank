@@ -139,7 +139,8 @@ Deno.serve(async (req) => {
   const subject = String(body.subject ?? 'Adv');
   if (!SUBJECTS[subject]) return json({ error: 'The tutor is not ready for that subject yet.' }, 400);
   const mode = (MODES as readonly string[]).includes(String(body.mode)) ? String(body.mode) : 'quiz';
-  const own = (p: unknown) => typeof p === 'string' && p.startsWith(user.id + '/') && !p.includes('..');
+  const OWN = new RegExp(`^${user.id}/[A-Za-z0-9_-]{1,80}/[A-Za-z0-9_-]{1,64}\\.(?:jpe?g|png|webp)$`);   // own uploads only, no path tricks
+  const own = (p: unknown): p is string => typeof p === 'string' && OWN.test(p);
   const msgs = (Array.isArray(body.messages) ? body.messages : []).slice(-24)
     .filter((m) => m && (m.role === 'student' || m.role === 'tutor'))
     .map((m) => ({ role: m.role, text: String(m.text ?? '').slice(0, 2000), images: (Array.isArray(m.images) ? m.images : []).filter(own).slice(0, 4) }));
@@ -149,7 +150,8 @@ Deno.serve(async (req) => {
   // who may use it, and limits
   const { data: srows } = await admin.from('settings').select('key, value').or('key.like.tutor_%,key.eq.admin_emails');
   const s = Object.fromEntries((srows ?? []).map((r) => [r.key, r.value]));
-  const isAdmin = String(s.admin_emails ?? '').toLowerCase().split(/[\s,]+/).includes(String(user.email ?? '').toLowerCase());
+  const me = user.email_confirmed_at ? String(user.email ?? '').trim().toLowerCase() : '';
+  const isAdmin = !!me && String(s.admin_emails ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean).includes(me);
   if (s.tutor_enabled === 'off' && !isAdmin) return json({ error: 'The tutor is switched off right now.' }, 403);
   const access = s.tutor_access ?? 'admin';
   // Pro (or a free week / Pro Mini) gets a monthly allowance; anyone can also have bought message packs
@@ -161,33 +163,36 @@ Deno.serve(async (req) => {
     const ok = access === 'pro' && (isPro || packLeft > 0);
     if (!ok) return json({ error: access === 'pro' ? 'The tutor comes with Pro, or with a pack of tutor messages.' : 'The tutor is in testing and not open yet.' }, 403);
   }
-  const month = new Date(); month.setUTCDate(1); month.setUTCHours(0, 0, 0, 0);
-  const { data: spent } = await admin.from('tutor_runs').select('cost_usd').gte('created_at', month.toISOString());
-  if ((spent ?? []).reduce((a, r) => a + Number(r.cost_usd), 0) >= Number(s.tutor_monthly_cap_usd ?? 15))
-    return json({ error: "The tutor has used this month's budget." }, 429);
-  const { count } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id).gte('created_at', new Date(Date.now() - 864e5).toISOString());
-  if (!isAdmin && (count ?? 0) >= Number(s.tutor_daily_msgs ?? 150)) return json({ error: "You've hit today's tutor limit. Back tomorrow." }, 429);
   // each student's monthly allowance (Sydney months); pack messages aren't counted against it
   const sydMonth = new Date(new Date().toLocaleString('en-US', { timeZone: 'Australia/Sydney' })); sydMonth.setDate(1); sydMonth.setHours(0, 0, 0, 0);
-  const { count: monthCount } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('error', null).eq('from_pack', false)
-    .gte('created_at', new Date(Date.now() - (Date.now() - sydMonth.getTime()) - 11 * 36e5).toISOString());
+  const since = new Date(Date.now() - (Date.now() - sydMonth.getTime()) - 11 * 36e5).toISOString();
   const { data: allow } = await admin.rpc('tutor_allowance', { uid: user.id });
   const allowance = isPro || isAdmin ? Number(allow ?? s.tutor_user_monthly_msgs ?? 300) : 0;   // a free week or Pro Mini gets less than full Pro
-  // repeated attempts to use it as a general AI (code, files, essays, batch marking) pause it for the day
-  const { count: offCount } = await admin.from('tutor_runs').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('off_topic', true).gte('created_at', new Date(Date.now() - 864e5).toISOString());
-  if (!isAdmin && (offCount ?? 0) >= Number(s.tutor_offtopic_daily ?? 6)) return json({ error: "The tutor is just for study, so it's paused for today after several off-topic requests. Back tomorrow." }, 429);
-  const fromPack = !isAdmin && (monthCount ?? 0) >= allowance;   // monthly messages used up: this one comes out of a pack
-  if (fromPack && packLeft <= 0) return json({ error: !isPro ? "You're out of tutor messages. Get a pack or go Pro to keep going."
-    : allowance < Number(s.tutor_user_monthly_msgs ?? 300)
-      ? `You've used the ${allowance} tutor messages in your free days. Get a pack of messages or go Pro for ${s.tutor_user_monthly_msgs ?? 300} a month.`
-      : "You've used this month's tutor messages. They refill on the 1st, or get a pack to keep going.", out: true }, 429);
-  let packTaken = false;
-  const refund = async () => { if (packTaken) { packTaken = false; await admin.rpc('add_tutor_msgs', { uid: user.id, n: 1, k: 'refund', r: null, nt: 'tutor reply failed' }); } };
+  // budget, daily limit, off-topic pause and whether this message comes out of a pack: decided under one lock, so parallel requests can't slip past
+  const { data: rv, error: rerr } = await admin.rpc('tutor_reserve', { uid: user.id, is_admin: isAdmin, allowance, per_day: Number(s.tutor_daily_msgs ?? 150),
+    pool_cap: Number(s.tutor_monthly_cap_usd ?? 15), off_daily: Number(s.tutor_offtopic_daily ?? 6), since_month: since });
+  if (rerr || !rv?.id) {
+    if (rerr) { console.error(rerr); return json({ error: 'The tutor hit a problem. Try again in a moment.' }, 500); }
+    const e = rv?.err;
+    return json({ error: e === 'pool' ? "The tutor has used this month's budget."
+      : e === 'day' ? "You've hit today's tutor limit. Back tomorrow."
+      : e === 'off' ? "The tutor is just for study, so it's paused for today after several off-topic requests. Back tomorrow."
+      : !isPro ? "You're out of tutor messages. Get a pack or go Pro to keep going."
+      : allowance < Number(s.tutor_user_monthly_msgs ?? 300)
+        ? `You've used the ${allowance} tutor messages in your free days. Get a pack of messages or go Pro for ${s.tutor_user_monthly_msgs ?? 300} a month.`
+        : "You've used this month's tutor messages. They refill on the 1st, or get a pack to keep going.", out: e === 'out' }, 429);
+  }
+  const runId = Number(rv.id), fromPack = !!rv.from_pack, monthCount = Number(rv.used ?? 0);
+  let packTaken = fromPack;
+  const refund = async () => {
+    await admin.from('tutor_runs').update({ cost_usd: 0, error: 'failed', from_pack: false }).eq('id', runId).eq('error', 'pending');
+    if (packTaken) { packTaken = false; await admin.rpc('add_tutor_msgs', { uid: user.id, n: 1, k: 'refund', r: null, nt: 'tutor reply failed' }); }
+  };
 
   const img = async (bucket: string, path: string) => {
     const { data, error } = await admin.storage.from(bucket).download(path);
-    if (error || !data) throw new Error(`missing ${bucket}/${path}`);
+    if (error || !data) throw new Error('A photo could not be read. Send it again.');
+    if (data.size > 4_500_000) throw new Error('That photo is too large.');
     return { type: 'image', source: { type: 'base64', media_type: mediaType(path, data.type), data: encodeBase64(new Uint8Array(await data.arrayBuffer())) } };
   };
   const pics = async (path: string) => chunks[path] ? Promise.all(chunks[path].map((c) => img('submissions', c))) : [await img('questions', path)];
@@ -197,10 +202,12 @@ Deno.serve(async (req) => {
     let q: Record<string, unknown> | null = null;
     const ctx: Record<string, unknown>[] = [];
     if (body.question_id) {
-      const { data } = await admin.from('questions')
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';   // read the question as the student, so papers they can't see stay out of reach
+      const asUser = anonKey ? createClient(url, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } }) : admin;
+      const { data } = await asUser.from('questions')
         .select('id, number, part, type, marks, topic, answer, image_path, solution_path, papers!inner(subject, school, year)')
         .eq('id', body.question_id).maybeSingle();
-      if (!data) return json({ error: 'Question not found' }, 400);
+      if (!data) { await refund(); return json({ error: 'Question not found' }, 400); }
       q = data;
       const p = data.papers as unknown as { school: string; year: number };
       ctx.push({ type: 'text', text: `The question: ${p.school} ${p.year} Q${data.number}${data.part ? `(${data.part})` : ''}, ${data.marks ?? '?'} marks, topic ${data.topic ?? 'unknown'}.` +
@@ -241,11 +248,6 @@ Deno.serve(async (req) => {
     // cache the conversation so far: each reply re-sends the whole chat, and the next call reads all but the newest turn from cache
     if (turns.length >= 3) { const prev = turns[turns.length - 2].content; prev[prev.length - 1].cache_control = { type: 'ephemeral' }; }
 
-    if (fromPack) {
-      const { data: took } = await admin.rpc('use_tutor_msg', { uid: user.id });
-      if (!took) return json({ error: "You're out of tutor messages.", out: true }, 429);
-      packTaken = true;
-    }
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -256,9 +258,9 @@ Deno.serve(async (req) => {
     const cost = ((u.input_tokens ?? 0) * PRICE.in + (u.output_tokens ?? 0) * PRICE.out +
       (u.cache_creation_input_tokens ?? 0) * PRICE.cw + (u.cache_read_input_tokens ?? 0) * PRICE.cr) / 1e6;
     const offTopic = !!((out.content ?? []).find((c: { type: string; name?: string }) => c.type === 'tool_use' && c.name === 'tutor_turn')?.input?.off_topic);
-    await admin.from('tutor_runs').insert({ off_topic: offTopic, user_id: user.id, question_id: q?.id ?? null, mode, input_tokens: u.input_tokens, output_tokens: u.output_tokens,
-      cache_write: u.cache_creation_input_tokens, cache_read: u.cache_read_input_tokens, from_pack: fromPack && r.ok, cost_usd: cost, error: r.ok ? null : JSON.stringify(out.error ?? out).slice(0, 500) });
-    if (!r.ok) await refund();
+    await admin.from('tutor_runs').update({ off_topic: offTopic, question_id: q?.id ?? null, mode, input_tokens: u.input_tokens, output_tokens: u.output_tokens,
+      cache_write: u.cache_creation_input_tokens, cache_read: u.cache_read_input_tokens, from_pack: fromPack && r.ok, cost_usd: cost, error: r.ok ? null : JSON.stringify(out.error ?? out).slice(0, 500) }).eq('id', runId);
+    if (!r.ok && packTaken) { packTaken = false; await admin.rpc('add_tutor_msgs', { uid: user.id, n: 1, k: 'refund', r: null, nt: 'tutor reply failed' }); }
     if (!r.ok) return json({ error: `The tutor hit a problem (${out.error?.type ?? r.status}). Try again in a moment.` }, 502);
     const call = (out.content ?? []).find((c: { type: string; name?: string }) => c.type === 'tool_use' && c.name === 'tutor_turn');
     // this model can't be forced to use the tool: fall back to JSON or plain text written as a reply
@@ -287,7 +289,7 @@ Deno.serve(async (req) => {
     return json({ say, done, awarded, out_of: q ? marks : null, slip, next_level: ['easier', 'same', 'harder'].includes(t.next_level) ? t.next_level : null, learnt: note || null, full_paper: !!t.full_paper, flagged: !!(q && fq && fq.reason), cost_usd: Number(cost.toFixed(5)),
       left: isAdmin ? null : Math.max(0, allowance - (monthCount ?? 0) - (fromPack ? 0 : 1)), allowance, credits: Math.max(0, packLeft - (fromPack ? 1 : 0)) });
   } catch (err) {
-    await refund();
-    return json({ error: String((err as Error).message ?? err) }, 500);
+    console.error(err); await refund();
+    return json({ error: /could not be read|too large/.test(String((err as Error).message)) ? (err as Error).message : 'The tutor hit a problem. Try again in a moment.' }, 500);
   }
 });

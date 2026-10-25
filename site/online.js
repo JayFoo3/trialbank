@@ -3,7 +3,7 @@
 (function () {
   const L = 'ABCDEFGHIJ';
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
-  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const OBJECTIVE = new Set(['single', 'multi', 'match']);
   const kind = (q) => q && q.content && q.content.kind;
   const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
@@ -28,31 +28,9 @@
   // ---------- Python runner: Pyodide in a worker, so a stuck loop can be stopped ----------
   let worker = null, ready = null, seq = 0;
   const pending = {};
-  const WORKER = `
-    importScripts('https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js');
-    const boot = loadPyodide();
-    onmessage = async (ev) => {
-      const { id, code, tests } = ev.data;
-      const py = await boot;
-      const out = { id, results: [], error: null, stdout: '' };
-      let buf = '';
-      py.setStdout({ batched: s => { buf += s + '\\n'; } });
-      const ns = py.globals.get('dict')();
-      try { py.runPython(code, { globals: ns }); }
-      catch (e) { out.error = String(e.message || e).split('\\n').filter(Boolean).slice(-1)[0]; }
-      if (!out.error) for (const t of tests) {
-        try {
-          const got = py.runPython('repr(' + t.call + ')', { globals: ns });
-          const ok = py.runPython('(' + t.call + ') == (' + t.expect + ')', { globals: ns });
-          out.results.push({ call: t.call, expect: t.expect, got, ok: !!ok });
-        } catch (e) { out.results.push({ call: t.call, expect: t.expect, got: String(e.message || e).split('\\n').filter(Boolean).slice(-1)[0], ok: false }); }
-      }
-      out.stdout = buf.slice(0, 2000);
-      postMessage(out);
-    };`;
   function getWorker() {
     if (!worker) {
-      worker = new Worker(URL.createObjectURL(new Blob([WORKER], { type: 'text/javascript' })));
+      worker = new Worker(new URL('py-worker.js', document.baseURI));
       worker.onmessage = (ev) => { const p = pending[ev.data.id]; if (p) { delete pending[ev.data.id]; p(ev.data); } };
     }
     return worker;
@@ -104,7 +82,7 @@
         c.options.forEach((_, j) => { const o = el('option', '', L[j]); o.value = L[j]; s.appendChild(o); });
         s.value = (Array.isArray(v) && v[i]) || '–';
         s.onchange = () => { const cur = Array.isArray(v) ? v.slice() : c.items.map(() => null); cur[i] = s.value === '–' ? null : s.value; set(cur); };
-        if (opts.reveal) { const okk = Array.isArray(v) && v[i] === c.answer[i]; row.classList.add(okk ? 'correct' : 'wrong'); if (!okk) row.appendChild(el('span', 'ol-key', c.answer[i])); }
+        if (opts.reveal) { const okk = Array.isArray(v) && v[i] === c.answer[i]; row.classList.add(okk ? 'correct' : 'wrong'); if (!okk) row.appendChild(el('span', 'ol-key', esc(c.answer[i]))); }
         row.appendChild(s); left.appendChild(row);
       });
       c.options.forEach((o, j) => right.appendChild(el('li', '', `<span class="ol-box">${L[j]}</span><span>${o}</span>`)));
@@ -147,8 +125,8 @@
   // ---------- solution ----------
   function solution(q, v) {
     const c = q.content, k = c.kind, box = el('div', 'ol-sol');
-    if (k === 'single' || k === 'multi') box.appendChild(el('p', '', `<b>Answer: ${k === 'multi' ? c.answer.join(', ') : c.answer}</b>`));
-    if (k === 'match') box.appendChild(el('p', '', `<b>Answer: ${c.answer.map((a, i) => `${i + 1}–${a}`).join(', ')}</b> <span class="muted small">(${q.marks} marks for all correct, ${Math.floor(q.marks / 2)} for at least half)</span>`));
+    if (k === 'single' || k === 'multi') box.appendChild(el('p', '', `<b>Answer: ${esc(k === 'multi' ? c.answer.join(', ') : c.answer)}</b>`));
+    if (k === 'match') box.appendChild(el('p', '', `<b>Answer: ${esc(c.answer.map((a, i) => `${i + 1}–${a}`).join(', '))}</b> <span class="muted small">(${q.marks} marks for all correct, ${Math.floor(q.marks / 2)} for at least half)</span>`));
     if (c.why) box.appendChild(el('p', '', c.why));
     if (c.criteria) {
       const t = el('table', 'ol-crit');

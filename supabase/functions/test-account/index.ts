@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
   const { data: rows } = await admin.from('settings').select('key, value').in('key', ['admin_emails', 'test_email']);
   const s = Object.fromEntries((rows ?? []).map((r) => [r.key, r.value]));
   const admins = String(s.admin_emails ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
-  if (!admins.includes((me.email ?? '').toLowerCase())) return json({ error: 'Admins only' }, 403);
+  if (!me.email_confirmed_at || !admins.includes((me.email ?? '').trim().toLowerCase())) return json({ error: 'Admins only' }, 403);
   const email = String(s.test_email ?? '').trim().toLowerCase();
   if (!email) return json({ error: 'No test_email in settings.' }, 500);
 
