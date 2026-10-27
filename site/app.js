@@ -5481,6 +5481,10 @@
       });
     } catch (err) { $('home-error').textContent = err.message; $('home-error').hidden = false; }
   };
+  $('duel-join').onclick = () => {
+    const v = (prompt('Enter the 1v1 code your friend sent you') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    if (v) location.hash = `#duel/${v}`;
+  };
   async function duelRoute(code) {
     code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
     if (!code) { location.hash = '#practise'; return; }
