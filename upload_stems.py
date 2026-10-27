@@ -13,6 +13,19 @@ from upload import to_webp, put_object, URL, KEY, H, die
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
+def call(method, url, **kw):
+    """requests with patience: the connection drops now and then (seen as SSL errors), so wait and retry."""
+    for attempt in range(8):
+        try:
+            r = requests.request(method, url, timeout=60, **kw)
+            if r.status_code < 500: return r
+        except requests.exceptions.RequestException as e:
+            if attempt == 7: raise
+            print(f'  network hiccup ({type(e).__name__}), retrying...', flush=True)
+        time.sleep(min(30, 2 * (attempt + 1)))
+    return r
+
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--dry', action='store_true')
     a = ap.parse_args()
@@ -24,9 +37,9 @@ def main():
     todo = [k for k in changed if k not in done]
     print(f'{len(todo)} images to upload ({len(done)} already done)')
     rows = {}
-    for i in range(0, len(todo), 80):   # look up where each image lives and its current text
-        ids = ','.join('"' + k.replace('"', '') + '"' for k in todo[i:i + 80])
-        r = requests.get(f'{URL}/rest/v1/questions', headers=H, params={'select': 'id,image_path,text', 'id': f'in.({ids})'}, timeout=60)
+    for i in range(0, len(todo), 40):   # look up where each image lives and its current text
+        ids = ','.join('"' + k.replace('"', '') + '"' for k in todo[i:i + 40])
+        r = call('GET', f'{URL}/rest/v1/questions', headers=H, params={'select': 'id,image_path,text', 'id': f'in.({ids})'})
         if r.status_code >= 300: die(f'lookup -> {r.status_code}: {r.text[:300]}')
         rows.update({q['id']: q for q in r.json()})
     n = 0
@@ -43,11 +56,11 @@ def main():
         patch = {'skills': None}
         if stem and not text.startswith(stem[:40]):
             patch['text'] = (stem + '\n' + text)[:4000]
-        r = requests.patch(f'{URL}/rest/v1/questions', headers={**H, 'Content-Type': 'application/json'},
-                           params={'id': f'eq.{k}'}, data=json.dumps(patch), timeout=60)
+        r = call('PATCH', f'{URL}/rest/v1/questions', headers={**H, 'Content-Type': 'application/json'},
+                 params={'id': f'eq.{k}'}, data=json.dumps(patch))
         if r.status_code >= 300: die(f'update {k} -> {r.status_code}: {r.text[:300]}')
         done.add(k); n += 1
-        if n % 50 == 0:
+        if n % 10 == 0:
             json.dump(sorted(done), open(done_path, 'w')); print(f'  {n} done', flush=True)
     json.dump(sorted(done), open(done_path, 'w'))
     print(f'uploaded {n}')
