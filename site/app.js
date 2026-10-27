@@ -1429,14 +1429,14 @@
       renderSteps();
     });
     $('steps-run').onclick = async () => {
-      const btn = $('steps-run'); btn.disabled = true; let cost = 0, done = 0;
+      const btn = $('steps-run'); btn.disabled = true; let cost = 0, done = 0; const skip = [];
       try {
         for (let guard = 0; guard < 400; guard++) {
-          const { data: r, error: e } = await sb.functions.invoke('tag-skills', { body: { subject: subj, subject_name: C.subjects[subj], topic, steps: steps.map(([id, label]) => ({ id, label })) } });
+          const { data: r, error: e } = await sb.functions.invoke('tag-skills', { body: { subject: subj, subject_name: C.subjects[subj], topic, steps: steps.map(([id, label]) => ({ id, label })), skip } });
           if (e) { let m = e.message; try { m = (await e.context.json()).error || m; } catch {} throw new Error(m); }
-          cost += r.cost_usd || 0; done += r.done || 0;
-          $('steps-status').textContent = `Tagged ${done} so far · ${r.left} left · US$${cost.toFixed(2)} spent${r.failed ? ` · ${r.failed} failed (will retry)` : ''}`;
-          if (!r.left || (!r.done && r.failed)) break;
+          cost += r.cost_usd || 0; done += r.done || 0; skip.push(...(r.failed_ids || []));
+          $('steps-status').textContent = `Tagged ${done} so far · ${Math.max(0, r.left - skip.length)} left · US$${cost.toFixed(2)} spent${skip.length ? ` · ${skip.length} couldn't be read (run again to retry)` : ''}`;
+          if (r.left <= skip.length || (!r.done && !r.failed)) break;
         }
       } catch (err) { $('steps-status').textContent = err.message || String(err); }
       finally { btn.disabled = false; renderSteps(); }
