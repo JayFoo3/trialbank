@@ -649,7 +649,7 @@
     $('start-summary').textContent = n ? `${o.count}${type} questions · ${dots ? `${dots} dot point${dots === 1 ? '' : 's'}` : `${n} topic${n === 1 ? '' : 's'}`}` : 'Tick a topic to start';
     const names = [...state.topics].map(topicName).sort();
     $('pr-picked').textContent = !n ? '' : (names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`) + (o.diff !== 'all' ? ` · ${o.diff.toLowerCase()} papers` : '');
-    $('start').disabled = !n; $('duel-go').disabled = !n;
+    $('start').disabled = !n;
     $('pr-bar').classList.toggle('ready', !!n);
     $('topics-none').hidden = !n;
   }
@@ -5468,6 +5468,7 @@
   function duelLeave() { if (duel.ch) { try { sb.removeChannel(duel.ch); } catch { /* gone */ } } duel.ch = null; }
   $('duel-go').onclick = async () => {
     $('home-error').hidden = true;
+    if (!state.topics.size) { toast('Tick the topics you want to battle on, then tap 1v1.'); $('topic-filter')?.focus(); return; }
     try {
       await busy(async () => {
         await buildSet({ count: Math.min(state.opts.count || 10, 10), allowSkipped: true });

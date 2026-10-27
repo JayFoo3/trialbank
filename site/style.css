@@ -2543,3 +2543,4 @@ body.annotating .tu-dock { bottom: calc(88px + env(safe-area-inset-bottom)); hei
 @media (prefers-reduced-motion: reduce) {
   .duel-glow, .duel-x, .duel-fight, .dp-score.live, .duel-arena.win .me .dp-av, .duel-p { animation: none !important; }
 }
+@media (max-width: 720px) { #view-practise .pr-bar:not(.ready) { display: block; } #view-practise .pr-bar:not(.ready) #start { opacity: .5; } }
