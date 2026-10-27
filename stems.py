@@ -62,10 +62,10 @@ def stem_crops(pages, head, part, running=frozenset()):
 
 
 RE_HEAD = lambda n: re.compile(rf'^(question\s+{n}\b|{n}[.)]?$|{n}[.)]\s)', re.I)
-RE_A = re.compile(r'^\(?a\)')
+RE_FIRST = lambda lab: re.compile(rf'^\(?{re.escape(lab)}[).]', re.I)   # (a)  a)  a.  (i)  i.
 
 
-def locate(pages, n, pa):
+def locate(pages, n, pa, lab='a'):
     """The "Question n" heading and its "(a)" line, given the page (a) is on. (None, None) if not found."""
     if not (0 <= pa < len(pages)):
         return None, None
@@ -83,7 +83,7 @@ def locate(pages, n, pa):
             for l in pages[p]['lines']:
                 if (p, l['y0']) <= (hp, hl['y0']) or l['x0'] > 0.3 * pages[p]['width']:
                     continue
-                if RE_A.match(l['words'][0][4]):
+                if RE_FIRST(lab).match(l['words'][0][4]):
                     return (h, dict(page=p, y=l['y0'])) if p == pa else (None, None)
                 if RE_HEAD(n + 1).match(l['text'].strip()):
                     return None, None
@@ -126,9 +126,28 @@ def compose(stem, part):
     return out
 
 
+_SRC = None
+def source_pdf(m):
+    """The original PDF for a paper cut without a copy (matched by file name, checked by sha256)."""
+    global _SRC
+    import hashlib
+    if _SRC is None:
+        _SRC = {}
+        docs = os.path.dirname(HERE)
+        for root, dirs, files in os.walk(docs):
+            dirs[:] = [d for d in dirs if d not in ('output', 'node_modules', '.git', 'curseforge', 'Projects')]
+            for f in files:
+                if f.lower().endswith('.pdf'): _SRC.setdefault(f, []).append(os.path.join(root, f))
+    for path in _SRC.get(m.get('file') or '', []):
+        h = hashlib.sha256(open(path, 'rb').read()).hexdigest()
+        if not m.get('sha256') or h == m['sha256']: return path
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--only'); ap.add_argument('--prefix')
+    ap.add_argument('--nocopy', action='store_true', help='only papers cut without a paper.pdf copy');
     ap.add_argument('--start', type=int, default=0); ap.add_argument('--count', type=int, default=100000)
     a = ap.parse_args()
     cj = os.path.join(HERE, 'stems_changed.json')
@@ -139,7 +158,9 @@ def main():
         if (a.only and slug != a.only) or (a.prefix and not slug.startswith(a.prefix)):
             continue
         pdf = os.path.join(folder, 'paper.pdf')
+        if a.nocopy and os.path.exists(pdf): continue
         m = json.load(open(mpath))
+        if not os.path.exists(pdf): pdf = source_pdf(m) or pdf   # cut by the reader: use the original from the subject folders
         if not os.path.exists(pdf) or m.get('scanned'):
             continue
         try:
@@ -158,10 +179,10 @@ def main():
                 shutil.copy2(os.path.join(folder, '_nostem', fn), os.path.join(folder, fn))
         with tempfile.TemporaryDirectory() as tmp:
             for n, qs in byq.items():
-                qa = next((q for q in qs if q['part'] == 'a' and q.get('pages')), None)
+                qa = next((q for q in qs if q.get('pages')), None)   # the question's first part, whatever it's called
                 if not qa:
                     continue
-                h, f = locate(pages, n, qa['pages'][0] - 1)
+                h, f = locate(pages, n, qa['pages'][0] - 1, str(qa['part']))
                 if not h:
                     continue
                 crops, text = stem_crops(pages, h, f, running)

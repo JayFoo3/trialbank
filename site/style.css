@@ -2755,7 +2755,7 @@ canvas.fire { display: block; width: 100%; filter: none; mix-blend-mode: screen;
 .embers b { width: 3px; height: 3px; background: #ffe6a0; box-shadow: 0 0 6px 2px rgba(255, 140, 30, .85); animation: ember var(--t) linear var(--d) infinite, twinkle .3s steps(2) infinite; }
 .embers b:nth-child(3n) { width: 2px; height: 2px; }
 @keyframes twinkle { 50% { filter: brightness(1.8); } }
-canvas.fire { filter: blur(1.5px) saturate(1.15); }
+canvas.fire { filter: blur(1px) saturate(1.1); }
 canvas.fire.mini { filter: blur(.8px) saturate(1.2); }
 .duel-btn canvas.fire { filter: blur(1.5px) saturate(1.2); }
 .duel-arena.lose canvas.fire { filter: grayscale(1) brightness(.7) blur(3px); }
@@ -2821,3 +2821,41 @@ canvas.fire, .ds-spark canvas.fire { margin: 0; padding: 0; border: 0; box-shado
 .dr-st b:first-child { text-align: left; } .dr-st b:last-child { text-align: right; }
 .dr-st b.best { color: #ffd84d; text-shadow: 0 0 14px rgba(255,216,77,.7); }
 @media (max-width: 640px) { .duel-p .pet { --sz: 60px; } .ds-emos { max-width: 240px; } }
+
+/* ======================= battles that count: borders, rewards, stakes ======================= */
+/* borders won in 1v1s */
+.bd-ember::after, .bd-inferno::after, .bd-nova::after { inset: -5px; padding: 4px; border: 0;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ring-spin 3s linear infinite; }
+.pet-sm.bd-ember::after, .pet-sm.bd-inferno::after, .pet-sm.bd-nova::after { inset: -4px; padding: 3px; }
+.bd-ember::after { background: conic-gradient(#7a1206, #ff5a1f, #ffb347, #ff5a1f, #7a1206); filter: drop-shadow(0 0 5px rgba(255,90,31,.7)); }
+.bd-inferno::after { padding: 5px; inset: -6px; background: conic-gradient(#ff2a00, #ffd000, #fff6c4, #ff7a00, #b50000, #ff2a00); filter: drop-shadow(0 0 10px rgba(255,80,0,.95)); animation-duration: 1.4s; }
+.bd-inferno { box-shadow: 0 0 22px rgba(255,90,0,.55); animation: inferno-throb 1s ease-in-out infinite alternate; }
+@keyframes inferno-throb { to { box-shadow: 0 0 34px rgba(255,140,0,.85); } }
+.bd-nova::after { padding: 5px; inset: -6px; background: conic-gradient(#fff, #ffd84d, #ff4d9d, #7a5cff, #18c8ff, #fff); filter: drop-shadow(0 0 12px rgba(160,120,255,.9)); animation-duration: 2s; }
+.bd-nova { box-shadow: 0 0 26px rgba(122,92,255,.6), 0 0 50px rgba(255,216,77,.35); }
+.pf-tile.battle em { background: #1a1d2b; color: #ffb44d; }
+.fr-rank { display: block; margin-top: 3px; font-size: .62rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: #e8590c; }
+/* friend card: what you play for */
+.fc-prize { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 0; }
+.fc-prize span { font-size: .78rem; font-weight: 700; padding: 5px 10px; border-radius: 99px; background: var(--soft); color: var(--muted); }
+.fc-prize b { color: #e8590c; }
+.fc-stakes { width: 100%; margin: 0; }
+/* stakes */
+.dr-stakes, .di-stakes { margin: 0; font-weight: 700; color: rgba(255,255,255,.85); }
+.dr-stakes b, .di-stakes b { color: #ffd84d; }
+.di-stakes { position: relative; z-index: 1; margin: -10px 0 16px; }
+/* results: XP earned and the next unlock */
+.duel-reward { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 16px; margin-top: 12px; padding: 14px 16px; border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,216,77,.14), rgba(255,122,26,.08)); border: 1px solid rgba(255,216,77,.3); text-align: left; }
+.duel-reward:empty { display: none; }
+.duel-reward.fresh { animation: dr-in .5s .8s cubic-bezier(.2,1.6,.4,1) both; }
+.duel-reward > .dr-note { grid-column: 1 / -1; }
+.rw-xp { display: grid; justify-items: center; line-height: 1; }
+.rw-n { font: 900 2.2rem/1 var(--display, var(--font)); color: #ffd84d; text-shadow: 0 0 18px rgba(255,216,77,.7); font-variant-numeric: tabular-nums; }
+.rw-xp span { font-size: .7rem; font-weight: 900; letter-spacing: .14em; color: rgba(255,255,255,.7); }
+.rw-lvl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center; font-size: .78rem; font-weight: 800; color: rgba(255,255,255,.8); }
+.rw-lvl i { height: 8px; border-radius: 99px; background: rgba(255,255,255,.15); overflow: hidden; }
+.rw-lvl u { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffb02e, #ffd84d); transition: width 1.2s cubic-bezier(.3,1.4,.5,1); }
+.rw-lvl span:last-child { grid-column: 1 / -1; color: #ffb44d; letter-spacing: .06em; text-transform: uppercase; font-size: .7rem; }
+.rw-unlock { grid-column: 1 / -1; margin: 4px 0 0; font-weight: 800; color: #ffd84d; }
+.dr-note { margin: 0; font-size: .82rem; font-weight: 600; color: rgba(255,255,255,.65); }
