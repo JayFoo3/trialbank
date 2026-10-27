@@ -75,6 +75,7 @@
   { const m = location.hash.match(/^#friend=([A-Za-z0-9]{4,10})$/); if (m) { try { localStorage.setItem('tb_invite', JSON.stringify(m[1])); } catch {} history.replaceState(null, '', location.pathname + location.search + '#home'); } }
   async function route() {
     if (window.Annotate) Annotate.stop();
+    if (!(location.hash || '').startsWith('#set')) closeDock();
     setTimeout(drawSheetBtns, 0);
     const [h, arg] = (location.hash || '#home').slice(1).split('/');
     if (h !== 'study' && st.ch) stLeave();   // left a study session
@@ -5113,7 +5114,7 @@
   }
   async function tuWritingFile() {
     const a = window.Annotate?.active();
-    if (!a || !a.key.includes('_tu_') || !a.api.count()) return null;
+    if (!a || !(a.key.includes('_tu_') || document.body.classList.contains('tu-docked')) || !a.api.count()) return null;   // docked: your writing on the question goes too
     let sig = ''; try { sig = localStorage.getItem(a.key) || ''; } catch {}
     sig = `${sig.length}:${sig.slice(-60)}`;
     if (sig === tuAnnSig) return null;                     // nothing new since the last message
@@ -5418,7 +5419,30 @@
   };
   stBindDraw();
   addEventListener('resize', () => { if (location.hash.startsWith('#study/')) stResize(); });
-  function askTutor(q) { tu.handoff = q; if (location.hash === '#tutor') renderTutor(); else location.hash = '#tutor'; }
+  function askTutor(q) {
+    if (location.hash.startsWith('#set')) return openDock(q);   // in a set: a chat box on top, the set stays where it is
+    tu.handoff = q; if (location.hash === '#tutor') renderTutor(); else location.hash = '#tutor';
+  }
+  // ---------- the tutor as a little chat box over a question set ----------
+  // the Tutor page's own chat is moved into the box and back, so it's the same conversation either way
+  let tuHome = null;
+  async function openDock(q) {
+    const sess = $('tu-session'), body = $('tu-dock-body');
+    if (sess.parentElement !== body) { tuHome = [sess.parentElement, sess.nextSibling]; body.appendChild(sess); }
+    $('tu-dock').hidden = false; sess.hidden = false; document.body.classList.add('tu-docked');
+    loadKatex().catch(() => {}); loadTuLeft();
+    if (!tu.active || tu.q?.id !== q.id || q.ask) await tuStart(false, q);
+    else tuDraw();
+    setTimeout(() => $('tu-text').focus({ preventScroll: true }), 50);
+  }
+  function closeDock() {
+    if ($('tu-dock').hidden) return;
+    const sess = $('tu-session');
+    if (tuHome) { tuHome[0].insertBefore(sess, tuHome[1]); tuHome = null; }
+    $('tu-dock').hidden = true; document.body.classList.remove('tu-docked');
+  }
+  $('tu-dock-x').onclick = closeDock;
+  $('tu-dock-full').onclick = () => { closeDock(); location.hash = '#tutor'; };
   $('tu-end').onclick = () => { lsSet(tuChatKey(), null); tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; tu.topic = ''; renderTutor(); };
   document.querySelectorAll('#tu-quick [data-say]').forEach(b => { b.onclick = () => tuSend(b.dataset.say); });
   $('tu-symbtn').onclick = () => { const s = $('tu-syms'); s.hidden = !s.hidden; $('tu-symbtn').setAttribute('aria-expanded', !s.hidden); };

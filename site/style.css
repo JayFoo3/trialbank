@@ -2418,3 +2418,21 @@ body.ann-full .ann-bar { bottom: calc(16px + env(safe-area-inset-bottom)); }
 .tu-start-chip { padding: 9px 14px; border-radius: 999px; font-weight: 700; font-size: .92rem; background: var(--paper); }
 .tu-start-chip:hover { border-color: var(--biro); color: var(--biro); }
 #tu-start, #tu-modes, #tu-modehint { display: none !important; }
+/* ---------- tutor chat box over a question set ---------- */
+.tu-dock { position: fixed; left: 16px; bottom: 16px; width: min(420px, calc(100vw - 32px)); height: min(70vh, 640px); z-index: 1045; background: var(--paper); border: 2px solid var(--rule); border-radius: 22px; box-shadow: 0 18px 48px var(--shadow); display: flex; flex-direction: column; overflow: hidden; }
+.tu-dock[hidden] { display: none; }
+body.annotating .tu-dock { bottom: calc(88px + env(safe-area-inset-bottom)); height: min(62vh, 600px); }
+.tu-dock-top { display: flex; align-items: center; gap: 4px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--rule); }
+.tu-dock-top b { flex: 1; }
+.tu-dock-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.tu-dock #tu-session { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.tu-dock #tu-session[hidden] { display: none; }
+.tu-dock #tu-q, .tu-dock .tu-ann, .tu-dock .tu-meter, .tu-dock .tu-recent { display: none !important; }
+.tu-dock .tu-thread { flex: 1; min-height: 0; overflow: auto; margin: 0; padding: 12px; }
+.tu-dock .tu-done { padding: 0 12px; }
+.tu-dock .tu-compose { position: static; margin: 0; border-radius: 0; border: 0; border-top: 1px solid var(--rule); box-shadow: none; }
+.tu-dock .tu-msg { max-width: 92%; }
+@media (max-width: 640px) {
+  .tu-dock { left: 0; right: 0; bottom: 0; width: 100%; height: 72vh; border-radius: 22px 22px 0 0; }
+}
+@media (min-width: 1440px) { body.tu-docked #view-set { padding-left: 300px; } }   /* big screens: room for both side by side */
