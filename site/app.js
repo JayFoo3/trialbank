@@ -84,7 +84,7 @@
     return busy(async () => {
       if (h === 'practise') { show('practise'); drawCpCard(); await renderBuild(); return; }
       if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
-      if (h === 'admin' && state.admin) { show('admin'); await renderAdmin(); return; }
+      if (h === 'admin' && adminOn()) { show('admin'); await renderAdmin(); return; }
       if (h === 'profile') { show('profile'); await renderProfile(); return; }
       if (h === 'hsc') { show('hsc'); await renderHsc(); return; }
       if (h === 'study') { show('study'); await renderStudy(arg); return; }
@@ -301,13 +301,14 @@
   // tools follow the feature level; Trialbank Lite keeps the cohort's tools off while its papers stay open
   // an admin can "view as" a level (account menu) to see exactly what those students get
   try { state.viewAs = sessionStorage.getItem('tb_viewas') || null; state.viewDial = +(sessionStorage.getItem('tb_viewdial') || 0); } catch { state.viewAs = null; }
-  const VIEW_FEAT = { lite: 20, full: 100, pro: 100 };
+  const VIEW_FEAT = { lite: 20, full: 100, pro: 100, student: 100 };
   const featureLevel = () => state.viewAs ? (VIEW_FEAT[state.viewAs] ?? state.viewDial ?? 0) : (state.release?.features ?? state.release?.dial ?? 100);
+  const adminOn = () => state.admin && !state.viewAs;   // false in student mode, so everything looks as a student sees it
   const can = (f) => (state.admin && !state.viewAs) || featureLevel() >= (FEATURE_AT[f] ?? 0);
   // papers a "Free" preview can open (the database lets the admin see everything, so this mirrors the dial)
   const seePaper = (p) => state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial;
   // Pro can be bought (pro_sales) or tried free (pro_trials); 'admin' means only admins see it while testing
-  const proOpen = () => !!state.user && !state.preview && [state.proSale, state.pro?.trials].some(v => v === 'on' || (v === 'admin' && state.admin));
+  const proOpen = () => !!state.user && !state.preview && [state.proSale, state.pro?.trials].some(v => v === 'on' || (v === 'admin' && adminOn()));
   function applyRelease() {
     $('nav-tutor').hidden = !tutorUsable() && !proOpen();   // once Pro is on sale, everyone sees the Tutor tab (it offers Pro)
     document.querySelectorAll('[data-feature]').forEach(el => el.classList.toggle('feature-off', !can(el.dataset.feature)));
@@ -332,11 +333,8 @@
     }
     drawProMenu();
     applyRelease();
-    $('nav-admin').hidden = !state.admin;
-    $('open-study').hidden = !state.admin;   // Study together: admins host while it's in beta (anyone can join from a link)
-    $('preview-new').hidden = !state.admin || state.preview;
     if (!state.admin) { state.preview = false; state.viewAs = null; }
-    $('view-as-row').hidden = !state.admin; $('view-as').value = state.viewAs || '';
+    drawAdminMenu();
     drawBars();
     if (state.user) setTimeout(noticeChanges, 600);
   }
@@ -1836,7 +1834,7 @@
     await attachUrls(full);
     return { qs: full, marks: full.reduce((a, q) => a + (q.type === 'mcq' ? 1 : q.marks || 0), 0), mins };
   }
-  const cpWeekly = () => tuAllowed() ? (state.pro?.mini && !state.admin ? 3 : Infinity) : 1;   // Pro unlimited, Pro Mini 3 a week, free 1
+  const cpWeekly = () => tuAllowed() ? (state.pro?.mini && !adminOn() ? 3 : Infinity) : 1;   // Pro unlimited, Pro Mini 3 a week, free 1
   const cpUsed = () => { const v = lsGet(CP_FREE_KEY()); return (Array.isArray(v) ? v : v ? [v] : []).filter(t => Date.now() - t < 7 * 864e5); };
   function cpAllowed() { return cpUsed().length < cpWeekly(); }
   function drawCpCard() {
@@ -2708,7 +2706,7 @@
   };
   $('preview-exit').onclick = () => {
     try { sessionStorage.removeItem('tb_preview'); } catch {}
-    state.preview = false; previewFlags = {}; setTimeout(() => drawStreak(), 0); $('preview-new').hidden = !state.admin;
+    state.preview = false; previewFlags = {}; setTimeout(() => drawStreak(), 0); drawAdminMenu();
     if (location.hash === '#home') route(); else location.hash = '#home';
   };
   // one-off flags (tour seen, subject picked...): kept on the account so a new device or the Home Screen app
@@ -3069,8 +3067,8 @@
     $('account-menu').hidden = true;
     let pro = state.pro;
     try { const { data } = await sb.rpc('my_pro'); if (data) pro = state.pro = data; } catch {}
-    const active = pro?.active, onSale = pro?.sale === 'on' || (pro?.sale === 'admin' && state.admin);
-    const pass = pro?.pass && !active, trialsOpen = pro?.trials === 'on' || (pro?.trials === 'admin' && state.admin);
+    const active = pro?.active, onSale = pro?.sale === 'on' || (pro?.sale === 'admin' && adminOn());
+    const pass = pro?.pass && !active, trialsOpen = pro?.trials === 'on' || (pro?.trials === 'admin' && adminOn());
     const canTrial = trialsOpen && !active && !pro?.pass && !pro?.trial_used;
     let code = '';
     if (trialsOpen || onSale) { try { const { data } = await sb.rpc('my_friend_code'); code = data || ''; } catch {} }
@@ -3227,7 +3225,7 @@
     const P = (x) => Math.floor(Number(x) / PER_PAPER_USD);
     const pl = pool || { cap_usd: 0, spent_usd: 0, enabled: false };
     const poolTotal = P(pl.cap_usd), poolLeft = Math.max(0, Math.min(poolTotal, P(Number(pl.cap_usd) - Number(pl.spent_usd))));
-    const freeOn = !!pl.enabled && (state.admin || can('automark'));
+    const freeOn = !!pl.enabled && (adminOn() || can('automark'));
     const freeTotal = P(u.limit_usd), freeLeft = Math.max(0, Math.min(freeTotal, P(Number(u.limit_usd) - Number(u.used_usd))));
     const free = u.unlimited ? null : freeOn ? Math.min(freeLeft, poolLeft) : 0;
     return { bought: m.balance || 0, pro: m.pro_left || 0, free, freeLeft, freeTotal, freeOn, poolLeft, poolTotal, unlimited: !!u.unlimited, canBuy: !!m.can_buy,
@@ -3249,7 +3247,7 @@
     drawMarkSearch(); drawOwnHistory();
     const next = new Date(); next.setUTCMonth(next.getUTCMonth() + 1, 1);
     const reset = next.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
-    const lite = state.release?.lite && !state.admin;
+    const lite = state.release?.lite && !adminOn();
     const tile = (n, label, sub, cls = '') => `<div class="mk-tile ${cls}"><b>${n}</b><span>${label}</span><small>${sub}</small></div>`;
     const tiles = [
       tile(c.bought, 'Bought', 'Never expire'),
@@ -4186,7 +4184,7 @@
   // ---------- admin: view as a level, and the test account ----------
   function drawBars() {
     const va = $('viewas-bar'); if (va) {
-      va.hidden = !(state.admin && state.viewAs && state.user);
+      va.hidden = !(state.admin && state.viewAs && state.viewAs !== 'student' && state.user);
       $('viewas-name').textContent = { free: 'Free', lite: 'Lite', full: 'Full', pro: 'Pro' }[state.viewAs] || '';
     }
     const tb = $('test-bar'); if (tb) {
@@ -4203,9 +4201,29 @@
     state.viewAs = v;
     try { v ? sessionStorage.setItem('tb_viewas', v) : sessionStorage.removeItem('tb_viewas'); sessionStorage.setItem('tb_viewdial', String(state.viewDial || 0)); } catch {}
     $('account-menu').hidden = true;
-    applyRelease(); drawBars(); route();
+    applyRelease(); drawAdminMenu(); drawBars(); route();
   };
   $('viewas-exit').onclick = () => { $('view-as').value = ''; $('view-as').onchange(); };
+  // student mode: one tap hides every admin option and Pro; "Admin mode" in the same menu brings them back
+  function drawAdminMenu() {
+    const on = adminOn(), student = state.admin && state.viewAs === 'student';
+    $('nav-admin').hidden = !on;
+    $('open-study').hidden = !on;   // Study together: admins host while it's in beta (anyone can join from a link)
+    $('preview-new').hidden = !on || state.preview;
+    $('view-as-row').hidden = !on; $('view-as').value = state.viewAs && !student ? state.viewAs : '';
+    $('student-mode').hidden = !on;
+    $('admin-mode').hidden = !student;
+  }
+  const setMode = (v) => {
+    state.viewAs = v;
+    try { v ? sessionStorage.setItem('tb_viewas', v) : sessionStorage.removeItem('tb_viewas'); } catch {}
+    $('account-menu').hidden = true;
+    applyRelease(); drawProMenu(); drawAdminMenu(); drawBars();
+    if (v && location.hash === '#admin') location.hash = '#home'; else route();
+    toast(v ? 'Student mode. Switch back from your account menu.' : 'Admin mode.');
+  };
+  $('student-mode').onclick = () => setMode('student');
+  $('admin-mode').onclick = () => setMode(null);
   $('test-switch').onclick = async () => {
     const btn = $('test-switch'); btn.disabled = true; $('test-msg').textContent = 'Switching…';
     try {
@@ -4423,7 +4441,7 @@
   const tuAllowed = () => !!state.user && !state.preview && ((state.admin && !state.viewAs) || (state.viewAs ? state.viewAs === 'pro' : state.release?.level === 'pro'));
   // anyone with bought tutor messages can use the tutor too (and Explain my mistake), without the rest of Pro
   const tutorUsable = () => tuAllowed() || (!!state.user && !state.preview && !state.viewAs && (state.tutorCredits || 0) > 0);
-  const packsOpen = () => !!state.user && !state.preview && (state.tutorPacks === 'on' || (state.tutorPacks === 'admin' && state.admin));
+  const packsOpen = () => !!state.user && !state.preview && (state.tutorPacks === 'on' || (state.tutorPacks === 'admin' && adminOn()));
   const TUTOR_PACKS = [{ n: 150, price: 4.99 }, { n: 300, price: 8.99 }];
   function openTutorPacks() {
     $('account-menu').hidden = true;
@@ -4504,7 +4522,7 @@
     ['tu-modes', 'tu-modehint', 'tu-start', 'tu-session', 'tu-end', 'tu-left'].forEach(id => { const e = $(id); if (e) e.hidden = true; });
     $('tu-sub').textContent = 'Comes with Pro';
     $('tu-intro').hidden = false;
-    const p = state.pro || {}, trialsOpen = p.trials === 'on' || (p.trials === 'admin' && state.admin);
+    const p = state.pro || {}, trialsOpen = p.trials === 'on' || (p.trials === 'admin' && adminOn());
     const canTrial = trialsOpen && !p.active && !p.pass && !p.trial_used;
     $('tu-intro-go').innerHTML = (canTrial ? `<button class="primary" data-k="trial">Try Pro free for 7 days</button><p class="small muted">No card needed.</p>` : `<button class="primary" data-k="pro">See Pro</button>`)
       + (packsOpen() ? `<button class="link" data-k="packs">Or just buy tutor messages, from A$4.99</button>` : '');
