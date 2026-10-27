@@ -149,7 +149,7 @@
           if (touches.size >= 2) pinchY = [...touches.values()].reduce((a, b) => a + b, 0) / touches.size;
           return;
         }
-        if (scrollId == null) { scrollId = ev.pointerId; scrollY = ev.clientY; tap = [ev.clientX, ev.clientY]; capture(ev); }   // a finger scrolls the page
+        if (scrollId == null) { scrollId = ev.pointerId; tap = [ev.clientX, ev.clientY]; }   // a finger: Safari scrolls the page itself (smooth, with momentum); a tap still goes through
         return;
       }
       ev.preventDefault();
@@ -166,13 +166,13 @@
       redrawLive();
     });
     live.addEventListener('pointermove', (ev) => {
-      if (ev.pointerType === 'pen') lastPen = performance.now();   // includes the Pencil hovering just above the glass
+      if (ev.pointerType === 'pen' && (ev.buttons || ev.pressure > 0)) lastPen = performance.now();   // the Pencil on the glass (not hovering above it)
       if (touches.has(ev.pointerId)) {
         touches.set(ev.pointerId, ev.clientY);
         if (touches.size >= 2) { const y = [...touches.values()].reduce((a, b) => a + b, 0) / touches.size; if (pinchY != null) window.scrollBy(0, pinchY - y); pinchY = y; }
         return;
       }
-      if (ev.pointerId === scrollId) { if (tap && Math.hypot(ev.clientX - tap[0], ev.clientY - tap[1]) > 8) tap = null; window.scrollBy(0, scrollY - ev.clientY); scrollY = ev.clientY; return; }
+      if (ev.pointerId === scrollId) { if (tap && Math.hypot(ev.clientX - tap[0], ev.clientY - tap[1]) > 8) tap = null; return; }
       if (ev.pointerId !== drawId || !cur) return;
       ev.preventDefault();
       if (downAt && Math.hypot(ev.clientX - downAt.x, ev.clientY - downAt.y) > 4) downAt.moved = true;
@@ -187,10 +187,10 @@
       if (!cur.erase) redrawLive();
     });
     // scribble back and forth over writing to rub it out (like Apple Notes). Strict on purpose, so handwriting never counts:
-    // at least 7 passes that each cover most of the scribble's length, going back over the same strip (not drifting along
+    // at least 5 passes that each cover a good part of the scribble's length, going back over the same strip (not drifting along
     // like "mmmm" does), and it only removes strokes that sit mostly inside the scribbled patch.
     function scratchOut(st) {
-      const p = st.p, n = p.length / 3; if (n < 14) return false;
+      const p = st.p, n = p.length / 3; if (n < 10) return false;
       const xs = [], ys = [];
       for (let i = 0; i < n; i++) { xs.push(p[i * 3] * w); ys.push(curTop + p[i * 3 + 1] * w); }
       const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
@@ -207,17 +207,17 @@
         return runs.filter(r => r > 4);
       };
       const check = (v, along, across) => {
-        if (along < 18 || across > 0.9 * along) return false;
-        const runs = passes(v); if (runs.length < 7) return false;
+        if (along < 16 || across > 1.0 * along) return false;
+        const runs = passes(v); if (runs.length < 5) return false;
         const sorted = [...runs].sort((a, b) => a - b), med = sorted[sorted.length >> 1];
-        return med >= 0.6 * along;
+        return med >= 0.45 * along;
       };
       if (!check(xs, x1 - x0, y1 - y0) && !check(ys, y1 - y0, x1 - x0)) return false;
       const pad = 3, hit = (st2) => {
         const oy = topOf(st2); if (oy === undefined) return false;
         const m = st2.p.length / 3; let inside = 0;
         for (let i = 0; i < m; i++) { const x = st2.p[i * 3] * w, y = oy + st2.p[i * 3 + 1] * w; if (x >= x0 - pad && x <= x1 + pad && y >= y0 - pad && y <= y1 + pad) inside++; }
-        return inside >= m * 0.5;
+        return inside >= m * 0.4;
       };
       const keep = data.s.filter(s2 => !hit(s2));
       if (keep.length === data.s.length) return false;   // nothing underneath: it's just a drawing, keep it
@@ -249,7 +249,13 @@
       if (ev.pointerId === drawId) finish(cancelled ? null : ev);   // cancelled: keep what was drawn so far
     };
     // iPad: stop Safari claiming a Pencil stroke for Scribble or a gesture and cancelling it partway
-    const own = (ev) => { if (ev.cancelable) ev.preventDefault(); };
+    // fingers scroll natively; the Pencil, a resting palm, and any finger in the other touch modes are kept off the page
+    const own = (ev) => {
+      if (!ev.cancelable) return;
+      const stylus = [...ev.touches, ...ev.changedTouches].some(t => t.touchType === 'stylus');
+      if (stylus || tool.touch !== 'scroll' || drawId != null || performance.now() - lastPen < palmWindow || ev.touches.length > 1 && tool.touch !== 'scroll') ev.preventDefault();
+    };
+    live.style.touchAction = tool.touch === 'scroll' ? 'pan-y' : 'none';
     for (const t of ['touchstart', 'touchmove', 'touchend']) live.addEventListener(t, own, { passive: false });
     live.addEventListener('pointerup', (ev) => up(ev, false));
     live.addEventListener('pointercancel', (ev) => up(ev, true));
@@ -328,7 +334,7 @@
       if (b.dataset.c) { tool.colour = b.dataset.c; if (tool.kind !== 'pen') tool.kind = 'pen'; }
       else if (b.dataset.k) tool.kind = b.dataset.k;
       else if (b.dataset.s) { tool.size = b.dataset.s; if (tool.kind === 'eraser') tool.kind = 'pen'; }
-      else if (b.dataset.a === 'touch') { tool.touch = { scroll: 'pencil', pencil: 'draw', draw: 'scroll' }[tool.touch] || 'scroll'; hint(`${TOUCH[tool.touch][0]}. ${TOUCH[tool.touch][1]}`); }
+      else if (b.dataset.a === 'touch') { tool.touch = { scroll: 'pencil', pencil: 'draw', draw: 'scroll' }[tool.touch] || 'scroll'; hint(`${TOUCH[tool.touch][0]}. ${TOUCH[tool.touch][1]}`); document.querySelectorAll('.ann-live').forEach(c => { c.style.touchAction = tool.touch === 'scroll' ? 'pan-y' : 'none'; }); }
       else if (b.dataset.a === 'full') setFull(!isFull());
       else if (b.dataset.a === 'done') { stop(); return; }
       else if (b.dataset.a === 'clear') {

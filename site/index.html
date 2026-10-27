@@ -69,6 +69,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 </header>
 
 <div class="duel-splash" id="duel-splash" hidden aria-live="assertive"></div>
+<div class="duel-pen" id="duel-pen" hidden aria-live="polite"></div>
 <aside class="tu-dock" id="tu-dock" hidden aria-label="Tutor"><div class="tu-dock-top"><b>Tutor</b><button class="sheet-b" id="tu-dock-full" title="Open the full Tutor page" aria-label="Open the full Tutor page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button><button class="sheet-b" id="tu-dock-x" title="Close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="tu-dock-body" id="tu-dock-body"></div></aside>
 <aside class="sheet-panel" id="sheet-panel" hidden aria-label="Formula sheet"><div class="sheet-top"><b id="sheet-title">Formula sheet</b><button class="sheet-b" id="sheet-zoom" aria-label="Zoom" title="Zoom"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/></svg></button><button class="sheet-b" id="sheet-x" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="sheet-pages" id="sheet-pages"></div></aside>
 <div class="modal" id="syl-modal" hidden>
@@ -213,7 +214,6 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <section id="view-practise" class="view" hidden>
     <div class="pr-head">
       <h1>Practise</h1>
-      <button class="pr-up pr-join" id="duel-join">Join a 1v1</button>
       <button class="pr-up" id="topics-learnt" title="Hide topics your class hasn't reached"><span class="muted">Class up to</span> <b id="pr-up-t">Set it</b></button>
     </div>
     <div class="pr-resume" id="pr-resume" hidden><button class="pr-res-go"><span><b>Continue your set</b><small class="pr-res-n"></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button><button class="pr-res-x" aria-label="Discard this set" title="Discard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
@@ -246,7 +246,6 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div class="pr-bar-row">
         <div class="pr-bar-l"><b id="start-summary">Pick a topic to start</b><span class="small muted" id="pr-picked"></span></div>
         <button class="link small" id="pr-opts-btn" aria-expanded="false">Options</button>
-        <button class="secondary duel-go" id="duel-go" title="Race a friend on these questions">1v1</button>
         <button class="primary" id="start" disabled>Start</button>
       </div>
       <p class="error" id="home-error" hidden></p>
