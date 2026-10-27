@@ -25,7 +25,7 @@ You are shown one exam question (it may have several parts). List every step a s
 - Include a step only if the question really needs it, not just because it is related.
 - Earlier steps that the needed ones build on do not need listing; the app already assumes them.
 - If part of the question needs something outside this topic, still list only steps from this list, and set outside=true.
-Always reply by calling record_steps once.`;
+Always reply by calling record_steps once. If you can't call it, reply with only JSON like {"steps": ["id1"], "outside": false}.`;
 const TOOL = {
   name: 'record_steps',
   description: 'Record the steps this question needs.',
@@ -79,14 +79,20 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({ model: MODEL, max_tokens: 400, system: SYSTEM(body.subject_name || body.subject!, body.topic!, steps),
-          tools: [TOOL], tool_choice: { type: 'tool', name: 'record_steps' },
+          tools: [TOOL], tool_choice: { type: 'auto' },   // this model can't be forced onto a tool: read JSON from its text if it skips it
           messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: mediaType(q.image_path, file.type), data: encodeBase64(new Uint8Array(await file.arrayBuffer())) } }, { type: 'text', text: 'Which steps does this question need?' }] }] }),
       });
       const out = await r.json();
       const u = out.usage ?? {};
       cost += ((u.input_tokens ?? 0) * PRICE.in + (u.output_tokens ?? 0) * PRICE.out) / 1e6;
-      const t = (out.content ?? []).find((c: { type: string }) => c.type === 'tool_use')?.input;
-      if (!r.ok || !t) throw new Error('no answer');
+      if (!r.ok) throw new Error(`API ${r.status} ${out.error?.type ?? ''} ${String(out.error?.message ?? '').slice(0, 160)}`);
+      let t = (out.content ?? []).find((c: { type: string }) => c.type === 'tool_use')?.input;
+      if (!t) {
+        const txt = (out.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('\n');
+        const m = txt.match(/\{[\s\S]*"steps"[\s\S]*\}/);
+        if (m) { try { t = JSON.parse(m[0]); } catch { /* not JSON */ } }
+      }
+      if (!t) throw new Error('no answer');
       const got = [...new Set((t.steps ?? []).map(String).filter((s: string) => ids.has(s)))];
       const skills = got.length ? got : [steps[0].id];
       if (t.outside) skills.push('outside');
