@@ -4826,6 +4826,7 @@
   }
   function tuDrawQuestion() {
     const q = tu.q, card = $('tu-q');
+    tuAnnButton();
     card.hidden = !q;
     if (!q) return;
     $('tu-qmeta').textContent = `${q.papers.school} ${q.papers.year} ${label(q)} · ${marksText(q.marks)} · ${topicName(q.topic)}`;
@@ -5071,8 +5072,43 @@
     [...ev.target.files].slice(0, 4 - tu.pending.length).forEach(f => tu.pending.push({ file: f, url: URL.createObjectURL(f) }));
     ev.target.value = ''; drawTuPending();
   };
-  const tuSubmit = () => {
+  // write on the tutor page like on a question: anything new you've written goes with your next message, as a picture
+  let tuAnnSig = '';
+  function tuAnnButton() {
+    const slot = $('tu-ann'); if (!slot || !window.Annotate || !state.user) return;
+    const key = `tb_ann_${state.user.id}_tu_${tu.q?.id || tu.session}`;
+    if (slot.dataset.key === key) return;
+    if (Annotate.active()?.key?.includes('_tu_')) Annotate.stop();
+    slot.dataset.key = key; slot.innerHTML = ''; tuAnnSig = '';
+    slot.appendChild(Annotate.button($('tu-q'), key, { scope: $('tu-session'), full: true }));
+  }
+  async function tuWritingFile() {
+    const a = window.Annotate?.active();
+    if (!a || !a.key.includes('_tu_') || !a.api.count()) return null;
+    let sig = ''; try { sig = localStorage.getItem(a.key) || ''; } catch {}
+    sig = `${sig.length}:${sig.slice(-60)}`;
+    if (sig === tuAnnSig) return null;                     // nothing new since the last message
+    const url = await a.api.snapshot(), im = new Image();
+    await new Promise((res, rej) => { im.onload = res; im.onerror = rej; im.src = url; }).catch(() => null);
+    if (!im.width) return null;
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    const cx = c.getContext('2d', { willReadFrequently: true }); cx.drawImage(im, 0, 0);
+    const d = cx.getImageData(0, 0, c.width, c.height).data;
+    let x0 = c.width, y0 = c.height, x1 = 0, y1 = 0;
+    for (let y = 0; y < c.height; y += 2) for (let x = 0; x < c.width; x += 2) if (d[(y * c.width + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 <= x0) return null;
+    const pad = 24; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(c.width, x1 + pad); y1 = Math.min(c.height, y1 + pad);
+    const o = document.createElement('canvas'); o.width = x1 - x0; o.height = y1 - y0;
+    const ox = o.getContext('2d'); ox.fillStyle = '#fff'; ox.fillRect(0, 0, o.width, o.height); ox.drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+    const blob = await new Promise(r => o.toBlob(r, 'image/png'));
+    if (!blob) return null;
+    tuAnnSig = sig;
+    return new File([blob], 'my-writing.png', { type: 'image/png' });
+  }
+  const tuSubmit = async () => {
     const t = $('tu-text').value;
+    const wf = await tuWritingFile().catch(() => null);
+    if (wf && tu.pending.length < 4) tu.pending.push({ file: wf, url: URL.createObjectURL(wf) });
     if (!t.trim() && !tu.pending.length) return;
     $('tu-text').value = ''; tuGrow(); tuSend(t);
   };

@@ -2406,3 +2406,10 @@ body.ann-full .ann-bar { bottom: calc(16px + env(safe-area-inset-bottom)); }
 .pr-res-go small { font-weight: 700; opacity: .85; }
 .pr-res-go svg, .pr-res-x svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .pr-res-x { width: 52px; padding: 0; display: grid; place-items: center; border-radius: var(--r-lg); color: var(--muted); }
+/* annotate on the tutor page: a round pen button beside the camera */
+.tu-ann { display: contents; }
+.tu-ann .ann-btn { flex: 0 0 auto; width: 42px; height: 42px; padding: 0; border-radius: 50%; justify-content: center; color: var(--muted); background: var(--soft); border: 0; box-shadow: none; position: relative; }
+.tu-ann .ann-btn span { display: none; }
+.tu-ann .ann-btn svg { width: 21px; height: 21px; }
+.tu-ann .ann-btn.on { color: #fff; background: var(--biro); }
+.tu-ann .ann-btn.has:not(.on)::after { position: absolute; top: 6px; right: 6px; }
