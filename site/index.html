@@ -200,7 +200,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <p class="error" id="review-error" hidden></p>
 
     <h2 class="sec" data-feature="exam">Recent papers</h2>
-    <p class="muted small" id="exam-history-empty" data-feature="exam">None yet.</p>
+    <p class="muted small" id="exam-history-empty" data-feature="exam">No papers yet. <a href="#papers">Sit a past paper on the clock</a> and your scores show up here.</p>
     <table class="tbl" id="exam-history" data-feature="exam"><thead><tr><th>Date</th><th>Paper</th><th>Score</th><th>Time</th></tr></thead><tbody></tbody></table>
   </section>
 
@@ -254,12 +254,14 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <!-- ===== set: one question at a time ===== -->
   <section id="view-set" class="view" hidden>
     <div class="setbar">
-      <button class="link" id="set-exit">✕ Exit</button>
-      <span class="small" id="set-pos"></span>
-      <button class="link calc-open-btn" data-calc title="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01M8.5 18.5h.01M12 18.5h3.5"/></svg><span>Calculator</span></button>
-      <button class="link" id="star">☆ Star</button>
-      <button class="link" id="flag-q" title="Report a problem with this question">⚑ Flag</button>
-      <button class="link" id="ask-tutor" hidden>Ask the tutor</button>
+      <button class="sb-btn sb-exit" id="set-exit" title="Exit" aria-label="Exit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="sb-l">Exit</span></button>
+      <span class="sb-pos" id="set-pos"></span>
+      <div class="sb-tools">
+        <button class="sb-btn calc-open-btn" data-calc title="Calculator" aria-label="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01M8.5 18.5h.01M12 18.5h3.5"/></svg><span class="sb-l">Calculator</span></button>
+        <button class="sb-btn" id="star" title="Star this question" aria-label="Star"></button>
+        <button class="sb-btn" id="flag-q" title="Report a problem with this question" aria-label="Flag a problem"></button>
+        <button class="sb-btn sb-tutor" id="ask-tutor" hidden title="Ask the tutor about this question"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 9.5h6M9 12.5h4"/></svg><span>Ask tutor</span></button>
+      </div>
     </div>
     <div class="progress"><div id="set-bar"></div></div>
     <p class="small muted" id="set-meta"></p>

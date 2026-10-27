@@ -648,18 +648,18 @@
     if (qcard) { qcard.classList.remove('enter'); void qcard.offsetWidth; qcard.classList.add('enter'); }
     // write on the question: pencil, highlighter, eraser, plus working space underneath
     if (window.Annotate) { Annotate.stop(); qcard?.querySelector('.ann-tools')?.remove(); }
-    if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${x.id}`)); qcard.prepend(tb); }
-    $('set-pos').textContent = `${s.i + 1} of ${s.qs.length} · ${topicName(x.topic)}`;
+    if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${x.id}`, { scope: $('view-set'), full: true })); qcard.prepend(tb); }
+    $('set-pos').innerHTML = `<b>${s.i + 1} of ${s.qs.length}</b><span>${esc(topicName(x.topic))}</span>`;
     firstHint(x);
     $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
     const qi = $('q-img'); qi.dataset.trimmed = ''; qi.crossOrigin = 'anonymous'; qi.onload = () => trimImg(qi);
     if (x.content) qi.removeAttribute('src'); else qi.src = x.imageUrl;
     $('q-coarse').hidden = !x.coarse;
-    $('star').textContent = '☆ Star';
-    loadStars().then(s => { $('star').textContent = s.has(x.id) ? '★ Starred' : '☆ Star'; });
+    starLabel($('star'), false);
+    loadStars().then(s => starLabel($('star'), s.has(x.id)));
     $('star').onclick = () => toggleStar(x.id, $('star'));
-    $('flag-q').textContent = '⚑ Flag'; $('flag-q').onclick = () => flagQuestion(x, $('flag-q'));
+    $('flag-q').innerHTML = `${SB_FLAG}<span class="sb-l">Flag</span>`; $('flag-q').classList.remove('lit'); $('flag-q').onclick = () => flagQuestion(x, $('flag-q'));
     $('ask-tutor').hidden = !(tutorUsable() && tuSubjects().includes(x.papers.subject) && x.image_path && !x.content);
     $('ask-tutor').onclick = () => askTutor(x);
     $('explain-mistake').hidden = true;
@@ -770,7 +770,7 @@
       const { error } = state.preview ? { error: null } : await sb.from('question_flags').insert({ question_id: q.id, user_id: state.user.id, reason, note, source: 'student' });
       if (error && !/duplicate|unique/i.test(error.message)) { ev.target.closest('[data-go]').disabled = false; return toast(esc(error.message)); }
       close();
-      if (btn) btn.textContent = '⚑ Flagged';
+      if (btn) { if (btn.classList.contains('sb-btn')) { btn.innerHTML = `${SB_FLAG}<span class="sb-l">Flagged</span>`; btn.classList.add('lit'); } else btn.textContent = '⚑ Flagged'; }
       toast(location.hash === '#set' ? 'Thanks, flagged. You can <b>skip it</b> for now.' : 'Thanks, flagged. It will get fixed.', 5000);
     };
     document.body.appendChild(m);
@@ -1857,7 +1857,12 @@
       stars.add(id);
       await sb.from('bookmarks').insert({ user_id: state.user.id, question_id: id });
     }
-    btn.textContent = stars.has(id) ? '★ Starred' : '☆ Star';
+    if (btn.classList.contains('sb-btn')) starLabel(btn, stars.has(id)); else btn.textContent = stars.has(id) ? '★ Starred' : '☆ Star';
+  }
+  const SB_FLAG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
+  function starLabel(b, on) {   // the question bar's star: icon, plus the word on wider screens
+    b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg><span class="sb-l">${on ? 'Starred' : 'Star'}</span>`;
+    b.classList.toggle('lit', on); b.setAttribute('aria-pressed', on);
   }
   function starButton(q) {
     const b = mk('button', 'link', '☆ Star');
@@ -2570,6 +2575,12 @@
       tb.appendChild(tr);
     });
     $('exam-history-empty').hidden = !!(ex && ex.length);
+    // nothing to show yet: hide the empty table and the rows that would lead nowhere
+    $('exam-history').classList.toggle('is-empty', !(ex && ex.length));
+    $('drill-weak').classList.toggle('is-empty', !state.weak.length);
+    $('drill-wrong').classList.toggle('is-empty', !state.attempted);
+    $('drill-stars').classList.toggle('is-empty', !(stars || []).length);
+    $('drill-weak').parentElement.classList.toggle('is-empty', !state.weak.length && !state.attempted && !(stars || []).length);
   }
   function reviewError(msg) { $('review-error').textContent = msg; $('review-error').hidden = false; }
   async function setFromIds(ids, n) {
