@@ -176,7 +176,7 @@
       if (scrollY != null && tap) tapThrough(tap[0], tap[1]);   // a finger tap
       tap = null; scrollY = null;
       if (!cur) return;
-      const quick = downAt && !downAt.moved && performance.now() - downAt.t < 350;
+      const quick = downAt && !downAt.moved && performance.now() - downAt.t < 220;   // a real tap, not a quick dot or full stop
       if (quick && !cur.erase && ev && tapThrough(ev.clientX, ev.clientY)) { cur = null; redrawLive(); downAt = null; return; }   // clicked a button
       if (!cur.erase && cur.p.length) {
         undo.push(data.s); redo.length = 0;
@@ -188,8 +188,12 @@
       if (sizeQueued) { sizeQueued = false; size(); }
     };
     const lift = (ev) => { if (touches.delete(ev.pointerId)) { if (touches.size < 2) pinchY = null; return true; } return false; };
+    // iPad: Safari can still claim a Pencil stroke for Scribble or a gesture and cancel it partway, which is what
+    // made bits of writing vanish. Refusing the raw touch events on the canvas keeps every stroke ours.
+    const own = (ev) => { if (ev.cancelable) ev.preventDefault(); };
+    for (const t of ['touchstart', 'touchmove', 'touchend']) live.addEventListener(t, own, { passive: false });
     live.addEventListener('pointerup', (ev) => { if (!lift(ev)) end(ev); });
-    live.addEventListener('pointercancel', (ev) => { if (!lift(ev)) end(null); });
+    live.addEventListener('pointercancel', (ev) => { if (!lift(ev)) end(null); });   // keep what was drawn so far
     let raf = 0;
     const later = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(size); };
     const ro = new ResizeObserver(later); ro.observe(scope);
