@@ -728,8 +728,14 @@
     firstHint(x);
     $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
-    const qi = $('q-img'); qi.dataset.trimmed = ''; qi.crossOrigin = 'anonymous'; qi.onload = () => trimImg(qi);
-    if (x.content) qi.removeAttribute('src'); else qi.src = x.imageUrl;
+    const qi = $('q-img'); qi.crossOrigin = 'anonymous';
+    if (x.content) qi.removeAttribute('src');
+    else if (x._src) { qi.onload = null; qi.dataset.trimmed = '1'; qi.classList.remove('loading'); qi.src = x._src; }   // got ready in the background: instant
+    else {   // not ready yet: clear the old question at once rather than leave it up while this one downloads
+      qi.dataset.trimmed = ''; qi.classList.add('loading'); qi.alt = ''; qi.removeAttribute('src');
+      qi.onload = () => { qi.classList.remove('loading'); qi.alt = 'Question'; trimImg(qi); };
+      qi.src = x.imageUrl;
+    }
     $('q-coarse').hidden = !x.coarse;
     starLabel($('star'), false);
     loadStars().then(s => starLabel($('star'), s.has(x.id)));
@@ -766,6 +772,25 @@
       verdict('Most likely not in your syllabus, so this one is auto-marked as correct. Have a go anyway if you like.', 'good');
       $('next').hidden = false; $('skip').hidden = true;
     }
+    prepQ(s.qs[s.i + 1]); prepQ(s.qs[s.i + 2]);              // the next two are downloaded and trimmed while you work on this one
+    if (x.solutionUrl) { const sol = new Image(); sol.src = x.solutionUrl; }   // so Show solution is instant too
+  }
+  // get a question's image ready before it's shown (downloaded and trimmed), so Next and Skip switch straight away
+  function prepQ(x) {
+    if (!x || x.content || !x.imageUrl || x._prep) return;
+    x._prep = new Promise(res => {
+      const im = new Image(); im.crossOrigin = 'anonymous'; im.decoding = 'async';
+      const done = (src) => { x._src = src; res(); };
+      im.onload = () => {
+        try {
+          const cv = trimCanvas(im);
+          if (cv.height >= im.naturalHeight - 6) return done(x.imageUrl);
+          cv.toBlob(b => done(b ? URL.createObjectURL(b) : x.imageUrl), 'image/png');
+        } catch { done(x.imageUrl); }
+      };
+      im.onerror = () => { x._prep = null; res(); };
+      im.src = x.imageUrl;
+    });
   }
   document.querySelectorAll('#mcq-controls button').forEach(b => b.onclick = () => {
     const x = state.set.qs[state.set.i];
@@ -963,7 +988,11 @@
   function advance() {
     const s = state.set;
     if (s.daily && !s.results[s.i]) dailyMark(s.qs[s.i], 0, 0);   // skipped: counts as seen for today
-    if (s.i + 1 < s.qs.length) { s.i++; renderQuestion(); }
+    if (s.i + 1 < s.qs.length) {
+      s.i++; renderQuestion();
+      const top = $('view-set').getBoundingClientRect().top;   // scrolled down to the buttons: jump back to the top of the new question
+      if (top < 0) scrollTo({ top: Math.max(0, scrollY + top - 80), behavior: 'instant' });
+    }
     else if (s.daily) {
       busy(async () => {
         const st = await finishDaily().catch(e => { console.warn('daily', e.message); return null; });

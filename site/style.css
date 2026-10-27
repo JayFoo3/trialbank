@@ -2376,3 +2376,9 @@ body.ann-full .ann-bar { bottom: calc(16px + env(safe-area-inset-bottom)); }
 #view-practise .pr-bar-l .small { display: none; }
 #view-practise .tp-wrap.open { grid-column: 1 / -1; }
 @media (max-width: 900px) { #view-practise .tp-list { grid-template-columns: 1fr; } }
+/* question switching: quick, and never shows the old question while the new one loads */
+.card.question.enter, #q-online.enter { animation-duration: .2s; }
+@keyframes jz-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+#q-img.loading { min-height: 180px; width: 100%; border-radius: 10px; background: linear-gradient(90deg, #f2f0ea 0%, #fbfaf7 50%, #f2f0ea 100%) 0 0 / 200% 100%; animation: q-shim 1.1s linear infinite; }
+@keyframes q-shim { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { #q-img.loading { animation: none; } }
