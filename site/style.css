@@ -2368,3 +2368,8 @@ body.ann-full .ann-bar { bottom: calc(16px + env(safe-area-inset-bottom)); }
   #view-practise .pr-bar-l .small { display: none; }
   #view-practise .pr-bar .primary { padding: 12px 22px; }
 }
+#view-practise .tp { min-height: 46px; }
+#view-practise .tp-step { border: 0; background: none; padding: 7px 6px; font-weight: 600; }
+#view-practise .tp-step:hover { background: var(--soft); }
+#view-practise .tp-step.on { background: none; color: var(--biro); }
+#view-practise .tp-steps { gap: 0; }

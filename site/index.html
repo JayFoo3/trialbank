@@ -210,7 +210,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <h1>Practise</h1>
       <button class="pr-up" id="topics-learnt" title="Hide topics your class hasn't reached"><span class="muted">Class up to</span> <b id="pr-up-t">Set it</b></button>
     </div>
-    <button class="pr-pick" id="pr-smart"><span><b>Not sure? Let Trialbank pick 10</b><small id="pr-smart-sub">A mix of every topic you've learnt.</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="pr-pick" id="pr-smart"><span><b>Pick 10 for me</b></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
     <p class="error" id="pr-error" hidden></p>
     <div class="card pr-topics">
       <div class="pr-tools">
@@ -218,11 +218,11 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
         <button class="link small" id="topics-none" hidden>Clear</button>
       </div>
       <div id="topic-chips"></div>
-      <p class="small pr-foot"><button class="link" id="topics-all">Select every topic</button><button class="link" id="open-syllabus">View the syllabus</button></p>
+      <p class="small pr-foot"><button class="link" id="topics-all" hidden>Select every topic</button><button class="link" id="open-syllabus">Syllabus</button></p>
     </div>
     <details class="card cp-card" id="cp-card">
-      <summary><span><b>Make a practice paper</b><small>A PDF to do on paper, with the solutions at the back</small></span><em class="pro-chip" id="cp-pro" hidden>Pro</em><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
-      <p class="small muted" id="cp-sub">A fresh paper built around your weak spots, with ruled lines to write on and the solutions at the back.</p>
+      <summary><span><b>Make a practice paper</b></span><em class="pro-chip" id="cp-pro" hidden>Pro</em><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <p class="small muted" id="cp-sub" hidden></p>
       <div class="options cp-opts">
         <div class="opt"><span>Length</span><div class="seg" data-cp="mins"><button data-v="20">20 min</button><button data-v="40" class="on">40 min</button><button data-v="60">1 hour</button><button data-v="90">90 min</button></div></div>
         <div class="opt"><span>Focus</span><div class="seg" data-cp="focus"><button data-v="weak" class="on">My weak spots</button><button data-v="picked">Topics I picked</button><button data-v="mixed">A bit of everything</button></div></div>

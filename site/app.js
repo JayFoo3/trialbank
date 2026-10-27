@@ -530,7 +530,7 @@
         const m = prMine[t], lv = prLevel(m), pct = m && m.out_of ? Math.round(100 * m.score / m.out_of) : null, n = byTopic[t].mcq + byTopic[t].short;
         const b = mk('button', `tp ${lv}${state.topics.has(t) ? ' on' : ''}${topicSteps(t) ? ' has-steps' : ''}`);
         b.type = 'button'; b.setAttribute('aria-pressed', state.topics.has(t));
-        b.innerHTML = `<i class="tp-box" aria-hidden="true"></i><span class="tp-name">${esc(topicName(t))}<small>${n} question${n === 1 ? '' : 's'}</small></span>
+        b.innerHTML = `<i class="tp-box" aria-hidden="true"></i><span class="tp-name">${esc(topicName(t))}<small hidden></small></span>
           ${pct == null ? '' : `<span class="tp-you" title="You've got ${m.score} of ${m.out_of} marks right"><i class="tp-dot"></i>${pct}%</span>`}`;
         const steps = topicSteps(t);
         const wrapT = mk('div', 'tp-wrap');
@@ -539,15 +539,15 @@
         const paint = () => {
           const on = state.topics.has(t), sel = state.steps.get(t);
           b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
-          const sub = b.querySelector('small'); if (sub) sub.textContent = sel?.size ? `${sel.size} of ${steps.length} dot points` : `${n} question${n === 1 ? '' : 's'}`;
+          const sub = b.querySelector('small'); if (sub) { sub.textContent = sel?.size ? `${sel.size} of ${steps.length} dot points` : ''; sub.hidden = !sel?.size; }
           wrapT.classList.toggle('part', !!sel?.size);
         };
         const drawSteps = () => {
           if (!panel || panel.hidden) return;
           const sel = state.steps.get(t) || new Set(), counts = panel._counts || {};
-          panel.innerHTML = `<p class="small muted">${panel._tagged ? "Tick just the parts you've covered in class. You only get questions that need those parts." : 'Questions in this topic are still being sorted into dot points. Check back soon.'}</p>`
-            + steps.map(([id, lab]) => `<button type="button" class="tp-step${sel.has(id) ? ' on' : ''}" data-s="${id}" ${panel._tagged ? '' : 'disabled'}><i aria-hidden="true"></i><span>${esc(lab)}</span><em>${counts[id] ? `${counts[id]} q` : ''}</em></button>`).join('')
-            + (sel.size ? '<button type="button" class="link small tp-all">Use the whole topic</button>' : '');
+          panel.innerHTML = (panel._tagged ? '' : '<p class="small muted">Not sorted into dot points yet.</p>')
+            + steps.map(([id, lab]) => `<button type="button" class="tp-step${sel.has(id) ? ' on' : ''}" data-s="${id}" ${panel._tagged ? '' : 'disabled'}><i aria-hidden="true"></i><span>${esc(lab)}</span></button>`).join('')
+            + (sel.size ? '<button type="button" class="link small tp-all">Whole topic</button>' : '');
           panel.querySelectorAll('[data-s]').forEach(x => x.onclick = () => {
             const set = state.steps.get(t) || new Set(); set.has(x.dataset.s) ? set.delete(x.dataset.s) : set.add(x.dataset.s);
             if (set.size) { state.steps.set(t, set); state.topics.add(t); } else state.steps.delete(t);
@@ -581,7 +581,6 @@
     });
     // the quick start leans on your weakest topics once there are some
     const weak = Object.values(prMine).filter(r => r.out_of >= 2 && !skip.has(r.topic) && byTopic[r.topic]).sort((a, b) => a.score / a.out_of - b.score / b.out_of).slice(0, 3);
-    $('pr-smart-sub').textContent = weak.length ? `Mostly ${weak.map(w => topicName(w.topic)).join(', ')}, where you're losing the most marks` : "A mix of every topic you've learnt, new ones first";
     $('pr-smart').onclick = async () => {
       $('pr-error').hidden = true;
       const keep = new Set(state.topics), keepSteps = state.steps; state.steps = new Map();
@@ -1844,8 +1843,9 @@
     if (!$('cp-card')) return;
     const cap = cpWeekly(), left = cap - cpUsed().length;
     $('cp-pro').hidden = cap === Infinity;
-    $('cp-sub').textContent = cap === Infinity ? 'A fresh paper built around your weak spots, with ruled lines to write on and the solutions at the back.'
-      : left > 0 ? `A fresh paper built around your weak spots. ${left} of ${cap} paper${cap === 1 ? '' : 's'} left this week; Pro makes as many as you like.`
+    $('cp-sub').hidden = cap === Infinity;
+    $('cp-sub').textContent = cap === Infinity ? ''
+      : left > 0 ? `${left} of ${cap} paper${cap === 1 ? '' : 's'} left this week.`
       : `You've used this week's ${cap === 1 ? 'free paper' : `${cap} papers`}. Pro makes as many as you like.`;
   }
   document.querySelectorAll('[data-cp]').forEach(seg => seg.onclick = (ev) => {
