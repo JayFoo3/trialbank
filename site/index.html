@@ -68,6 +68,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </div>
 </header>
 
+<div class="duel-splash" id="duel-splash" hidden aria-live="assertive"></div>
 <aside class="tu-dock" id="tu-dock" hidden aria-label="Tutor"><div class="tu-dock-top"><b>Tutor</b><button class="sheet-b" id="tu-dock-full" title="Open the full Tutor page" aria-label="Open the full Tutor page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button><button class="sheet-b" id="tu-dock-x" title="Close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="tu-dock-body" id="tu-dock-body"></div></aside>
 <aside class="sheet-panel" id="sheet-panel" hidden aria-label="Formula sheet"><div class="sheet-top"><b id="sheet-title">Formula sheet</b><button class="sheet-b" id="sheet-zoom" aria-label="Zoom" title="Zoom"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/></svg></button><button class="sheet-b" id="sheet-x" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="sheet-pages" id="sheet-pages"></div></aside>
 <div class="modal" id="syl-modal" hidden>
@@ -244,6 +245,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div class="pr-bar-row">
         <div class="pr-bar-l"><b id="start-summary">Pick a topic to start</b><span class="small muted" id="pr-picked"></span></div>
         <button class="link small" id="pr-opts-btn" aria-expanded="false">Options</button>
+        <button class="secondary duel-go" id="duel-go" disabled title="Race a friend on these questions">1v1</button>
         <button class="primary" id="start" disabled>Start</button>
       </div>
       <p class="error" id="home-error" hidden></p>
@@ -251,6 +253,19 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </section>
 
   <!-- ===== set: one question at a time ===== -->
+  <section id="view-duel" class="view" hidden>
+    <div class="duel-arena">
+      <div class="duel-glow" aria-hidden="true"></div>
+      <p class="duel-kicker" id="duel-kicker">1v1</p>
+      <h1 class="duel-title" id="duel-title"></h1>
+      <div class="duel-vs">
+        <div class="duel-p me" id="duel-me"></div>
+        <div class="duel-x" aria-hidden="true">VS</div>
+        <div class="duel-p them" id="duel-them"></div>
+      </div>
+      <div class="duel-actions" id="duel-actions"></div>
+    </div>
+  </section>
   <section id="view-set" class="view" hidden>
     <div class="setbar">
       <button class="sb-btn sb-exit" id="set-exit" title="Exit" aria-label="Exit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="sb-l">Exit</span></button>
@@ -264,6 +279,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       </div>
     </div>
     <div class="progress"><div id="set-bar"></div></div>
+    <div class="duel-strip" id="duel-strip" hidden></div>
     <p class="small muted" id="set-meta"></p>
 
     <p class="hint small" id="set-hint" hidden></p>
