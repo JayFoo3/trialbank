@@ -186,10 +186,43 @@
       }
       if (!cur.erase) redrawLive();
     });
+    // scribble back and forth over writing to rub it out (like Apple Notes): a tight zigzag that lands on strokes deletes them
+    function scratchOut(st) {
+      const p = st.p, n = p.length / 3; if (n < 12) return false;
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, len = 0;
+      const rev = [0, 0], dir = [0, 0], run = [0, 0];
+      for (let i = 0; i < n; i++) {
+        const x = p[i * 3] * w, y = curTop + p[i * 3 + 1] * w;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+        if (!i) continue;
+        const d = [x - p[i * 3 - 3] * w, y - (curTop + p[i * 3 - 2] * w)];
+        len += Math.hypot(d[0], d[1]);
+        for (const k of [0, 1]) {   // count real turnarounds on each axis, ignoring hand jitter
+          if (!d[k]) continue;
+          const sg = Math.sign(d[k]);
+          if (sg === dir[k]) run[k] += Math.abs(d[k]);
+          else { if (dir[k] && run[k] > 5) rev[k]++; dir[k] = sg; run[k] = Math.abs(d[k]); }
+        }
+      }
+      const diag = Math.hypot(x1 - x0, y1 - y0);
+      if (Math.max(...rev) < 5 || diag < 14 || len < 3.5 * diag) return false;
+      const pad = 4, hit = (st2) => {
+        const oy = topOf(st2); if (oy === undefined) return false;
+        const m = st2.p.length / 3; let inside = 0;
+        for (let i = 0; i < m; i++) { const x = st2.p[i * 3] * w, y = oy + st2.p[i * 3 + 1] * w; if (x >= x0 - pad && x <= x1 + pad && y >= y0 - pad && y <= y1 + pad) inside++; }
+        return inside >= Math.max(1, Math.min(6, m * 0.25));
+      };
+      const keep = data.s.filter(s2 => !hit(s2));
+      if (keep.length === data.s.length) return false;   // nothing underneath: it's just a drawing, keep it
+      undo.push(data.s); redo.length = 0; data.s = keep; redrawBase();
+      const saving = data; setTimeout(() => store(key, saving), 0);
+      return true;
+    }
     function finish(ev) {
       if (!cur) { drawId = null; return; }
       const quick = ev && downAt && !downAt.moved && performance.now() - downAt.t < 220;   // a real tap, not a quick dot or full stop
       if (quick && !cur.erase && tapThrough(ev.clientX, ev.clientY)) { cur = null; drawId = null; redrawLive(); downAt = null; return; }   // clicked a button
+      if (!cur.erase && cur.t === 'pen' && scratchOut(cur)) { cur = null; drawId = null; downAt = null; redrawLive(); if (sizeQueued) { sizeQueued = false; size(); } return; }
       if (!cur.erase && cur.p.length) {
         undo.push(data.s); redo.length = 0;
         data.s = [...data.s, { ...cur, p: cur.p.map(v => Math.round(v * 10000) / 10000) }];

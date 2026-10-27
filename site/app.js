@@ -75,6 +75,7 @@
   { const m = location.hash.match(/^#friend=([A-Za-z0-9]{4,10})$/); if (m) { try { localStorage.setItem('tb_invite', JSON.stringify(m[1])); } catch {} history.replaceState(null, '', location.pathname + location.search + '#home'); } }
   async function route() {
     if (window.Annotate) Annotate.stop();
+    setTimeout(drawSheetBtns, 0);
     const [h, arg] = (location.hash || '#home').slice(1).split('/');
     if (h !== 'study' && st.ch) stLeave();   // left a study session
     if (!state.user) return show('auth');
@@ -273,6 +274,29 @@
   $('signout').onclick = async () => { clearDeviceData(); await sb.auth.signOut(); };
   $('calc-btn').onclick = () => window.Calc && Calc.toggle();
   document.querySelectorAll('[data-calc]').forEach(b => { b.onclick = () => window.Calc && Calc.toggle(); });   // inside questions and exams, where the top bar is hidden
+  // ---------- NESA formula / reference sheet, beside the calculator ----------
+  // one official sheet per course: the maths one holds Ext 2, Ext 1 and Advanced pages, so each course shows its own and the ones beneath it
+  const SHEETS = { Adv: ['m3', 'm4'], Ext1: ['m2', 'm3', 'm4'], Ext2: ['m1', 'm2', 'm3', 'm4'], Physics: ['p1', 'p2', 'p3', 'p4'] };
+  const sheetSubj = () => (location.hash.startsWith('#set') && state.set?.qs?.[state.set.i]?.papers?.subject) || state.subject;
+  function drawSheetBtns() {
+    const has = !!SHEETS[sheetSubj()];
+    document.querySelectorAll('[data-sheet]').forEach(b => { b.hidden = !has; });
+    if (!has) $('sheet-panel').hidden = true;
+  }
+  function toggleSheet() {
+    const panel = $('sheet-panel'), subj = sheetSubj(), pages = SHEETS[subj];
+    if (!panel.hidden || !pages) { panel.hidden = true; return; }
+    $('sheet-title').textContent = subj === 'Physics' ? 'Physics data and formula sheet' : `${C.subjects[subj] || subj} reference sheet`;
+    if (panel.dataset.s !== subj) {
+      panel.dataset.s = subj;
+      $('sheet-pages').innerHTML = pages.map((n, i) => `<img src="sheets/${n}.webp?v=1" alt="Page ${i + 1}" loading="${i ? 'lazy' : 'eager'}" decoding="async">`).join('');
+      $('sheet-pages').scrollTop = 0;
+    }
+    panel.hidden = false;
+  }
+  document.querySelectorAll('[data-sheet]').forEach(b => { b.onclick = toggleSheet; });
+  $('sheet-x').onclick = () => { $('sheet-panel').hidden = true; };
+  $('sheet-zoom').onclick = () => { $('sheet-pages').classList.toggle('zoom'); $('sheet-zoom').classList.toggle('on'); };
   const drawSound = () => { if (window.Juice) $('sound-toggle').textContent = `Sounds: ${Juice.soundLabel()}`; };
   $('sound-toggle').onclick = () => { if (window.Juice) { Juice.cycleSound(); drawSound(); } };
   drawSound();
@@ -772,6 +796,7 @@
       verdict('Most likely not in your syllabus, so this one is auto-marked as correct. Have a go anyway if you like.', 'good');
       $('next').hidden = false; $('skip').hidden = true;
     }
+    drawSheetBtns();
     prepQ(s.qs[s.i + 1]); prepQ(s.qs[s.i + 2]);              // the next two are downloaded and trimmed while you work on this one
     if (x.solutionUrl) { const sol = new Image(); sol.src = x.solutionUrl; }   // so Show solution is instant too
   }

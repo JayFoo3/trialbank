@@ -40,7 +40,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </nav>
     <div class="top-right" id="top-right" hidden>
       <div class="subject" id="subject-switch" role="group" aria-label="Subject"></div>
-      <button class="calc-btn" id="calc-btn" title="Calculator" aria-label="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01M8.5 18.5h.01M12 18.5h3.5"/></svg></button>
+      <button class="calc-btn" id="sheet-btn" data-sheet title="Formula sheet" aria-label="Formula sheet" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 11.5h2.5M9.5 15.5h6M13.8 10.2l1.4 2.6M15.2 10.2l-1.4 2.6"/></svg></button><button class="calc-btn" id="calc-btn" title="Calculator" aria-label="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01M8.5 18.5h.01M12 18.5h3.5"/></svg></button>
       <button class="timer-btn" id="timer-btn" aria-haspopup="dialog" title="Exam timer"></button>
       <div class="timer-pop" id="timer-pop" hidden role="dialog" aria-label="Exam timer"></div>
       <button class="streak" id="streak" hidden aria-haspopup="dialog" title="Daily streak"></button>
@@ -68,6 +68,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </div>
 </header>
 
+<aside class="sheet-panel" id="sheet-panel" hidden aria-label="Formula sheet"><div class="sheet-top"><b id="sheet-title">Formula sheet</b><button class="sheet-b" id="sheet-zoom" aria-label="Zoom" title="Zoom"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/></svg></button><button class="sheet-b" id="sheet-x" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="sheet-pages" id="sheet-pages"></div></aside>
 <div class="modal" id="syl-modal" hidden>
   <div class="modal-card syl-card" role="dialog" aria-modal="true" aria-labelledby="syl-title">
     <div class="between"><h2 id="syl-title">Syllabus</h2><button class="link" id="syl-close" aria-label="Close">✕</button></div>
@@ -254,6 +255,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <span class="sb-pos" id="set-pos"></span>
       <div class="sb-tools">
         <button class="sb-btn calc-open-btn" data-calc title="Calculator" aria-label="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01M8.5 18.5h.01M12 18.5h3.5"/></svg><span class="sb-l">Calculator</span></button>
+        <button class="sb-btn" data-sheet title="Formula sheet" aria-label="Formula sheet" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 11.5h2.5M9.5 15.5h6M13.8 10.2l1.4 2.6M15.2 10.2l-1.4 2.6"/></svg><span class="sb-l">Formulas</span></button>
         <button class="sb-btn" id="star" title="Star this question" aria-label="Star"></button>
         <button class="sb-btn" id="flag-q" title="Report a problem with this question" aria-label="Flag a problem"></button>
         <button class="sb-btn sb-tutor" id="ask-tutor" hidden title="Ask the tutor about this question"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 9.5h6M9 12.5h4"/></svg><span>Ask tutor</span></button>
@@ -531,7 +533,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <div class="exambar">
       <div><span class="small muted" id="exam-phase"></span><div class="clock" id="exam-clock">--:--</div></div>
       <span class="small muted examtitle" id="exam-title"></span>
-      <div class="row"><button class="link calc-open-btn" data-calc title="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01M8.5 18.5h.01M12 18.5h3.5"/></svg><span>Calculator</span></button><button class="link" id="exam-pdf">Download PDF</button><button class="link" id="exam-skip" hidden>Skip reading</button><button class="primary" id="exam-finish">Finish exam</button></div>
+      <div class="row"><button class="link calc-open-btn" data-calc title="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01M8.5 18.5h.01M12 18.5h3.5"/></svg><span>Calculator</span></button><button class="link calc-open-btn" data-sheet title="Formula sheet" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 11.5h2.5M9.5 15.5h6M13.8 10.2l1.4 2.6M15.2 10.2l-1.4 2.6"/></svg><span>Formulas</span></button><button class="link" id="exam-pdf">Download PDF</button><button class="link" id="exam-skip" hidden>Skip reading</button><button class="primary" id="exam-finish">Finish exam</button></div>
     </div>
     <p class="small muted" id="exam-note"></p>
     <div class="jump" id="exam-jump"></div>
