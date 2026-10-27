@@ -35,6 +35,7 @@
     user: null,
     subject: (() => { try { const k = localStorage.getItem('tb_subject'); return k && C.subjects[k] ? k : Object.keys(C.subjects)[0]; } catch { return Object.keys(C.subjects)[0]; } })(),
     topics: new Set(),          // selected topic names
+    steps: new Map(),           // topic -> the dot points picked inside it (empty: the whole topic)
     opts: { count: 10, type: 'all', diff: 'all', fresh: 1 },
     set: null,                  // { qs: [...], i, results: [] }
   };
@@ -458,6 +459,18 @@
         ['pm7', 'Investigations: checking the relationships, air resistance and errors'],
       ],
     },
+    Adv: {
+      'Sequences and Series': [   // NESA Mathematics Advanced 11–12 (2024), Year 12: Sequences and series
+        ['ss1', 'Sequence notation, partial sums and sigma notation'],
+        ['ss2', 'Arithmetic sequences: common difference and the nth term'],
+        ['ss3', 'Arithmetic series: the sum of n terms'],
+        ['ss4', 'Arithmetic models: linear growth and decay problems'],
+        ['ss5', 'Geometric sequences: common ratio and the nth term'],
+        ['ss6', 'Geometric series: the sum of n terms'],
+        ['ss7', 'Limiting sums (when the ratio is between -1 and 1)'],
+        ['ss8', 'Geometric models: exponential growth and decay problems'],
+      ],
+    },
   };
   const topicSteps = (t, subj = state.subject) => (STEPS[subj] || {})[t] || null;
   let topicCounts = null;   // [{subject, topic, type, n}]
@@ -506,21 +519,62 @@
       const sync = () => { tog.textContent = ts.every(t => state.topics.has(t)) ? 'Clear' : 'Select all'; };
       tog.onclick = () => {
         const on = !ts.every(t => state.topics.has(t));
-        ts.forEach(t => on ? state.topics.add(t) : state.topics.delete(t));
+        ts.forEach(t => { on ? state.topics.add(t) : state.topics.delete(t); state.steps.delete(t); });
         box.querySelectorAll('.tp').forEach(c => { c.classList.toggle('on', on); c.setAttribute('aria-pressed', on); });
+        box.querySelectorAll('.tp-wrap').forEach(c => c.classList.remove('part'));
         sync(); startSummary();
       };
       head.appendChild(tog); box.appendChild(head);
       const list = mk('div', 'tp-list');
       ts.forEach(t => {
         const m = prMine[t], lv = prLevel(m), pct = m && m.out_of ? Math.round(100 * m.score / m.out_of) : null, n = byTopic[t].mcq + byTopic[t].short;
-        const b = mk('button', `tp ${lv}${state.topics.has(t) ? ' on' : ''}`);
+        const b = mk('button', `tp ${lv}${state.topics.has(t) ? ' on' : ''}${topicSteps(t) ? ' has-steps' : ''}`);
         b.type = 'button'; b.setAttribute('aria-pressed', state.topics.has(t));
         b.innerHTML = `<i class="tp-box" aria-hidden="true"></i><span class="tp-name">${esc(topicName(t))}<small>${n} question${n === 1 ? '' : 's'}</small></span>
           <span class="tp-you" title="${pct == null ? 'Not tried yet' : `You've got ${m.score} of ${m.out_of} marks right`}">${pct == null ? '<em>Not tried</em>' : `<span class="tp-bar"><i style="width:${Math.max(4, pct)}%"></i></span><b>${pct}%</b>`}</span>`;
-        b.dataset.t = (topicName(t) + ' ' + t + ' ' + name).toLowerCase();
-        b.onclick = () => { const on = !state.topics.has(t); on ? state.topics.add(t) : state.topics.delete(t); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); sync(); startSummary(); };
-        list.appendChild(b);
+        const steps = topicSteps(t);
+        const wrapT = mk('div', 'tp-wrap');
+        wrapT.dataset.t = (topicName(t) + ' ' + t + ' ' + name + ' ' + (steps || []).map(x => x[1]).join(' ')).toLowerCase();
+        let panel = null;
+        const paint = () => {
+          const on = state.topics.has(t), sel = state.steps.get(t);
+          b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+          const sub = b.querySelector('small'); if (sub) sub.textContent = sel?.size ? `${sel.size} of ${steps.length} dot points` : `${n} question${n === 1 ? '' : 's'}`;
+          wrapT.classList.toggle('part', !!sel?.size);
+        };
+        const drawSteps = () => {
+          if (!panel || panel.hidden) return;
+          const sel = state.steps.get(t) || new Set(), counts = panel._counts || {};
+          panel.innerHTML = `<p class="small muted">${panel._tagged ? "Tick just the parts you've covered in class. You only get questions that need those parts." : 'Questions in this topic are still being sorted into dot points. Check back soon.'}</p>`
+            + steps.map(([id, lab]) => `<button type="button" class="tp-step${sel.has(id) ? ' on' : ''}" data-s="${id}" ${panel._tagged ? '' : 'disabled'}><i aria-hidden="true"></i><span>${esc(lab)}</span><em>${counts[id] ? `${counts[id]} q` : ''}</em></button>`).join('')
+            + (sel.size ? '<button type="button" class="link small tp-all">Use the whole topic</button>' : '');
+          panel.querySelectorAll('[data-s]').forEach(x => x.onclick = () => {
+            const set = state.steps.get(t) || new Set(); set.has(x.dataset.s) ? set.delete(x.dataset.s) : set.add(x.dataset.s);
+            if (set.size) { state.steps.set(t, set); state.topics.add(t); } else state.steps.delete(t);
+            paint(); drawSteps(); sync(); startSummary();
+          });
+          panel.querySelector('.tp-all')?.addEventListener('click', () => { state.steps.delete(t); paint(); drawSteps(); startSummary(); });
+        };
+        b.onclick = () => { const on = !state.topics.has(t); on ? state.topics.add(t) : state.topics.delete(t); if (!on) state.steps.delete(t); paint(); drawSteps(); sync(); startSummary(); };
+        wrapT.appendChild(b);
+        if (steps) {
+          const more = mk('button', 'tp-more', `<span>Dot points</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`);
+          more.type = 'button'; more.setAttribute('aria-expanded', 'false');
+          panel = mk('div', 'tp-steps'); panel.hidden = true;
+          more.onclick = async () => {
+            panel.hidden = !panel.hidden; more.setAttribute('aria-expanded', !panel.hidden); wrapT.classList.toggle('open', !panel.hidden);
+            if (!panel.hidden && !panel._loaded) {
+              panel._loaded = true; panel.innerHTML = '<p class="small muted">Loading…</p>';
+              const { data } = await sb.from('questions').select('skills, papers!inner(subject)').eq('papers.subject', state.subject).eq('topic', t).not('skills', 'is', null).limit(3000);
+              panel._tagged = (data || []).length > 0; panel._counts = {};
+              (data || []).forEach(q => (q.skills || []).forEach(x => { panel._counts[x] = (panel._counts[x] || 0) + 1; }));
+            }
+            drawSteps();
+          };
+          wrapT.append(more, panel);
+        }
+        paint();
+        list.appendChild(wrapT);
       });
       box.appendChild(list); sync();
       wrap.appendChild(box);
@@ -530,11 +584,11 @@
     $('pr-smart-sub').textContent = weak.length ? `Mostly ${weak.map(w => topicName(w.topic)).join(', ')}, the topics costing you the most marks.` : 'A mix of every topic you\'ve learnt, ones you haven\'t done yet.';
     $('pr-smart').onclick = async () => {
       $('pr-error').hidden = true;
-      const keep = new Set(state.topics);
+      const keep = new Set(state.topics), keepSteps = state.steps; state.steps = new Map();
       state.topics = new Set(weak.length ? weak.map(w => w.topic) : all.filter(t => !skip.has(t)));
       try { await busy(() => buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1 })); location.hash = '#set'; }
       catch (err) { $('pr-error').textContent = err.message; $('pr-error').hidden = false; }
-      finally { state.topics = keep; }
+      finally { state.topics = keep; state.steps = keepSteps; }
     };
     filterTopics(); startSummary();
     $('topics-all').onclick = () => { Object.keys(byTopic).filter(t => !skip.has(t)).forEach(t => state.topics.add(t)); renderBuild(); };
@@ -545,15 +599,32 @@
   $('pr-paper').onclick = () => { const c = $('cp-card'); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse'); };
   $('pr-opts-btn').onclick = () => { const o = $('pr-opts'), open = o.hidden; o.hidden = !open; $('pr-opts-btn').setAttribute('aria-expanded', open); $('pr-opts-btn').textContent = open ? 'Done' : 'Options'; };
   function filterTopics() {
-    const q = $('topic-filter').value.trim().toLowerCase();
-    document.querySelectorAll('#topic-chips .tp').forEach(b => { b.hidden = q && !b.dataset.t.includes(q); });
-    document.querySelectorAll('#topic-chips .tgroup').forEach(g => { g.hidden = !g.querySelector('.tp:not([hidden])'); });
+    const q = $('topic-filter').value.trim().toLowerCase(), words = q.split(/\s+/).filter(Boolean);
+    const match = (txt) => words.every(w => txt.includes(w) || txt.includes(w.replace(/s$/, '')));
+    document.querySelectorAll('#topic-chips .tp-wrap').forEach(b => { b.hidden = !!words.length && !match(b.dataset.t); });
+    document.querySelectorAll('#topic-chips .tgroup').forEach(g => { g.hidden = !g.querySelector('.tp-wrap:not([hidden])'); });
+    // nothing here? look in the student's other subjects
+    let hint = $('pr-elsewhere'); if (!hint) { hint = mk('div', 'pr-elsewhere'); hint.id = 'pr-elsewhere'; $('topic-chips').before(hint); }
+    const none = !!words.length && !document.querySelector('#topic-chips .tp-wrap:not([hidden])');
+    const others = none ? (mySubjects() || Object.keys(C.subjects)).filter(sj => sj !== state.subject).flatMap(sj => (TOPIC_GROUPS[sj] || []).flatMap(([g, ts]) => ts
+      .filter(t => match((topicName(t) + ' ' + t + ' ' + g + ' ' + (topicSteps(t, sj) || []).map(x => x[1]).join(' ')).toLowerCase())).map(t => [sj, t]))).slice(0, 4) : [];
+    hint.hidden = !none;
+    hint.innerHTML = !none ? '' : others.length ? `<p class="small">Not in ${esc(C.subjects[state.subject] || state.subject)}. Found in:</p>${others.map(([sj, t]) => `<button class="secondary small" data-sj="${esc(sj)}" data-t="${esc(t)}">${esc(topicName(t))} <span class="muted">· ${esc(C.subjects[sj] || sj)}</span></button>`).join('')}`
+      : '<p class="small muted">No topic matches that. Try a shorter word, like "series" or "motion".</p>';
+    hint.querySelectorAll('[data-sj]').forEach(b => b.onclick = async () => {
+      state.subject = b.dataset.sj; try { localStorage.setItem('tb_subject', state.subject); } catch {}
+      state.topics = new Set([b.dataset.t]); state.steps = new Map(); $('topic-filter').value = topicName(b.dataset.t);
+      drawSubject(); await renderBuild();
+      const w = [...document.querySelectorAll('#topic-chips .tp-wrap')].find(x => x.dataset.t.startsWith(topicName(b.dataset.t).toLowerCase()));
+      w?.querySelector('.tp-more')?.click(); w?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
   $('topic-filter').oninput = filterTopics;
   function startSummary() {
     const n = state.topics.size, o = state.opts;
     const type = { all: '', mcq: ' multiple choice', short: ' written' }[o.type] || '';
-    $('start-summary').textContent = n ? `${o.count}${type} questions from ${n} topic${n === 1 ? '' : 's'}` : 'Pick a topic to start';
+    const dots = [...state.steps.values()].reduce((a, x) => a + x.size, 0);
+    $('start-summary').textContent = n ? `${o.count}${type} questions from ${n} topic${n === 1 ? '' : 's'}${dots ? ` (${dots} dot point${dots === 1 ? '' : 's'})` : ''}` : 'Pick a topic to start';
     const names = [...state.topics].map(topicName).sort();
     $('pr-picked').textContent = !n ? 'Tap any topic above.' : (names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`) + (o.diff !== 'all' ? ` · ${o.diff.toLowerCase()} papers` : '');
     $('start').disabled = !n;
@@ -618,6 +689,13 @@
 
     await loadStepBlock(); const tooHard = blockedQs();
     let pool = data.filter(x => !tooHard.has(x.id) && !x.syllabus_note && hasKey(x));
+    const narrowed = [...state.topics].filter(t => state.steps.get(t)?.size);
+    if (narrowed.length) {   // dot points picked: only questions that need nothing beyond them
+      const { data: sk } = await sb.from('questions').select('id, topic, skills, papers!inner(subject)').eq('papers.subject', state.subject).in('topic', narrowed).not('skills', 'is', null).limit(3000);
+      const fits = new Set((sk || []).filter(q => { const sel = state.steps.get(q.topic), need = q.skills || []; return need.length && !need.includes('outside') && need.every(x => sel.has(x)); }).map(q => q.id));
+      pool = pool.filter(q => !narrowed.includes(q.topic) || fits.has(q.id));
+      if (!pool.length) throw new Error('No questions cover just those dot points yet. Tick a few more, or use the whole topic.');
+    }
     if (!pool.length) throw new Error('No questions match that. Widen the filters.');
     if (o.fresh) {
       const { data: seen } = await sb.from('attempts').select('question_id').eq('user_id', state.user.id);
@@ -985,11 +1063,11 @@
   }
   async function pgDrill(topic, btn) {
     $('pg-error').hidden = true;
-    const keep = new Set(state.topics); state.topics = new Set([topic]);
+    const keep = new Set(state.topics), keepSteps = state.steps; state.topics = new Set([topic]); state.steps = new Map();
     if (btn) btn.disabled = true;
     try { await buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1, allowSkipped: true }); location.hash = '#set'; }
     catch (err) { $('pg-error').textContent = err.message; $('pg-error').hidden = false; $('pg-error').scrollIntoView({ block: 'center' }); }
-    finally { state.topics = keep; if (btn) btn.disabled = false; }
+    finally { state.topics = keep; state.steps = keepSteps; if (btn) btn.disabled = false; }
   }
   // ---------- predicted band and ATAR estimate (hsc.js; HSC is already the list of course names above) ----------
   const HSCX = window.HSC;
