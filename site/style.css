@@ -2737,3 +2737,28 @@ body.quake { animation: duel-shake .45s; }
 .di-timer i { display: block; height: 100%; background: linear-gradient(90deg, #ffd84d, #ff7a1a); animation: di-fuse 60s linear forwards; }
 @keyframes di-fuse { to { width: 0; } }
 .di-timer i { width: 100%; }
+
+/* real fire: canvases (see lightFire in app.js) */
+canvas.fire { display: block; width: 100%; filter: none; mix-blend-mode: screen; }
+.fire i { display: none; }
+.duel-arena .fire { opacity: .9; height: 150px; bottom: -6px; }
+.duel-arena.win .fire { height: 230px; }
+.duel-arena.lose .fire { filter: grayscale(1) brightness(.7); opacity: .4; }
+.duel-btn .fire { height: 46px; bottom: -14px; opacity: .85; }
+.duel-btn.big .fire { height: 60px; }
+.di-card > .fire { height: 150px; bottom: -8px; }
+.duel-splash .fire { height: 220px; bottom: -10px; }
+.duel-splash.go .fire { height: 340px; }
+.ds-spark { width: 30px; height: 44px; margin: -36px 0 0 -15px; filter: none; }
+.ds-spark .fire { position: absolute; inset: 0; height: 100%; left: 0; right: 0; bottom: 0; mix-blend-mode: normal; }
+/* embers: small sparks that flicker as they drift up */
+.embers b { width: 3px; height: 3px; background: #ffe6a0; box-shadow: 0 0 6px 2px rgba(255, 140, 30, .85); animation: ember var(--t) linear var(--d) infinite, twinkle .3s steps(2) infinite; }
+.embers b:nth-child(3n) { width: 2px; height: 2px; }
+@keyframes twinkle { 50% { filter: brightness(1.8); } }
+canvas.fire { filter: blur(1.5px) saturate(1.15); }
+canvas.fire.mini { filter: blur(.8px) saturate(1.2); }
+.duel-btn canvas.fire { filter: blur(1.5px) saturate(1.2); }
+.duel-arena.lose canvas.fire { filter: grayscale(1) brightness(.7) blur(3px); }
+.ds-spark { position: absolute; display: block; top: -34px; margin: 0 0 0 -15px; }
+.ds-spark canvas.fire { position: static; width: 30px; height: 44px; }
+canvas.fire, .ds-spark canvas.fire { margin: 0; padding: 0; border: 0; box-shadow: none; background: none; border-radius: 0; }

@@ -5491,8 +5491,75 @@
   const cleanCode = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
   const pipsOk = (v) => String(v || '').replace(/[^cpws-]/g, '').slice(0, 20);
   const clock = (ms) => { const s2 = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s2 / 60)}:${String(s2 % 60).padStart(2, '0')}`; };
-  // fire and embers, drawn in CSS
-  const fireHTML = (n = 11) => `<div class="fire" aria-hidden="true">${Array.from({ length: n }, (_, i) => `<i style="--x:${(i + 0.5) / n * 100}%;--d:${(Math.random() * 1.2).toFixed(2)}s;--s:${(0.7 + Math.random() * 0.7).toFixed(2)}"></i>`).join('')}</div>`;
+  // real-looking fire: a small heat simulation (hot air rising, cooling and drifting at random, like the classic demo-scene
+  // fire) drawn at a quarter size and smoothed up, so it moves in tongues. Every canvas.fire on the page lights itself;
+  // data-heat sets how fierce (and tall) it burns.
+  const fireHTML = (n = 11, cls = '') => `<canvas class="fire${cls ? ' ' + cls : ''}" data-heat="${n}" aria-hidden="true"></canvas>`;
+  const FIRE_RGBA = (() => {   // heat 0..255 -> colour: clear, deep red, orange, yellow, white-hot
+    const out = new Uint8ClampedArray(256 * 4);
+    const stops = [[0, [0, 0, 0, 0]], [.12, [90, 8, 4, 0]], [.25, [180, 30, 8, 150]], [.42, [235, 85, 14, 235]], [.6, [255, 150, 30, 255]], [.8, [255, 215, 90, 255]], [1, [255, 252, 225, 255]]];
+    for (let h = 0; h < 256; h++) {
+      const t = h / 255; let k = 0; while (k < stops.length - 2 && t > stops[k + 1][0]) k++;
+      const [t0, c0] = stops[k], [t1, c1] = stops[k + 1], u = (t - t0) / (t1 - t0 || 1);
+      for (let c = 0; c < 4; c++) out[h * 4 + c] = c0[c] + (c1[c] - c0[c]) * u;
+    }
+    return out;
+  })();
+  function lightFire(cv) {
+    if (cv._lit || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    cv._lit = true;
+    const ctx = cv.getContext('2d'), mini = cv.classList.contains('mini'), fierce = Math.min(1.4, (Number(cv.dataset.heat) || 10) / 12);
+    const off = document.createElement('canvas'), octx = off.getContext('2d');
+    let gw = 0, gh = 0, heat = null, img = null, last = performance.now(), acc = 0, W = 0, H = 0;
+    const CELL = mini ? 2 : 3;
+    const setup = () => {
+      gw = Math.max(6, Math.round(W / CELL)); gh = Math.max(10, Math.round(H / CELL));
+      heat = new Float32Array(gw * gh); off.width = gw; off.height = gh; img = octx.createImageData(gw, gh);
+    };
+    const step = (now) => {
+      const decay = 2.1 / (gh * ((mini ? .8 : .55) + .3 * fierce));          // how quickly rising air cools: sets the flame height
+      const base = (gh - 1) * gw, t = now / 1000;
+      for (let x = 0; x < gw; x++) {                          // the fuel along the bottom, flaring unevenly
+        const u = x / gw, edge = mini ? Math.min(1, Math.max(0, 1.5 - Math.abs(u - .5) * 3.4)) : Math.min(1, u * 6, (1 - u) * 6);
+        const flare = .62 + .2 * Math.sin(u * 17 + t * 2.3) + .18 * Math.sin(u * 41 - t * 3.7);
+        heat[base + x] = Math.max(0, Math.min(1, flare * edge * (.85 + Math.random() * .3)));
+      }
+      for (let x = 0; x < gw; x++) for (let y = 1; y < gh; y++) {   // each cell drifts up one row, sideways a little, and cools
+        const src = y * gw + x, h = heat[src], r = Math.random();
+        const dx = Math.round(r * 2 - 1 + Math.sin(t * .9 + y * .2) * .25);
+        const dst = src - gw + Math.max(-x, Math.min(gw - 1 - x, dx));
+        heat[dst] = h <= 0 ? 0 : Math.max(0, h - r * decay);
+      }
+    };
+    const draw = () => {
+      const d = img.data;
+      for (let i = 0; i < heat.length; i++) { const k = Math.min(255, Math.round(heat[i] * 255)) * 4, o = i * 4; d[o] = FIRE_RGBA[k]; d[o + 1] = FIRE_RGBA[k + 1]; d[o + 2] = FIRE_RGBA[k + 2]; d[o + 3] = FIRE_RGBA[k + 3]; }
+      octx.putImageData(img, 0, 0);
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(off, 0, 0, cv.width, cv.height);
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .35;              // a soft glow on top
+      ctx.drawImage(off, 0, -cv.height * .04, cv.width, cv.height * 1.04);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    };
+    const frame = (now) => {
+      if (!cv.isConnected) return;
+      const rect = cv.getBoundingClientRect();
+      if (!rect.width || !rect.height || cv.offsetParent === null) { last = now; requestAnimationFrame(frame); return; }
+      const dpr = Math.min(1.5, window.devicePixelRatio || 1);
+      if (Math.round(rect.width * dpr) !== cv.width || Math.round(rect.height * dpr) !== cv.height) { cv.width = Math.round(rect.width * dpr); cv.height = Math.round(rect.height * dpr); }
+      if (rect.width !== W || rect.height !== H || !heat) { W = rect.width; H = rect.height; setup(); for (let k = 0; k < gh; k++) step(now); }
+      acc += Math.min(.1, (now - last) / 1000); last = now;
+      let n = 0; while (acc >= 1 / 38 && n < 3) { step(now); acc -= 1 / 38; n++; }   // about 38 steps a second, whatever the screen's rate
+      if (n) draw();
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+  new MutationObserver((ms) => ms.forEach(m => m.addedNodes.forEach(n => {
+    if (n.nodeType !== 1) return;
+    if (n.matches?.('canvas.fire')) lightFire(n); else n.querySelectorAll?.('canvas.fire').forEach(lightFire);
+  }))).observe(document.body, { childList: true, subtree: true });
   const embersHTML = (n = 22) => `<div class="embers" aria-hidden="true">${Array.from({ length: n }, () => `<b style="--x:${(Math.random() * 100).toFixed(1)}%;--d:${(Math.random() * 4).toFixed(2)}s;--t:${(2.6 + Math.random() * 2.4).toFixed(2)}s;--w:${(Math.random() * 60 - 30).toFixed(0)}px"></b>`).join('')}</div>`;
   function duelSend(event, payload = {}) { try { duel.ch?.send({ type: 'broadcast', event, payload }); } catch { /* offline for a moment */ } }
   function duelLeave() { if (duel.ch) { try { sb.removeChannel(duel.ch); } catch { /* gone */ } } duel.ch = null; clearInterval(duel.tick); }
@@ -5785,7 +5852,7 @@
           <div class="ds-p me"><span class="ds-av"></span><span class="ds-name"></span><b class="ds-score"></b></div>
           <div class="ds-clock">0:00</div>
           <div class="ds-p them"><b class="ds-score"></b><span class="ds-name"></span><span class="ds-av"></span></div></div>
-        <div class="ds-tug"><i class="ds-blue"></i><span class="ds-spark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2.6 1.4-4 2.6-5.2.3 1.6 1.1 2.6 2.1 3.1C11 8 11 5 12 2z"/></svg></span></div>
+        <div class="ds-tug"><i class="ds-blue"></i><span class="ds-spark">${fireHTML(12, 'mini')}</span></div>
         <div class="ds-pips"><span class="me"></span><span class="them"></span></div><div class="ds-feed" aria-live="polite"></div>`;
       clearInterval(duel.tick);
       duel.tick = setInterval(() => { const c = el.querySelector('.ds-clock'); if (c && duel.phase === 'race') c.textContent = clock(Date.now() - duel.at); }, 500);
