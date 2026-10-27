@@ -289,7 +289,7 @@
     $('sheet-title').textContent = subj === 'Physics' ? 'Physics data and formula sheet' : `${C.subjects[subj] || subj} reference sheet`;
     if (panel.dataset.s !== subj) {
       panel.dataset.s = subj;
-      $('sheet-pages').innerHTML = pages.map((n, i) => `<img src="sheets/${n}.webp?v=1" alt="Page ${i + 1}" loading="${i ? 'lazy' : 'eager'}" decoding="async">`).join('');
+      $('sheet-pages').innerHTML = pages.map((n, i) => `<img src="sheets/${n}.webp?v=2" alt="Page ${i + 1}" loading="${i ? 'lazy' : 'eager'}" decoding="async">`).join('');
       $('sheet-pages').scrollTop = 0;
     }
     panel.hidden = false;
