@@ -83,7 +83,7 @@
     drawSubject();
     if (!state.preview) sb.rpc('log_visit', { v: h || 'home' }).then(() => {}, () => {});   // engagement stats for the Admin page
     return busy(async () => {
-      if (h === 'practise') { show('practise'); drawCpCard(); await renderBuild(); return; }
+      if (h === 'practise') { show('practise'); drawCpCard(); drawResume(); await renderBuild(); return; }
       if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
       if (h === 'admin' && adminOn()) { show('admin'); await renderAdmin(); return; }
       if (h === 'profile') { show('profile'); await renderProfile(); return; }
@@ -796,7 +796,7 @@
       verdict('Most likely not in your syllabus, so this one is auto-marked as correct. Have a go anyway if you like.', 'good');
       $('next').hidden = false; $('skip').hidden = true;
     }
-    drawSheetBtns();
+    drawSheetBtns(); keepSet();
     prepQ(s.qs[s.i + 1]); prepQ(s.qs[s.i + 2]);              // the next two are downloaded and trimmed while you work on this one
     if (x.solutionUrl) { const sol = new Image(); sol.src = x.solutionUrl; }   // so Show solution is instant too
   }
@@ -856,7 +856,7 @@
     if (state.preview) previewFlags.attempted = 1;
     const s = state.set, x = s.qs[s.i];
     if (group) { group.querySelectorAll('button').forEach(o => { o.disabled = true; }); btn.classList.add('picked'); }
-    s.results[s.i] = { q: x, score, outOf };
+    s.results[s.i] = { q: x, score, outOf }; keepSet();
     if (window.Juice) { if (outOf && score >= outOf) Juice.reward(outOf); else if (score > 0) Juice.partial(score); else Juice.miss(); }
     if (x.type === 'short' && !(x.content && Online.objective(x))) verdict(score === outOf ? 'Full marks.' : score === 0 ? 'Mark it, move on. It will come back around.' : `${score}/${outOf}.`, score === outOf ? 'good' : score === 0 ? 'bad' : 'warn');
     $('next').hidden = false; $('skip').hidden = true;
@@ -1030,6 +1030,7 @@
 
   // ---------- summary ----------
   function renderSummary(title = 'Set done') {
+    if (state.set) state.set.done = true; dropSet();
     $('summary-title').textContent = title; $('summary-extra').textContent = '';
     const rs = state.set.results.filter(Boolean);
     const score = rs.reduce((a, r) => a + r.score, 0), outOf = rs.reduce((a, r) => a + r.outOf, 0);
@@ -2417,11 +2418,55 @@
   };
 
   // ---------- set: exit and keyboard ----------
-  $('set-exit').onclick = () => {
+  $('set-exit').onclick = () => {   // leaving doesn't end the set: Practise offers it back for 30 minutes
     const s = state.set;
-    if (s && s.results.some(Boolean)) { renderSummary('Set ended early'); location.hash = '#summary'; }
+    if (s?.daily && s.results.some(Boolean)) { renderSummary('Set ended early'); location.hash = '#summary'; }
     else location.hash = '#practise';
   };
+  // ---------- an unfinished set waits 30 minutes, so closing it or popping over to the tutor loses nothing ----------
+  const SET_KEEP_MS = 30 * 60 * 1000;
+  const setKey = () => state.user ? `tb_set_${state.user.id}` : null;
+  function keepSet() {
+    const s = state.set, k = setKey(); if (!s || !k || s.daily || s.done || state.preview) return;
+    s.at = Date.now();
+    try { localStorage.setItem(k, JSON.stringify({ at: s.at, subject: s.qs[0]?.papers?.subject, title: s.title || null, i: s.i,
+      ids: s.qs.map(q => q.id), res: s.qs.map((_, j) => s.results[j] ? { score: s.results[j].score, outOf: s.results[j].outOf, auto: !!s.results[j].auto } : null) })); } catch { /* storage off */ }
+  }
+  function dropSet() { const k = setKey(); try { if (k) localStorage.removeItem(k); } catch {} }
+  function pausedSet() {
+    const s = state.set;
+    if (s && !s.done && !s.daily && Date.now() - (s.at || 0) < SET_KEEP_MS) return { live: true, i: s.i, n: s.qs.length, title: s.title };
+    let saved = null; try { saved = JSON.parse(localStorage.getItem(setKey()) || 'null'); } catch {}
+    if (!saved || Date.now() - saved.at > SET_KEEP_MS || !saved.ids?.length) { if (saved) dropSet(); return null; }
+    return { live: false, i: saved.i, n: saved.ids.length, title: saved.title, saved };
+  }
+  async function resumeSet(p) {
+    if (!p.live) {
+      const { data, error } = await sb.from('questions').select(QCOLS).in('id', p.saved.ids);
+      if (error) throw error;
+      const by = Object.fromEntries((data || []).map(q => [q.id, q]));
+      const keep = p.saved.ids.map((id, j) => [by[id], p.saved.res[j]]).filter(([q]) => q);
+      if (!keep.length) { dropSet(); throw new Error('Those questions are not available any more.'); }
+      const qs = keep.map(([q]) => q);
+      await attachUrls(qs);
+      const i = Math.min(qs.findIndex(q => q.id === p.saved.ids[p.saved.i]) >= 0 ? qs.findIndex(q => q.id === p.saved.ids[p.saved.i]) : 0, qs.length - 1);
+      state.set = { qs, i, results: keep.map(([q, r]) => r ? { q, score: r.score, outOf: r.outOf, auto: r.auto } : undefined), title: p.saved.title || undefined };
+    }
+    renderQuestion();
+    location.hash = '#set';
+  }
+  function drawResume() {
+    const row = $('pr-resume'); if (!row) return;
+    const p = pausedSet();
+    row.hidden = !p;
+    if (!p) return;
+    row.querySelector('.pr-res-n').textContent = `${p.i + 1} of ${p.n}`;
+    row.querySelector('.pr-res-go').onclick = async () => {
+      $('pr-error').hidden = true;
+      try { await busy(() => resumeSet(p)); } catch (err) { $('pr-error').textContent = err.message; $('pr-error').hidden = false; drawResume(); }
+    };
+    row.querySelector('.pr-res-x').onclick = () => { if (state.set) state.set.done = true; dropSet(); row.hidden = true; };
+  }
   document.addEventListener('keydown', (ev) => {
     if ($('view-set').hidden || ev.metaKey || ev.ctrlKey || ev.altKey || /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) return;
     const k = ev.key.toLowerCase();

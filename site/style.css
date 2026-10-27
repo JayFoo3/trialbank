@@ -2396,3 +2396,13 @@ body.ann-full .ann-bar { bottom: calc(16px + env(safe-area-inset-bottom)); }
 .sheet-pages.zoom img { width: 190%; max-width: none; }
 .calc-btn[data-sheet] svg, [data-sheet] svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 [data-sheet][hidden] { display: none !important; }
+/* an unfinished set waiting to be picked back up */
+.pr-resume { display: flex; align-items: stretch; gap: 8px; margin-bottom: 14px; }
+.pr-resume[hidden] { display: none; }
+.pr-res-go { flex: 1; display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px 18px; border-radius: var(--r-lg); background: var(--biro); border-color: var(--biro-dark); box-shadow: 0 4px 0 var(--biro-dark); color: #fff; }
+.pr-res-go:hover { background: var(--biro); border-color: var(--biro-dark); filter: brightness(1.05); }
+.pr-res-go > span { flex: 1; display: flex; align-items: baseline; gap: 10px; }
+.pr-res-go b { font-size: 1.05rem; }
+.pr-res-go small { font-weight: 700; opacity: .85; }
+.pr-res-go svg, .pr-res-x svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.pr-res-x { width: 52px; padding: 0; display: grid; place-items: center; border-radius: var(--r-lg); color: var(--muted); }
