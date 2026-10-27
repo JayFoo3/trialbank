@@ -6,7 +6,7 @@ and clears its syllabus tags so they can be redone with the full question.
 
     SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python3 upload_stems.py [--dry]
 """
-import argparse, json, os, sys, time
+import argparse, glob, json, os, sys, time
 import requests
 from upload import to_webp, put_object, URL, KEY, H, die
 
@@ -35,6 +35,13 @@ def main():
     done_path = os.path.join(HERE, 'stems_uploaded.json')
     done = set(json.load(open(done_path))) if os.path.exists(done_path) else set()
     todo = [k for k in changed if k not in done]
+    # Sequences and Series first, then Projectile Motion, then the rest of Maths Advanced, then everything else
+    topic = {}
+    for mp in glob.glob(os.path.join(HERE, 'output', '*', 'manifest.json')):
+        m = json.load(open(mp))
+        for q in m['questions']: topic[f"{m['slug']}/{q['id']}"] = q.get('topic')
+    rank = lambda k: (0 if topic.get(k) == 'Sequences and Series' else 1 if topic.get(k) == 'Projectile Motion' else 2 if k.startswith('adv-') else 3)
+    todo.sort(key=rank)
     print(f'{len(todo)} images to upload ({len(done)} already done)')
     rows = {}
     for i in range(0, len(todo), 40):   # look up where each image lives and its current text
