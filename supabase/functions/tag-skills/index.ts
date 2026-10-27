@@ -4,9 +4,12 @@
 // Secrets: ANTHROPIC_API_KEY. SUPABASE_URL and the service key are provided automatically.
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
-import { Image } from 'npm:imagescript@1.3.0';
+import jpeg from 'npm:jpeg-js@0.4.4';
+import { PNG } from 'npm:pngjs@7.0.0';
+import { Buffer } from 'node:buffer';
 
-// The API refuses images over 8000px on a side. Read the size from the header and shrink only the rare giant ones.
+// The API refuses images over 8000px on a side. Read the size from the header and shrink only the rare giant ones
+// (pure JS, so it runs on the edge; one per request to stay inside the CPU limit, the rest wait for the next call).
 function dims(b: Uint8Array): [number, number] | null {
   if (b[0] === 0x89 && b[1] === 0x50) { const v = new DataView(b.buffer, b.byteOffset); return [v.getUint32(16), v.getUint32(20)]; }
   if (b[0] === 0xff && b[1] === 0xd8) {
@@ -19,13 +22,21 @@ function dims(b: Uint8Array): [number, number] | null {
   }
   return null;
 }
-async function fit(bytes: Uint8Array, type: string): Promise<[Uint8Array, string]> {
-  const d = dims(bytes);
-  if (!d || Math.max(...d) <= 7900) return [bytes, type];
-  const img = await Image.decode(bytes);
-  const k = 7900 / Math.max(img.width, img.height);
-  img.resize(Math.max(1, Math.round(img.width * k)), Math.max(1, Math.round(img.height * k)));
-  return [await img.encodeJPEG(85), 'image/jpeg'];
+class Later extends Error {}
+function shrink(bytes: Uint8Array, png: boolean, max: number): Uint8Array {
+  const src = png ? PNG.sync.read(Buffer.from(bytes)) : jpeg.decode(bytes, { maxMemoryUsageInMB: 512 });
+  const { width: w, height: h, data } = src;
+  const k = Math.ceil(Math.max(w, h) / max), W = Math.floor(w / k), H = Math.floor(h / k), n = k * k;
+  const out = new Uint8Array(W * H * 4);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let r = 0, g = 0, b = 0;
+    for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) {
+      const i = ((y * k + dy) * w + x * k + dx) * 4, al = data[i + 3] / 255, bg = 255 * (1 - al);
+      r += data[i] * al + bg; g += data[i + 1] * al + bg; b += data[i + 2] * al + bg;
+    }
+    const o = (y * W + x) * 4; out[o] = r / n; out[o + 1] = g / n; out[o + 2] = b / n; out[o + 3] = 255;
+  }
+  return jpeg.encode({ data: out, width: W, height: H }, 85).data;
 }
 
 const MODEL = Deno.env.get('TAG_MODEL') ?? 'claude-sonnet-5-5';
@@ -96,11 +107,17 @@ Deno.serve(async (req) => {
   const todo = (qs ?? []).filter((q) => redo.size ? redo.has(String(q.id)) : q.skills == null && !skip.has(String(q.id))).slice(0, PER_CALL);
   let cost = 0, failed = 0;
   const failedIds: string[] = [];
+  let shrunk = 0, later = 0;
   await Promise.all(todo.map(async (q) => {
     try {
       const { data: file, error: ferr } = await admin.storage.from('questions').download(q.image_path);
       if (ferr || !file) throw new Error('missing image');
-      const [img, type] = await fit(new Uint8Array(await file.arrayBuffer()), mediaType(q.image_path, file.type));
+      let img: Uint8Array = new Uint8Array(await file.arrayBuffer()), type = mediaType(q.image_path, file.type);
+      const d = dims(img);
+      if (d && Math.max(...d) > 7900) {
+        if (shrunk++) throw new Later();
+        img = shrink(img, img[0] === 0x89, 7900); type = 'image/jpeg';
+      }
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -124,8 +141,8 @@ Deno.serve(async (req) => {
       const skills = got.length ? got : [steps[0].id];
       if (t.outside) skills.push('outside');
       await admin.from('questions').update({ skills }).eq('id', q.id);
-    } catch (e) { failed++; failedIds.push(String(q.id)); console.warn('tag', q.id, String(e)); }
+    } catch (e) { if (e instanceof Later) { later++; return; } failed++; failedIds.push(String(q.id)); console.warn('tag', q.id, String(e)); }
   }));
-  const left = (qs ?? []).filter((q) => q.skills == null).length - (redo.size ? 0 : todo.length - failed);
-  return json({ done: todo.length - failed, failed, failed_ids: failedIds, left: Math.max(0, left), total: (qs ?? []).length, cost_usd: Number(cost.toFixed(4)) });
+  const left = (qs ?? []).filter((q) => q.skills == null).length - (redo.size ? 0 : todo.length - failed - later);
+  return json({ done: todo.length - failed - later, failed, failed_ids: failedIds, left: Math.max(0, left), total: (qs ?? []).length, cost_usd: Number(cost.toFixed(4)) });
 });
