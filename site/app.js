@@ -4940,7 +4940,9 @@
       th.appendChild(el);
       if (m.greet && tu.msgs.length === 1 && !tu.busy) th.appendChild(tuStarters());
     });
-    $('tu-quick').hidden = tu.msgs.length === 1 && !!tu.msgs[0].greet;
+    const blank = tu.msgs.length === 1 && !!tu.msgs[0].greet;
+    $('tu-quick').hidden = blank;
+    $('tu-text').placeholder = blank ? 'Ask anything…' : tu.mode === 'check' ? 'Send a photo of your working, or type it…' : 'Your answer or working…';
     if (tu.busy) th.appendChild(mk('div', 'tu-msg tutor typing', '<span></span><span></span><span></span>'));
     const d = tu.done, box = $('tu-done');
     box.hidden = !d;
