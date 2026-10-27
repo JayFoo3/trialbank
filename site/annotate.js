@@ -134,15 +134,28 @@
       if (hit) { hit.click(); if (/^(INPUT|TEXTAREA|SELECT)$/.test(hit.tagName)) hit.focus(); }
       return !!hit;
     }
+    // Each pointer is tracked by its own id. Before, one shared "scrolling" state meant a palm or finger resting on the
+    // screen swallowed the Pencil's movement and could end its stroke early: that was the writing cutting out.
+    let drawId = null, scrollId = null, lastPen = 0;
+    const palmWindow = 700;   // ms after the Pencil was last seen during which a touch counts as a resting hand
     live.addEventListener('pointerdown', (ev) => {
       try { window.getSelection()?.removeAllRanges(); } catch { /* fine */ }
-      if (!draws(ev) && tool.touch === 'pencil') {             // palm and single fingers do nothing
-        ev.preventDefault(); touches.set(ev.pointerId, ev.clientY); capture(ev);
-        if (touches.size >= 2) pinchY = [...touches.values()].reduce((a, b) => a + b, 0) / touches.size;
+      if (ev.pointerType === 'pen') lastPen = performance.now();
+      if (!draws(ev)) {
+        ev.preventDefault();
+        if (drawId != null || performance.now() - lastPen < palmWindow) return;   // hand resting while writing: ignore it
+        if (tool.touch === 'pencil') {                         // palm and single fingers do nothing; two fingers scroll
+          touches.set(ev.pointerId, ev.clientY); capture(ev);
+          if (touches.size >= 2) pinchY = [...touches.values()].reduce((a, b) => a + b, 0) / touches.size;
+          return;
+        }
+        if (scrollId == null) { scrollId = ev.pointerId; scrollY = ev.clientY; tap = [ev.clientX, ev.clientY]; capture(ev); }   // a finger scrolls the page
         return;
       }
-      if (!draws(ev)) { scrollY = ev.clientY; tap = [ev.clientX, ev.clientY]; capture(ev); return; }   // a finger scrolls the page
-      ev.preventDefault(); capture(ev);
+      ev.preventDefault();
+      if (cur && drawId != null && drawId !== ev.pointerId) finish(null);   // a stroke whose end never arrived: keep it
+      scrollId = null; scrollY = null; tap = null; touches.clear(); pinchY = null;   // the Pencil wins over any touch already down
+      drawId = ev.pointerId; capture(ev);
       measure();
       const [x, y, pr] = pt(ev);
       downAt = { x: ev.clientX, y: ev.clientY, t: performance.now(), moved: false };
@@ -153,17 +166,18 @@
       redrawLive();
     });
     live.addEventListener('pointermove', (ev) => {
+      if (ev.pointerType === 'pen') lastPen = performance.now();   // includes the Pencil hovering just above the glass
       if (touches.has(ev.pointerId)) {
         touches.set(ev.pointerId, ev.clientY);
         if (touches.size >= 2) { const y = [...touches.values()].reduce((a, b) => a + b, 0) / touches.size; if (pinchY != null) window.scrollBy(0, pinchY - y); pinchY = y; }
         return;
       }
-      if (scrollY != null) { if (tap && Math.hypot(ev.clientX - tap[0], ev.clientY - tap[1]) > 8) tap = null; window.scrollBy(0, scrollY - ev.clientY); scrollY = ev.clientY; return; }
-      if (!cur) return;
+      if (ev.pointerId === scrollId) { if (tap && Math.hypot(ev.clientX - tap[0], ev.clientY - tap[1]) > 8) tap = null; window.scrollBy(0, scrollY - ev.clientY); scrollY = ev.clientY; return; }
+      if (ev.pointerId !== drawId || !cur) return;
       ev.preventDefault();
       if (downAt && Math.hypot(ev.clientX - downAt.x, ev.clientY - downAt.y) > 4) downAt.moved = true;
       const evs = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev];
-      for (const e of evs) {
+      for (const e of (evs.length ? evs : [ev])) {
         const [x, y, pr] = pt(e);
         if (cur.erase) { eraseAt(x, y); continue; }
         const n = cur.p.length, nx = x / w, ny = (y - curTop) / w;
@@ -172,28 +186,34 @@
       }
       if (!cur.erase) redrawLive();
     });
-    const end = (ev) => {
-      if (scrollY != null && tap) tapThrough(tap[0], tap[1]);   // a finger tap
-      tap = null; scrollY = null;
-      if (!cur) return;
-      const quick = downAt && !downAt.moved && performance.now() - downAt.t < 220;   // a real tap, not a quick dot or full stop
-      if (quick && !cur.erase && ev && tapThrough(ev.clientX, ev.clientY)) { cur = null; redrawLive(); downAt = null; return; }   // clicked a button
+    function finish(ev) {
+      if (!cur) { drawId = null; return; }
+      const quick = ev && downAt && !downAt.moved && performance.now() - downAt.t < 220;   // a real tap, not a quick dot or full stop
+      if (quick && !cur.erase && tapThrough(ev.clientX, ev.clientY)) { cur = null; drawId = null; redrawLive(); downAt = null; return; }   // clicked a button
       if (!cur.erase && cur.p.length) {
         undo.push(data.s); redo.length = 0;
         data.s = [...data.s, { ...cur, p: cur.p.map(v => Math.round(v * 10000) / 10000) }];
-        store(key, data);
         drawStroke(bctx, data.s[data.s.length - 1], w, curTop, ox);   // add just this stroke: no full redraw
+        const saving = data;
+        setTimeout(() => store(key, saving), 0);   // save after the frame, so writing the next stroke never waits on it
       }
-      cur = null; downAt = null; redrawLive();
+      cur = null; drawId = null; downAt = null; redrawLive();
       if (sizeQueued) { sizeQueued = false; size(); }
+    }
+    const up = (ev, cancelled) => {
+      if (touches.delete(ev.pointerId)) { if (touches.size < 2) pinchY = null; return; }
+      if (ev.pointerId === scrollId) {
+        if (!cancelled && tap) tapThrough(tap[0], tap[1]);   // a finger tap
+        scrollId = null; scrollY = null; tap = null; return;
+      }
+      if (ev.pointerId === drawId) finish(cancelled ? null : ev);   // cancelled: keep what was drawn so far
     };
-    const lift = (ev) => { if (touches.delete(ev.pointerId)) { if (touches.size < 2) pinchY = null; return true; } return false; };
-    // iPad: Safari can still claim a Pencil stroke for Scribble or a gesture and cancel it partway, which is what
-    // made bits of writing vanish. Refusing the raw touch events on the canvas keeps every stroke ours.
+    // iPad: stop Safari claiming a Pencil stroke for Scribble or a gesture and cancelling it partway
     const own = (ev) => { if (ev.cancelable) ev.preventDefault(); };
     for (const t of ['touchstart', 'touchmove', 'touchend']) live.addEventListener(t, own, { passive: false });
-    live.addEventListener('pointerup', (ev) => { if (!lift(ev)) end(ev); });
-    live.addEventListener('pointercancel', (ev) => { if (!lift(ev)) end(null); });   // keep what was drawn so far
+    live.addEventListener('pointerup', (ev) => up(ev, false));
+    live.addEventListener('pointercancel', (ev) => up(ev, true));
+    live.addEventListener('lostpointercapture', (ev) => { if (ev.pointerId === drawId) finish(null); });
     let raf = 0;
     const later = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(size); };
     const ro = new ResizeObserver(later); ro.observe(scope);
