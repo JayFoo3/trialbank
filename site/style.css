@@ -2413,3 +2413,8 @@ body.ann-full .ann-bar { bottom: calc(16px + env(safe-area-inset-bottom)); }
 .tu-ann .ann-btn svg { width: 21px; height: 21px; }
 .tu-ann .ann-btn.on { color: #fff; background: var(--biro); }
 .tu-ann .ann-btn.has:not(.on)::after { position: absolute; top: 6px; right: 6px; }
+/* tutor opens as a chat: starter chips under the first message */
+.tu-starters { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 8px; max-width: 640px; }
+.tu-start-chip { padding: 9px 14px; border-radius: 999px; font-weight: 700; font-size: .92rem; background: var(--paper); }
+.tu-start-chip:hover { border-color: var(--biro); color: var(--biro); }
+#tu-start, #tu-modes, #tu-modehint { display: none !important; }

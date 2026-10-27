@@ -4633,7 +4633,7 @@
     };
   }
   async function renderTutor() {
-    $('tu-intro').hidden = true; ['tu-modes', 'tu-modehint'].forEach(id => { const e = $(id); if (e) e.hidden = false; });
+    $('tu-intro').hidden = true; ['tu-modes', 'tu-modehint'].forEach(id => { const e = $(id); if (e) e.hidden = true; });   // straight into the chat: the way of working is picked from the starters
     loadKatex().catch(() => {});
     const subj = tuSubject();
     if (tu.active && tu.subject && tu.subject !== subj) { tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; tu.topic = ''; }   // switched subject: start fresh in the new one
@@ -4644,6 +4644,7 @@
     if (tu.handoff) { const q = tu.handoff; tu.handoff = null; tuStart(false, q); return; }
     if (tu.active) { tuDraw(); drawTuRecent(); return; }
     if (!tu.restoreTried) { tu.restoreTried = true; try { if (await tuRestore()) { drawTuRecent(); return; } } catch (err) { console.warn('tutor restore', err); } }
+    await tuBlank(); return;
     const [{ data: tc }, { data: notes }] = await Promise.all([
       sb.from('topic_counts').select('topic, n, type').eq('subject', subj),
       sb.from('tutor_notes').select('notes').eq('subject', subj).maybeSingle(),
@@ -4654,6 +4655,29 @@
     const n = notes?.notes || [];
     $('tu-learnt').innerHTML = n.length ? `<b>What I've learnt about how you work</b><ul>${n.slice(-3).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`
       : '<span class="muted">I learn how you like to work as we go, and remember it next time.</span>';
+  }
+  // an empty chat, ready to type into; the starters underneath pick a way of working
+  async function tuBlank() {
+    await tuLoad(null);
+    tu.msgs.push({ role: 'tutor', greet: true, text: 'What are we working on? Ask me anything, or pick one.' });
+    tuDraw();
+  }
+  function tuStarters() {
+    const box = mk('div', 'tu-starters');
+    const go = (mode, own) => { tu.mode = mode; lsSet('tb_tu_mode', mode); drawTuModes(); tuStart(own); };
+    [['Quiz me on my weak spots', () => { tu.topic = ''; go('quiz'); }],
+     ['Teach me a topic', () => pickTopic('teach')],
+     ["I'm stuck on a question", () => go('stuck', true)],
+     ['Check my work', () => { tu.topic = ''; go('check'); }]].forEach(([l, f]) => { const b = mk('button', 'tu-start-chip', esc(l)); b.type = 'button'; b.onclick = f; box.appendChild(b); });
+    async function pickTopic(mode) {
+      const subj = tuSubject();
+      const { data: tc } = await sb.from('topic_counts').select('topic, n, type').eq('subject', subj);
+      const skip = skipped(subj);
+      const topics = [...new Set((tc || []).filter(r => r.type === 'short' && r.topic && r.n >= 5).map(r => r.topic))].filter(t => !skip.has(t));
+      box.innerHTML = '';
+      teachingOrder(topics).forEach(([, t]) => { const b = mk('button', 'tu-start-chip', esc(topicName(t))); b.type = 'button'; b.onclick = () => { tu.topic = t; go(mode); }; box.appendChild(b); });
+    }
+    return box;
   }
   function drawTuModes() {
     const box = $('tu-modes'); box.innerHTML = '';
@@ -4788,6 +4812,7 @@
       else await tuSend();
     } catch (err) {
       $('tu-error').textContent = err.message || String(err); $('tu-error').hidden = false;
+      if (tu.active) { tu.msgs.push({ sys: true, text: err.message || String(err) }); tuDraw(); }
     } finally { btn.disabled = false; }
   }
   // load a question (or none, for their own) as a fresh conversation
@@ -4913,7 +4938,9 @@
         el.appendChild(retry);
       }
       th.appendChild(el);
+      if (m.greet && tu.msgs.length === 1 && !tu.busy) th.appendChild(tuStarters());
     });
+    $('tu-quick').hidden = tu.msgs.length === 1 && !!tu.msgs[0].greet;
     if (tu.busy) th.appendChild(mk('div', 'tu-msg tutor typing', '<span></span><span></span><span></span>'));
     const d = tu.done, box = $('tu-done');
     box.hidden = !d;
@@ -5027,7 +5054,7 @@
       }
       const { data, error } = await sb.functions.invoke('tutor', { body: {
         subject: tu.subject || tuSubject(), mode: tu.mode, question_id: tu.q?.id || null, chunks: tu.chunks,
-        messages: tu.msgs.filter(m => !m.error && (m.role === 'student' || m.role === 'tutor' || m.role === 'result')).map(m => m.role === 'result'
+        messages: tu.msgs.filter(m => !m.error && !m.greet && (m.role === 'student' || m.role === 'tutor' || m.role === 'result')).map(m => m.role === 'result'
           ? { role: 'student', text: `(Auto-mark result for ${m.rec.title}: ${m.rec.results.map(r => `${r.label} ${r.awarded}/${r.out_of}${r.feedback ? ` (${r.feedback})` : ''}`).join('; ')})`.slice(0, 2000), images: [] }
           : { role: m.role, text: m.text || '', images: m.images || [] }),
       } });
@@ -5390,7 +5417,7 @@
   stBindDraw();
   addEventListener('resize', () => { if (location.hash.startsWith('#study/')) stResize(); });
   function askTutor(q) { tu.handoff = q; if (location.hash === '#tutor') renderTutor(); else location.hash = '#tutor'; }
-  $('tu-end').onclick = () => { lsSet(tuChatKey(), null); tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; renderTutor(); };
+  $('tu-end').onclick = () => { lsSet(tuChatKey(), null); tuCleanup(); tu.active = false; tu.q = null; tu.msgs = []; tu.done = null; tu.topic = ''; renderTutor(); };
   document.querySelectorAll('#tu-quick [data-say]').forEach(b => { b.onclick = () => tuSend(b.dataset.say); });
   $('tu-symbtn').onclick = () => { const s = $('tu-syms'); s.hidden = !s.hidden; $('tu-symbtn').setAttribute('aria-expanded', !s.hidden); };
   $('tu-syms').innerHTML = TU_SYMS.map(s => `<button type="button">${s}</button>`).join('');
