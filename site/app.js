@@ -801,7 +801,7 @@
       $('next').hidden = false; $('skip').hidden = true;
     }
     drawSheetBtns(); keepSet();
-    if (s.duel) { $('ask-tutor').hidden = true; duelStrip(); duelSave(); } else $('duel-strip').hidden = true;
+    if (s.duel) { $('ask-tutor').hidden = true; s.shownAt = Date.now(); duelStrip(); duelSave(); if (s.i === s.qs.length - 1 && s.qs.length > 1 && !s.finalShown) { s.finalShown = true; setTimeout(() => duelCall('Final question', 'final'), 250); } } else $('duel-strip').hidden = true;
     prepQ(s.qs[s.i + 1]); prepQ(s.qs[s.i + 2]);              // the next two are downloaded and trimmed while you work on this one
     if (x.solutionUrl) { const sol = new Image(); sol.src = x.solutionUrl; }   // so Show solution is instant too
   }
@@ -865,7 +865,7 @@
     if (window.Juice) { if (outOf && score >= outOf) Juice.reward(outOf); else if (score > 0) Juice.partial(score); else Juice.miss(); }
     if (x.type === 'short' && !(x.content && Online.objective(x))) verdict(score === outOf ? 'Full marks.' : score === 0 ? 'Mark it, move on. It will come back around.' : `${score}/${outOf}.`, score === outOf ? 'good' : score === 0 ? 'bad' : 'warn');
     $('next').hidden = false; $('skip').hidden = true;
-    if (s.duel) { duelProgress(); if (score < outOf) duelPenalty(); }
+    if (s.duel) duelAnswered(score, outOf);
     if (x.type === 'short' && score < outOf && !(x.content && Online.objective(x))) showLost(s.results[s.i], outOf - score);
     if (score < outOf) showExplain(x, score, outOf, chosen, s.results[s.i]);
     const { data: row, error } = await sb.from('attempts').insert({ user_id: state.user.id, question_id: x.id, score, out_of: outOf, chosen }).select('id').single();
@@ -5485,7 +5485,16 @@
   const duel = { code: null, host: false, ch: null, ids: [], qs: null, subject: null, title: '', me: null, them: null, themId: null, at: 0, phase: 'idle', shown: null, invitee: null };
   const duelName = () => String(state.user?.user_metadata?.first_name || state.user?.email || 'You').trim().split(/[\s@.]+/)[0].slice(0, 24) || 'You';
   const duelLink = () => `${location.origin}${location.pathname}#duel/${duel.code}`;
-  const blankP = (name) => ({ name, a: 0, n: 0, score: 0, out: 0, done: false, t: 0, r: '', ready: false, here: false });
+  const blankP = (name) => ({ name, a: 0, n: 0, score: 0, out: 0, done: false, t: 0, r: '', ready: false, here: false, st: 0, bs: 0, fc: 0 });
+  // rank by battles won (on this device): something to climb
+  const RANKS = [[0, 'Spark'], [3, 'Flame'], [6, 'Blaze'], [11, 'Inferno'], [20, 'Supernova']];
+  const myWins = () => Object.values(lsGet(`tb_duel_rec_${state.user?.id}`) || {}).reduce((a, r) => a + (r.w || 0), 0);
+  const rankOf = (w) => [...RANKS].reverse().find(([n]) => w >= n)[1];
+  const myProf = () => { const pr = myProfile(); return { pet: pr.pet && pr.pet !== 'photo' ? pr.pet : null, color: pr.color || 'blue', border: pr.border || 'none', level: state.lvl?.level || 1, wins: myWins() }; };
+  const profOk = (v) => v && typeof v === 'object' ? { pet: typeof v.pet === 'string' ? v.pet.slice(0, 30) : null, color: String(v.color || 'blue').slice(0, 20), border: String(v.border || 'none').replace(/[^a-z-]/g, '').slice(0, 20), level: int(v.level) || 1, wins: int(v.wins) } : null;
+  // a player's face: their pet if they have one, else their initial
+  const avatar = (p, size = 'md') => p?.prof?.pet ? petBadge(p.prof, size) : `<span class="dp-ini">${esc((p?.name || '?').slice(0, 1).toUpperCase())}</span>`;
+  const EMOTES = ['Nice one', 'Too easy', 'Oof', 'GG', 'Catch me'];
   const fx = () => window.Juice || {};
   const nameOf = (v) => String(v || 'Friend').replace(/[<>]/g, '').slice(0, 24) || 'Friend';
   const cleanCode = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
@@ -5508,7 +5517,8 @@
   function lightFire(cv) {
     if (cv._lit || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     cv._lit = true;
-    const ctx = cv.getContext('2d'), mini = cv.classList.contains('mini'), fierce = Math.min(1.4, (Number(cv.dataset.heat) || 10) / 12);
+    const ctx = cv.getContext('2d'), mini = cv.classList.contains('mini');
+    const fierceNow = () => Math.min(2, (Number(cv.dataset.heat) || 10) / 12);
     const off = document.createElement('canvas'), octx = off.getContext('2d');
     let gw = 0, gh = 0, heat = null, img = null, last = performance.now(), acc = 0, W = 0, H = 0;
     const CELL = mini ? 2 : 3;
@@ -5517,7 +5527,7 @@
       heat = new Float32Array(gw * gh); off.width = gw; off.height = gh; img = octx.createImageData(gw, gh);
     };
     const step = (now) => {
-      const decay = 2.1 / (gh * ((mini ? .8 : .55) + .3 * fierce));          // how quickly rising air cools: sets the flame height
+      const fierce = fierceNow(), decay = 2.1 / (gh * ((mini ? .8 : .55) + .3 * fierce));          // how quickly rising air cools: sets the flame height
       const base = (gh - 1) * gw, t = now / 1000;
       for (let x = 0; x < gw; x++) {                          // the fuel along the bottom, flaring unevenly
         const u = x / gw, edge = mini ? Math.min(1, Math.max(0, 1.5 - Math.abs(u - .5) * 3.4)) : Math.min(1, u * 6, (1 - u) * 6);
@@ -5655,7 +5665,7 @@
     const qs = state.set.qs; state.set = null; dropSet();
     duelLeave(); duelUnsave();
     Object.assign(duel, { code: Math.random().toString(36).slice(2, 8).toUpperCase(), host: true, ids: qs.map(q => q.id), qs, subject: subj,
-      title: topics.map(topicName).join(', ').slice(0, 80), phase: 'lobby', me: { ...blankP(duelName()), ready: true }, them: null, themId: f.friend_id, at: 0, shown: null,
+      title: topics.map(topicName).join(', ').slice(0, 80), phase: 'lobby', me: { ...blankP(duelName()), ready: true, prof: myProf() }, them: null, themId: f.friend_id, at: 0, shown: null,
       invitee: { id: f.friend_id, name: nameOf(f.name) }, declined: false, wants: false, asked: false });
     location.hash = `#duel/${duel.code}`;
     duelInvite();
@@ -5693,7 +5703,7 @@
     if (!code) { location.hash = '#home'; return; }
     if (duel.code !== code) {
       duelLeave();
-      Object.assign(duel, { code, host: false, ids: [], qs: null, title: '', subject: null, phase: 'lobby', me: blankP(duelName()), them: null, themId: null, at: 0, shown: null, invitee: null, declined: false, err: null, wants: false, asked: false });
+      Object.assign(duel, { code, host: false, ids: [], qs: null, title: '', subject: null, phase: 'lobby', me: { ...blankP(duelName()), prof: myProf() }, them: null, themId: null, at: 0, shown: null, invitee: null, declined: false, err: null, wants: false, asked: false });
       const sv = duelSaved();
       if (sv && sv.code === code) await duelRestore(sv);
     }
@@ -5704,7 +5714,7 @@
     Object.assign(duel, { host: !!sv.host, ids: sv.ids, title: sv.title, subject: sv.subject, at: sv.at, invitee: sv.invitee || null, themId: sv.themId || null, phase: 'race' });
     if (sv.them) duel.them = { ...blankP(sv.them), ready: true };
     try { await duelLoad(); } catch (err) { duel.err = err.message; duel.phase = 'lobby'; return; }
-    duel.me = { ...blankP(duelName()), ready: true, here: true };
+    duel.me = { ...blankP(duelName()), ready: true, here: true, prof: myProf() };
     state.set = { qs: duel.qs.map(q => ({ ...q })), i: Math.min(sv.i || 0, duel.qs.length - 1), duel: true, title: '1v1', skips: new Set(sv.skips || []),
       results: (sv.res || []).map((r, j) => r ? { q: duel.qs[j], score: r.score, outOf: r.outOf } : undefined) };
     duelProgress();
@@ -5715,14 +5725,15 @@
         if (!duel.host || !payload) return;
         duel.them = { ...(duel.them || blankP(nameOf(payload.name))), name: nameOf(payload.name), here: true };
         duel.declined = false;
-        duelSend('setup', { ids: duel.ids, title: duel.title, subject: duel.subject, host: duel.me.name });
+        { const np = profOk(payload.prof); duel.them.prof = np && (np.level > 1 || !duel.them.prof) ? np : duel.them.prof; }
+        duelSend('setup', { ids: duel.ids, title: duel.title, subject: duel.subject, host: duel.me.name, prof: myProf() });
         if (duel.phase !== 'lobby') duelSend('go', { at: duel.at });   // they reloaded mid-battle
         duelDraw(); fx().sfx?.sparkle?.();
       })
       .on('broadcast', { event: 'setup' }, async ({ payload }) => {
         if (duel.host || !payload || !Array.isArray(payload.ids)) return;
         duel.ids = payload.ids.map(String).slice(0, 20); duel.title = String(payload.title || '').slice(0, 80); duel.subject = String(payload.subject || '');
-        duel.them = { ...(duel.them || blankP(nameOf(payload.host))), name: nameOf(payload.host), here: true };
+        duel.them = { ...(duel.them || blankP(nameOf(payload.host))), name: nameOf(payload.host), here: true, prof: profOk(payload.prof) };
         try { await duelLoad(); duel.me.ready = true; duelSend('ready', { name: duel.me.name, n: duel.qs.length }); }
         catch (err) { duel.err = err.message; }
         duelDraw();
@@ -5738,16 +5749,22 @@
         if (!payload) return;
         if (!duel.them) duel.them = blankP('Friend');
         const before = { score: duel.them.score, r: duel.them.r };
-        Object.assign(duel.them, { a: int(payload.a), n: int(payload.n), score: Number(payload.score) || 0, out: Number(payload.out) || 0, done: !!payload.done, t: int(payload.t), r: pipsOk(payload.r), here: true });
+        const stBefore = duel.them.st || 0;
+        Object.assign(duel.them, { a: int(payload.a), n: int(payload.n), score: Number(payload.score) || 0, out: Number(payload.out) || 0, done: !!payload.done, t: int(payload.t), r: pipsOk(payload.r), here: true, st: int(payload.st), bs: int(payload.bs), fc: int(payload.fc) });
+        if (duel.them.st >= 3 && duel.them.st > stBefore) duelFeed(`${esc(duel.them.name)} is on fire ×${duel.them.st}`, 'bad');
         if (payload.done && duel.phase === 'race') { duelEnd(false); return; }   // they finished first: it's over
         duelStrip(); duelNews(before);
         if (location.hash.startsWith('#duel')) duelDraw();
+      })
+      .on('broadcast', { event: 'emote' }, ({ payload }) => {
+        const k = int(payload?.k); if (!EMOTES[k] || Date.now() - (duel.emoteIn || 0) < 800) return;
+        duel.emoteIn = Date.now(); duelBubble('them', EMOTES[k]); fx().sfx?.bloop?.();
       })
       .on('broadcast', { event: 'again?' }, () => { if (!duel.host || duel.phase !== 'done') return; duel.wants = true; duelDraw(); fx().sfx?.sparkle?.(); })
       .on('broadcast', { event: 'again' }, ({ payload }) => {   // rematch: the host sends fresh questions
         if (duel.host || !payload || !Array.isArray(payload.ids)) return;
         Object.assign(duel, { ids: payload.ids.map(String).slice(0, 20), qs: null, phase: 'lobby', at: 0, shown: null, asked: false });
-        duel.me = { ...blankP(duel.me.name) }; if (duel.them) duel.them = { ...blankP(duel.them.name), here: true };
+        duel.me = { ...blankP(duel.me.name), prof: myProf() }; if (duel.them) duel.them = { ...blankP(duel.them.name), here: true, prof: duel.them.prof };
         duelLoad().then(() => { duel.me.ready = true; duelSend('ready', { name: duel.me.name }); duelDraw(); }).catch(err => { duel.err = err.message; duelDraw(); });
         location.hash = `#duel/${duel.code}`; duelDraw();
       })
@@ -5762,7 +5779,7 @@
       .subscribe(async (status) => {
         if (status !== 'SUBSCRIBED') return;
         await ch.track({ name: duel.me.name, host: duel.host });
-        if (!duel.host) duelSend('hello', { name: duel.me.name });
+        if (!duel.host) duelSend('hello', { name: duel.me.name, prof: myProf() });
       });
   }
   async function duelLoad() {
@@ -5778,10 +5795,11 @@
   async function duelBegin(at) {
     if (duel.phase === 'race') return;
     duel.at = at; duel.phase = 'race';
-    duel.me = { ...blankP(duel.me.name), ready: true, here: true };
-    if (duel.them) duel.them = { ...blankP(duel.them.name), here: duel.them.here, ready: true };
+    duel.me = { ...blankP(duel.me.name), ready: true, here: true, prof: myProf() };
+    if (duel.them) duel.them = { ...blankP(duel.them.name), here: duel.them.here, ready: true, prof: duel.them.prof };
+    Object.assign(duel, { fb: null, lead: 0, emotes: 0, emoteAt: 0 });
     await duelSplash();
-    state.set = { qs: duel.qs.map(q => ({ ...q })), i: 0, results: [], duel: true, title: '1v1', skips: new Set() };
+    state.set = { qs: duel.qs.map(q => ({ ...q })), i: 0, results: [], duel: true, title: '1v1', skips: new Set(), streak: 0, best: 0, fast: 0 };
     fx().resetCombo?.();
     renderQuestion(); location.hash = '#set';
     duelSave();
@@ -5792,12 +5810,12 @@
   }
   function duelSendProg() {
     const m2 = duel.me; if (!m2) return;
-    duelSend('prog', { a: m2.a, n: m2.n, score: m2.score, out: m2.out, done: m2.done, t: m2.t, r: m2.r });
+    duelSend('prog', { a: m2.a, n: m2.n, score: m2.score, out: m2.out, done: m2.done, t: m2.t, r: m2.r, st: m2.st, bs: m2.bs, fc: m2.fc });
   }
   function duelProgress(done = false) {
     const s = state.set; if (!s?.duel) return;
     const rs = s.results.filter(Boolean);
-    Object.assign(duel.me, { a: done ? s.qs.length : rs.length + (s.skips?.size || 0), n: s.qs.length, score: rs.reduce((x, r) => x + r.score, 0), out: rs.reduce((x, r) => x + r.outOf, 0), done, t: done ? Date.now() - duel.at : 0, r: duelPips(s) });
+    Object.assign(duel.me, { a: done ? s.qs.length : rs.length + (s.skips?.size || 0), n: s.qs.length, score: rs.reduce((x, r) => x + r.score, 0), out: rs.reduce((x, r) => x + r.outOf, 0), done, t: done ? Date.now() - duel.at : 0, r: duelPips(s), st: s.streak || 0, bs: s.best || 0, fc: s.fast || 0 });
     duelSendProg(); duelStrip(); duelSave();
   }
   // first to finish ends it for both
@@ -5817,6 +5835,42 @@
     el.innerHTML = `${fireHTML(16)}<div class="sp-flash">${esc(text)}</div>`;
     fx().buzz?.(80);
     setTimeout(() => { el.classList.add('out'); setTimeout(() => { el.hidden = true; el.className = 'duel-splash'; el.innerHTML = ''; }, 380); }, 1100);
+  }
+  // an answer in a battle: streaks, first blood, comebacks, and the penalty for a miss
+  function duelAnswered(score, outOf) {
+    const s = state.set, took = Date.now() - (s.shownAt || Date.now()), full = score >= outOf;
+    if (full) { s.streak = (s.streak || 0) + 1; s.best = Math.max(s.best || 0, s.streak); if (!s.fast || took < s.fast) s.fast = took; } else s.streak = 0;
+    const before = Math.sign(duel.me.score - (duel.them?.score || 0));
+    duelProgress();
+    const after = Math.sign(duel.me.score - (duel.them?.score || 0));
+    if (full && !duel.fb) { duel.fb = 'me'; duelCall('First blood', 'blood'); }
+    else if (full && s.streak >= 2) duelCall(`On fire ×${s.streak}`, 'fire');
+    if (before < 0 && after > 0) setTimeout(() => duelCall('Comeback!', 'gold'), 650);
+    if (full) { const el = $('duel-strip'); el.classList.remove('strike'); void el.offsetWidth; el.classList.add('strike'); }
+    const sp = document.querySelector('#duel-strip .ds-spark canvas'); if (sp) sp.dataset.heat = String(12 + Math.min(5, s.streak) * 5);
+    $('duel-strip').classList.toggle('blazing', s.streak >= 2);
+    if (!full) duelPenalty();
+  }
+  // a big word across the top of the screen
+  function duelCall(text, cls = '') {
+    const el = $('duel-call'); if (!el) return;
+    el.className = 'duel-call ' + cls; el.innerHTML = `<b>${esc(text)}</b>`; el.hidden = false;
+    void el.offsetWidth; el.classList.add('on');
+    if (cls === 'fire' || cls === 'blood') { fx().sfx?.sparkle?.(); fx().buzz?.(30); } else if (cls === 'gold') { fx().sfx?.fanfare?.(); fx().buzz?.([20, 40, 20]); } else fx().sfx?.whoosh?.();
+    clearTimeout(duel.callT); duel.callT = setTimeout(() => { el.classList.remove('on'); el.classList.add('off'); setTimeout(() => { el.hidden = true; }, 350); }, 1300);
+  }
+  // reactions: a speech bubble out of the sender's face
+  function duelBubble(side, text) {
+    const p = document.querySelector(`#duel-strip .ds-p.${side}`); if (!p) return;
+    const b = mk('span', 'ds-bub', esc(text)); p.appendChild(b);
+    setTimeout(() => { b.classList.add('out'); setTimeout(() => b.remove(), 300); }, 2200);
+  }
+  function duelEmote(k) {
+    const now = Date.now();
+    if (now - (duel.emoteAt || 0) < 2500 || (duel.emotes || 0) >= 12) { toast('Easy, champ. Give it a sec.'); return; }
+    duel.emoteAt = now; duel.emotes = (duel.emotes || 0) + 1;
+    duelSend('emote', { k }); duelBubble('me', EMOTES[k]); fx().sfx?.bloop?.();
+    document.querySelector('#duel-strip .ds-emos')?.setAttribute('hidden', '');
   }
   // a wrong answer or a skip: wait 5 seconds (stops anyone racing through to end it)
   function duelPenalty(then, skip = false) {
@@ -5840,7 +5894,7 @@
     tick();
   }
   const dN = (v) => Number.isInteger(v) ? String(v) : Number(v).toFixed(1);
-  const pipHTML = (r, n) => Array.from({ length: n }, (_, j) => `<i class="pip ${r[j] && r[j] !== '-' ? r[j] : ''}"></i>`).join('');
+  const pipHTML = (r, n, now = -1) => Array.from({ length: n }, (_, j) => `<i class="pip ${r[j] && r[j] !== '-' ? r[j] : ''}${j === now ? ' now' : ''}"></i>`).join('');
   // the battle bar: two scores, a tug-of-war line with a flame where they meet, a pip per question, a clock and a live feed
   function duelStrip() {
     const el = $('duel-strip'), s = state.set;
@@ -5849,16 +5903,20 @@
     if (el.dataset.code !== duel.code + duel.at) {
       el.dataset.code = duel.code + duel.at;
       el.innerHTML = `<div class="ds-row">
-          <div class="ds-p me"><span class="ds-av"></span><span class="ds-name"></span><b class="ds-score"></b></div>
+          <div class="ds-p me"><span class="ds-av"></span><span class="ds-name"></span><b class="ds-score"></b><button class="ds-emo" type="button" aria-label="Send a reaction" title="React"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H10l-5 4z"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg></button>
+            <span class="ds-emos" hidden>${EMOTES.map((e, k) => `<button type="button" data-k="${k}">${esc(e)}</button>`).join('')}</span></div>
           <div class="ds-clock">0:00</div>
           <div class="ds-p them"><b class="ds-score"></b><span class="ds-name"></span><span class="ds-av"></span></div></div>
         <div class="ds-tug"><i class="ds-blue"></i><span class="ds-spark">${fireHTML(12, 'mini')}</span></div>
         <div class="ds-pips"><span class="me"></span><span class="them"></span></div><div class="ds-feed" aria-live="polite"></div>`;
+      el.querySelector('.ds-emo').onclick = () => { const m3 = el.querySelector('.ds-emos'); m3.hidden = !m3.hidden; };
+      el.querySelectorAll('.ds-emos [data-k]').forEach(b => b.onclick = () => duelEmote(+b.dataset.k));
       clearInterval(duel.tick);
       duel.tick = setInterval(() => { const c = el.querySelector('.ds-clock'); if (c && duel.phase === 'race') c.textContent = clock(Date.now() - duel.at); }, 500);
     }
     const put = (sel, v) => { const x = el.querySelector(sel); if (x && x.innerHTML !== v) x.innerHTML = v; };
-    put('.me .ds-av', esc(me.name.slice(0, 1).toUpperCase())); put('.them .ds-av', esc(th.name.slice(0, 1).toUpperCase()));
+    const av = (sel, p) => { const x = el.querySelector(sel), k = `${p.name}|${p.prof?.pet || ''}|${p.prof?.color || ''}`; if (x && x.dataset.k !== k) { x.dataset.k = k; x.innerHTML = avatar(p, 'sm'); } };
+    av('.me .ds-av', me); av('.them .ds-av', th);
     put('.me .ds-name', esc(me.name)); put('.them .ds-name', esc(th.name) + (th.here ? '' : ' <em>away</em>'));
     put('.me .ds-score', dN(me.score)); put('.them .ds-score', dN(th.score));
     const lead = me.score === th.score ? 0 : me.score > th.score ? 1 : -1;
@@ -5866,7 +5924,7 @@
     const share = (me.score + 1) / (me.score + th.score + 2);   // starts in the middle and pushes across as marks come in
     el.querySelector('.ds-blue').style.width = `${(share * 100).toFixed(1)}%`;
     el.querySelector('.ds-spark').style.left = `${(share * 100).toFixed(1)}%`;
-    put('.ds-pips .me', pipHTML(me.r || '', n)); put('.ds-pips .them', pipHTML(th.r || '', n));
+    put('.ds-pips .me', pipHTML(me.r || '', n, s.i)); put('.ds-pips .them', pipHTML(th.r || '', n, th.done ? -1 : Math.min(th.a, n - 1)));
   }
   function duelFeed(text, cls) {
     const box = document.querySelector('#duel-strip .ds-feed'); if (!box) return;
@@ -5881,7 +5939,7 @@
     for (let j = 0; j < r.length; j++) {
       if (r[j] === b[j] || r[j] === '-') continue;
       const nm = esc(th.name);
-      if (r[j] === 'c') duelFeed(`${nm} nailed Q${j + 1}`, 'bad');
+      if (r[j] === 'c') { if (!duel.fb) { duel.fb = 'them'; duelFeed(`${nm} drew first blood`, 'bad'); } else duelFeed(`${nm} nailed Q${j + 1}`, 'bad'); }
       else if (r[j] === 'p') duelFeed(`${nm} got part of Q${j + 1}`, 'mid');
       else if (r[j] === 'w') duelFeed(`${nm} missed Q${j + 1}`, 'good');
       else if (r[j] === 's') duelFeed(`${nm} skipped Q${j + 1}`, 'good');
@@ -5896,7 +5954,8 @@
   const CROWN = '<svg class="dp-crown" viewBox="0 0 48 32" aria-hidden="true"><path d="M4 28h40l-4-20-10 9-6-14-6 14-10-9z"/></svg>';
   function duelCard(p, label, extra = '') {
     if (!p) return `<div class="dp-av wait"><span></span><span></span></div><b class="dp-name">${esc(duel.invitee?.name || 'Your friend')}</b><span class="dp-sub">${duel.declined ? 'Not right now' : duel.invitee ? 'Challenge sent' : 'Waiting…'}</span>`;
-    return `<div class="dp-av${p !== duel.me && p.here === false ? ' away' : ''}">${initial(p.name)}</div><b class="dp-name">${esc(p.name)}</b><span class="dp-sub">${label}</span>${extra}`;
+    const pr = p === duel.me ? myProf() : p.prof;
+    return `<div class="dp-av${p.prof?.pet || (p === duel.me && pr.pet) ? ' has-pet' : ''}${p !== duel.me && p.here === false ? ' away' : ''}">${avatar(p === duel.me ? { ...p, prof: pr } : p, 'lg')}</div><b class="dp-name">${esc(p.name)}</b>${pr ? `<span class="dp-rank">${rankOf(pr.wins || 0)} · Lv ${pr.level || 1}</span>` : ''}<span class="dp-sub">${label}</span>${extra}`;
   }
   function duelDraw() {
     if (!$('view-duel') || !duel.code) return;
@@ -5916,6 +5975,7 @@
       // question by question
       const n = duel.ids.length, r1 = me.r || '', r2 = th?.r || '';
       bd.innerHTML = `<div class="dr-grid" style="--n:${n}">${Array.from({ length: n }, (_, j) => `<div class="dr-q" style="--i:${j}"><i class="pip ${r1[j] && r1[j] !== '-' ? r1[j] : ''}"></i><span>Q${j + 1}</span><i class="pip ${r2[j] && r2[j] !== '-' ? r2[j] : ''}"></i></div>`).join('')}</div>
+        ${th ? duelStats(me, th) : ''}
         ${duel.themId ? `<p class="dr-rec">${recLine(duel.themId, th?.name || 'They') || ''}</p>` : ''}`;
       act.innerHTML = duel.host
         ? `<button class="duel-btn${duel.wants ? ' big' : ''}" id="duel-again">${duel.wants ? fireHTML(9) : ''}<span>${duel.wants ? `${esc(th?.name || 'They')} wants a rematch` : 'Rematch'}</span></button><button class="secondary" id="duel-out">Done</button>`
@@ -5961,11 +6021,18 @@
           try { await buildSet({ count: duel.ids.length, allowSkipped: true, fresh: 1, type: 'all', diff: 'all' }); } finally { state.topics = keepT; state.steps = keepS; state.subject = keepSub; }
           const qs = state.set.qs; state.set = null; dropSet();
           Object.assign(duel, { ids: qs.map(q => q.id), qs, phase: 'lobby', at: 0, shown: null, wants: false });
-          duel.me = { ...blankP(duel.me.name), ready: true }; if (duel.them) duel.them = { ...blankP(duel.them.name), here: true };
+          duel.me = { ...blankP(duel.me.name), ready: true, prof: myProf() }; if (duel.them) duel.them = { ...blankP(duel.them.name), here: true, prof: duel.them.prof };
           duelSend('again', { ids: duel.ids }); duelDraw();
         });
       } catch (err) { toast(esc(err.message)); }
     });
+  }
+  function duelStats(a, b) {
+    const pc = (p) => p.out ? Math.round(100 * p.score / p.out) : 0, sec = (ms) => ms ? `${(ms / 1000).toFixed(1)}s` : '–';
+    const rows = [['Accuracy', pc(a), pc(b), (v) => `${v}%`, 1], ['Best streak', a.bs || 0, b.bs || 0, (v) => String(v), 1], ['Fastest correct', a.fc || 0, b.fc || 0, sec, -1]];
+    return `<div class="dr-stats">${rows.map(([l, x, y, f, dir]) => {
+      const win = dir > 0 ? (x > y ? 'a' : y > x ? 'b' : '') : (x && y ? (x < y ? 'a' : y < x ? 'b' : '') : x ? 'a' : y ? 'b' : '');
+      return `<div class="dr-st"><b class="${win === 'a' ? 'best' : ''}">${f(x)}</b><span>${l}</span><b class="${win === 'b' ? 'best' : ''}">${f(y)}</b></div>`; }).join('')}</div>`;
   }
   function duelSplash() {
     const el = $('duel-splash'), th = duel.them?.name || 'Friend';
