@@ -524,14 +524,14 @@
         box.querySelectorAll('.tp-wrap').forEach(c => c.classList.remove('part'));
         sync(); startSummary();
       };
-      head.appendChild(tog); box.appendChild(head);
+      box.appendChild(head);   // (per-group select-all dropped: too much on screen)
       const list = mk('div', 'tp-list');
       ts.forEach(t => {
         const m = prMine[t], lv = prLevel(m), pct = m && m.out_of ? Math.round(100 * m.score / m.out_of) : null, n = byTopic[t].mcq + byTopic[t].short;
         const b = mk('button', `tp ${lv}${state.topics.has(t) ? ' on' : ''}${topicSteps(t) ? ' has-steps' : ''}`);
         b.type = 'button'; b.setAttribute('aria-pressed', state.topics.has(t));
         b.innerHTML = `<i class="tp-box" aria-hidden="true"></i><span class="tp-name">${esc(topicName(t))}<small>${n} question${n === 1 ? '' : 's'}</small></span>
-          <span class="tp-you" title="${pct == null ? 'Not tried yet' : `You've got ${m.score} of ${m.out_of} marks right`}">${pct == null ? '<em>Not tried</em>' : `<span class="tp-bar"><i style="width:${Math.max(4, pct)}%"></i></span><b>${pct}%</b>`}</span>`;
+          ${pct == null ? '' : `<span class="tp-you" title="You've got ${m.score} of ${m.out_of} marks right"><i class="tp-dot"></i>${pct}%</span>`}`;
         const steps = topicSteps(t);
         const wrapT = mk('div', 'tp-wrap');
         wrapT.dataset.t = (topicName(t) + ' ' + t + ' ' + name + ' ' + (steps || []).map(x => x[1]).join(' ')).toLowerCase();
@@ -581,7 +581,7 @@
     });
     // the quick start leans on your weakest topics once there are some
     const weak = Object.values(prMine).filter(r => r.out_of >= 2 && !skip.has(r.topic) && byTopic[r.topic]).sort((a, b) => a.score / a.out_of - b.score / b.out_of).slice(0, 3);
-    $('pr-smart-sub').textContent = weak.length ? `Mostly ${weak.map(w => topicName(w.topic)).join(', ')}, the topics costing you the most marks.` : 'A mix of every topic you\'ve learnt, ones you haven\'t done yet.';
+    $('pr-smart-sub').textContent = weak.length ? `Mostly ${weak.map(w => topicName(w.topic)).join(', ')}, where you're losing the most marks` : "A mix of every topic you've learnt, new ones first";
     $('pr-smart').onclick = async () => {
       $('pr-error').hidden = true;
       const keep = new Set(state.topics), keepSteps = state.steps; state.steps = new Map();
@@ -596,7 +596,6 @@
     { const pos = classPos(); $('pr-up-t').textContent = pos ? topicName(pos) + (classStep() && topicSteps(pos) ? ` · part ${topicSteps(pos).findIndex(([id]) => id === classStep()) + 1} of ${topicSteps(pos).length}` : '') : skip.size ? `${all.length - later.length} of ${all.length} topics` : 'Set it'; $('topics-learnt').classList.toggle('unset', !pos && !skip.size); }
     $('topics-none').onclick = () => { state.topics.clear(); renderBuild(); };
   }
-  $('pr-paper').onclick = () => { const c = $('cp-card'); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.remove('pulse'); void c.offsetWidth; c.classList.add('pulse'); };
   $('pr-opts-btn').onclick = () => { const o = $('pr-opts'), open = o.hidden; o.hidden = !open; $('pr-opts-btn').setAttribute('aria-expanded', open); $('pr-opts-btn').textContent = open ? 'Done' : 'Options'; };
   function filterTopics() {
     const q = $('topic-filter').value.trim().toLowerCase(), words = q.split(/\s+/).filter(Boolean);
@@ -624,11 +623,12 @@
     const n = state.topics.size, o = state.opts;
     const type = { all: '', mcq: ' multiple choice', short: ' written' }[o.type] || '';
     const dots = [...state.steps.values()].reduce((a, x) => a + x.size, 0);
-    $('start-summary').textContent = n ? `${o.count}${type} questions from ${n} topic${n === 1 ? '' : 's'}${dots ? ` (${dots} dot point${dots === 1 ? '' : 's'})` : ''}` : 'Pick a topic to start';
+    $('start-summary').textContent = n ? `${o.count}${type} questions · ${dots ? `${dots} dot point${dots === 1 ? '' : 's'}` : `${n} topic${n === 1 ? '' : 's'}`}` : 'Tick a topic to start';
     const names = [...state.topics].map(topicName).sort();
-    $('pr-picked').textContent = !n ? 'Tap any topic above.' : (names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`) + (o.diff !== 'all' ? ` · ${o.diff.toLowerCase()} papers` : '');
+    $('pr-picked').textContent = !n ? '' : (names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`) + (o.diff !== 'all' ? ` · ${o.diff.toLowerCase()} papers` : '');
     $('start').disabled = !n;
     $('pr-bar').classList.toggle('ready', !!n);
+    $('topics-none').hidden = !n;
   }
   document.querySelectorAll('.seg').forEach(seg => {
     seg.querySelectorAll('button').forEach(b => b.onclick = () => {
@@ -1112,7 +1112,7 @@
       box.querySelectorAll('[data-topic]').forEach(b => b.onclick = async () => {
         state.topics = new Set([b.dataset.topic]); location.hash = '#practise';
       });
-      if ($('hsc-paper')) $('hsc-paper').onclick = () => { cpOpt.focus = 'weak'; location.hash = '#practise'; setTimeout(() => $('cp-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 400); };
+      if ($('hsc-paper')) $('hsc-paper').onclick = () => { cpOpt.focus = 'weak'; location.hash = '#practise'; setTimeout(() => { const c = $('cp-card'); if (c) { c.open = true; c.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 400); };
       if ($('hsc-pro')) $('hsc-pro').onclick = () => openPro('band');
     }
     drawAtar(preds);
