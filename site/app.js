@@ -26,7 +26,7 @@
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
   const views = ['duel', 'auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile', 'hsc', 'study'];
-  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(subject, school, year, difficulty), level';
+  const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(slug, subject, school, year, difficulty), level';
 
   document.title = C.name;
   $('brand').textContent = C.name;
@@ -337,7 +337,9 @@
   const adminOn = () => state.admin && !state.viewAs;   // false in student mode, so everything looks as a student sees it
   const can = (f) => (state.admin && !state.viewAs) || featureLevel() >= (FEATURE_AT[f] ?? 0);
   // papers a "Free" preview can open (the database lets the admin see everything, so this mirrors the dial)
-  const seePaper = (p) => state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial;
+  // quick questions: short textbook-style questions kept in their own 'paper' (slug quick-...); never shown as a paper
+  const isQuick = (p) => /^quick-/.test(p?.slug || '');
+  const seePaper = (p) => !isQuick(p) && (state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial);
   // Pro can be bought (pro_sales) or tried free (pro_trials); 'admin' means only admins see it while testing
   const proOpen = () => !!state.user && !state.preview && [state.proSale, state.pro?.trials].some(v => v === 'on' || (v === 'admin' && adminOn()));
   function applyRelease() {
@@ -649,7 +651,7 @@
   $('topic-filter').oninput = filterTopics;
   function startSummary() {
     const n = state.topics.size, o = state.opts;
-    const type = { all: '', mcq: ' multiple choice', short: ' written' }[o.type] || '';
+    const type = { all: '', mcq: ' multiple choice', short: ' written', quick: ' quick' }[o.type] || '';
     const dots = [...state.steps.values()].reduce((a, x) => a + x.size, 0);
     $('start-summary').textContent = n ? `${o.count}${type} questions · ${dots ? `${dots} dot point${dots === 1 ? '' : 's'}` : `${n} topic${n === 1 ? '' : 's'}`}` : 'Tick a topic to start';
     const names = [...state.topics].map(topicName).sort();
@@ -709,11 +711,12 @@
       .in('topic', [...state.topics].filter(t => o.allowSkipped || !skipped().has(t)))
       .or('image_path.not.is.null,content.not.is.null')
       .limit(400);
-    if (o.type !== 'all') q = q.eq('type', o.type);
+    if (o.type === 'quick') q = q.like('papers.slug', 'quick-%');   // short textbook-style questions only
+    else { q = q.not('papers.slug', 'like', 'quick-%'); if (o.type !== 'all') q = q.eq('type', o.type); }
     if (o.diff !== 'all') q = q.eq('papers.difficulty', o.diff);
     const { data, error } = await q;
     if (error) throw error;
-    if (!data.length) throw new Error('No questions match that. Widen the filters.');
+    if (!data.length) throw new Error(o.type === 'quick' ? 'No quick questions on those topics yet. So far there are quick questions for Sequences and Series in Maths Advanced.' : 'No questions match that. Widen the filters.');
 
     await loadStepBlock(); const tooHard = blockedQs();
     let pool = data.filter(x => !tooHard.has(x.id) && !x.syllabus_note && hasKey(x));
@@ -755,10 +758,10 @@
     // write on the question: pencil, highlighter, eraser, plus working space underneath
     if (window.Annotate) { Annotate.stop(); qcard?.querySelector('.ann-tools')?.remove(); }
     if (!s.sid) { s.sid = 's' + Date.now().toString(36); annPrune(s.sid); }   // writing belongs to this set: a new set starts with clean questions
-    if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${s.sid}_${x.id}`, { scope: $('view-set'), full: true })); qcard.prepend(tb); }
+    if (window.Annotate && qcard && state.user && !isQuick(x.papers)) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${s.sid}_${x.id}`, { scope: $('view-set'), full: true })); qcard.prepend(tb); }
     $('set-pos').innerHTML = `<b>${s.i + 1} of ${s.qs.length}</b><span>${esc(topicName(x.topic))}</span>`;
     firstHint(x);
-    $('set-meta').textContent = `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
+    $('set-meta').textContent = isQuick(x.papers) ? `Quick question · ${topicName(x.topic)}` : `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
     const qi = $('q-img'); qi.crossOrigin = 'anonymous';
     if (x.content) qi.removeAttribute('src');
@@ -783,9 +786,11 @@
     $('q-syllabus').hidden = !x.syllabus_note;
     const on = !!x.content, obj = on && Online.objective(x);
     qi.hidden = on; $('q-online').hidden = !on; $('q-online').innerHTML = '';
-    if (on) { x._v = null; $('q-online').appendChild(Online.render(x, { onChange: v => { x._v = v; } })); }
+    const quick = on && isQuick(x.papers);
+    if (quick) katexCss();
+    if (on) { x._v = null; $('q-online').appendChild(Online.render(x, { onChange: v => { x._v = v; if (quick && v) setTimeout(() => $('check-online').click(), 140); } })); }   // quick: tap = answer
     if (obj) { $('mcq-controls').hidden = true; $('short-controls').hidden = true; }
-    $('check-online').hidden = !obj || !!x.syllabus_note;
+    $('check-online').hidden = !obj || !!x.syllabus_note || quick;
     $('sol-wrap').hidden = true; $('sol-wrap').classList.remove('marked'); $('show-sol').hidden = false; $('show-sol').disabled = !x.solutionUrl && !on;
     // written answers: the marker reads what they wrote. In a battle that's the only way to mark, and the solution stays hidden until then
     const canAuto = x.type === 'short' && !on && !!x.solutionUrl && !x.syllabus_note && !state.preview;
@@ -2594,6 +2599,7 @@
     const sum = Object.fromEntries((sums || []).map(s => [s.paper_id, s]));
     const ok = (papers || []).filter(p => {
       const s = sum[p.id];
+      if (isQuick(p)) return false;
       if (p.online) return true;
       return !p.scanned && s && s.n_questions >= 10 && s.n_images >= 0.9 * s.n_questions && s.n_coarse <= 0.1 * s.n_questions;
     });
@@ -4683,11 +4689,17 @@
   const tuSubjects = () => (C.tutor && C.tutor.subjects) || Object.keys(C.subjects);
   const tuSubject = () => tuSubjects().includes(state.subject) ? state.subject : tuSubjects()[0];
 
+  // quick questions arrive with their maths already rendered: they only need KaTeX's stylesheet and fonts
+  function katexCss() {
+    if (document.getElementById('katex-css')) return;
+    const l = document.createElement('link'); l.id = 'katex-css'; l.rel = 'stylesheet'; l.href = 'vendor/katex/katex.min.css';   // hosted here, fonts included
+    document.head.appendChild(l);
+  }
   let katexP = null;
   function loadKatex() {
     if (window.katex) return Promise.resolve();
     if (katexP) return katexP;
-    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css';
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'vendor/katex/katex.min.css';
     document.head.appendChild(css);
     katexP = new Promise((res, rej) => {
       const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js';
@@ -5901,7 +5913,7 @@ void main() {
   function openFriendCard(f) { return openPlayer(f); }
   window.__openPlayer = openPlayer;
   async function duelPickTopic(f, box, close) {
-    let subj = state.subject, pick = new Set(), n = 5, stakes = '';
+    let subj = state.subject, pick = new Set(), n = 5, stakes = '', kind = lsGet('tb_duel_kind') || 'quick';
     const subs = (mySubjects() || []).filter(x => C.subjects[x]);
     const draw = async () => {
       const { data: tc } = await sb.from('topic_counts').select('topic, n').eq('subject', subj);
@@ -5912,27 +5924,35 @@ void main() {
         <input class="fc-find" type="search" placeholder="Find a topic" autocomplete="off" aria-label="Find a topic">
         <div class="fc-topics">${topics.map(t => `<button type="button" class="fc-t${pick.has(t) ? ' on' : ''}" data-t="${esc(t)}">${esc(topicName(t))}</button>`).join('')}</div>
         <input class="fc-stakes" maxlength="40" placeholder="Stakes, e.g. loser buys chips" autocomplete="off" aria-label="Stakes (optional)" value="${esc(stakes)}">
-        <div class="fc-go"><div class="seg fc-n"><button data-n="5"${n === 5 ? ' class="on"' : ''}>5</button><button data-n="10"${n === 10 ? ' class="on"' : ''}>10</button></div>
+        <div class="fc-go"><div class="seg fc-k"><button data-k="quick"${kind === 'quick' ? ' class="on"' : ''} title="Short textbook-style questions, marked instantly">Quick</button><button data-k="all"${kind === 'all' ? ' class="on"' : ''} title="Questions from past trial papers">Trial</button></div><div class="seg fc-n"><button data-n="5"${n === 5 ? ' class="on"' : ''}>5</button><button data-n="10"${n === 10 ? ' class="on"' : ''}>10</button></div>
         <button class="duel-btn" id="fc-send" ${pick.size ? '' : 'disabled'}>${fireHTML(9)}<span>Send challenge</span></button></div>`;
       const send = box.querySelector('#fc-send');
       box.querySelectorAll('.fc-s').forEach(b => b.onclick = () => { subj = b.dataset.s; draw(); });
       box.querySelector('.fc-stakes').oninput = (ev) => { stakes = cleanStakes(ev.target.value); };
       box.querySelector('.fc-find').oninput = (ev) => { const v = ev.target.value.trim().toLowerCase(); box.querySelectorAll('.fc-t').forEach(b => { b.hidden = !!v && !b.textContent.toLowerCase().includes(v); }); };
       box.querySelectorAll('.fc-t').forEach(b => b.onclick = () => { const t = b.dataset.t; pick.has(t) ? pick.delete(t) : pick.add(t); b.classList.toggle('on', pick.has(t)); send.disabled = !pick.size; fx().sfx?.tick?.(); });
+      box.querySelectorAll('.fc-k button').forEach(b => b.onclick = () => { kind = b.dataset.k; lsSet('tb_duel_kind', kind); box.querySelectorAll('.fc-k button').forEach(x => x.classList.toggle('on', x === b)); });
       box.querySelectorAll('.fc-n button').forEach(b => b.onclick = () => { n = +b.dataset.n; box.querySelectorAll('.fc-n button').forEach(x => x.classList.toggle('on', x === b)); });
       send.onclick = async () => {
         send.disabled = true; send.querySelector('span').textContent = 'Loading…';
-        try { await duelCreate(f, [...pick], n, subj, stakes); close(); }
+        try { await duelCreate(f, [...pick], n, subj, stakes, kind); close(); }
         catch (err) { send.disabled = false; send.querySelector('span').textContent = 'Send challenge'; toast(esc(err.message || String(err))); }
       };
     };
     box.innerHTML = '<p class="small muted">Loading topics…</p>';
     await draw();
   }
-  async function duelCreate(f, topics, n, subj = state.subject, stakes = '') {
+  async function duelCreate(f, topics, n, subj = state.subject, stakes = '', kind = 'all') {
     const keepT = state.topics, keepS = state.steps, keepSub = state.subject;
     state.topics = new Set(topics); state.steps = new Map(); state.subject = subj;
-    try { await buildSet({ count: n, allowSkipped: true, type: 'all', diff: 'all', fresh: 1 }); }
+    try {
+      try { await buildSet({ count: n, allowSkipped: true, type: kind, diff: 'all', fresh: 1 }); }
+      catch (err) {   // no quick questions on those topics yet: trial questions instead, and say so
+        if (kind !== 'quick') throw err;
+        await buildSet({ count: n, allowSkipped: true, type: 'all', diff: 'all', fresh: 1 });
+        toast('No quick questions on those topics yet, so this one uses trial questions.');
+      }
+    }
     finally { state.topics = keepT; state.steps = keepS; state.subject = keepSub; }
     const qs = state.set.qs; state.set = null; dropSet();
     duelLeave(); duelUnsave();
