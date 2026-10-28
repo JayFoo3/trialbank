@@ -37,7 +37,6 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <a href="#papers" data-nav="papers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7"/></svg><span>Papers</span></a>
       <a href="#tutor" data-nav="tutor" id="nav-tutor" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10h6"/></svg><span>Tutor</span></a>
       <a href="#mark" data-nav="mark" title="Marking"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="m8 14 3 3 5-6"/></svg><span>Marking</span><b class="nav-badge" id="nav-marks" hidden></b></a>
-      <a href="#progress" data-nav="progress" data-feature="progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Progress</span></a>
     </nav>
     <div class="top-right" id="top-right" hidden>
       <div class="subject" id="subject-switch" role="group" aria-label="Subject"></div>
@@ -207,7 +206,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <div class="sec-head" id="friends-head" hidden><h2 class="sec">Friends</h2><span class="sec-links"><a class="link small" href="#profile">Profile</a><button class="link small" id="fr-open">Add a friend</button></span></div>
     <div class="friends" id="friends" hidden></div>
 
-    <h2 class="sec" data-feature="weak">Weak spots</h2>
+    <div class="sec-head" data-feature="weak"><h2 class="sec">Weak spots</h2><span class="sec-links"><a class="link small" href="#progress" data-feature="progress">Your progress</a></span></div>
     <div class="checkup" id="checkup" hidden data-feature="weak">
       <div><strong>Find your weak spots</strong><span class="small muted">12 quick questions, one from each topic.</span></div>
       <button class="secondary" id="checkup-go">Start check-up</button>

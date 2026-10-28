@@ -84,6 +84,7 @@
     drawSubject();
     if (!state.preview) sb.rpc('log_visit', { v: h || 'home' }).then(() => {}, () => {});   // engagement stats for the Admin page
     return busy(async () => {
+     try {
       if (h === 'practise') { show('practise'); drawCpCard(); drawResume(); await renderBuild(); return; }
       if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
       if (h === 'admin' && adminOn()) { show('admin'); await renderAdmin(); adminTabs(); return; }
@@ -106,6 +107,10 @@
       }
       if (h !== 'home' && h !== '') { history.replaceState(null, '', '#home'); }
       show('home'); await renderHome();
+     } catch (err) {   // a page that fails to load says so, rather than sitting half-drawn
+      console.error(err);
+      toast(`That page didn't load properly: ${esc(err?.message || String(err))}. Try again, or flag it with a screenshot.`, 12000);
+     }
     });
   }
   const shortName = (n) => n.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext ').replace('Standard ', 'Std ')
