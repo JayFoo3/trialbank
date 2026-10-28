@@ -83,8 +83,13 @@ Deno.serve(async (req) => {
   if (s.qmark_enabled === 'off') return json({ error: 'Auto-marking is switched off right now. Mark it yourself.' }, 403);
   const me = user.email_confirmed_at ? String(user.email ?? '').trim().toLowerCase() : '';
   const isAdmin = !!me && String(s.admin_emails ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean).includes(me);
+  // never lose money: auto-marking is part of what Pro pays for, within that student's monthly AI budget
+  if (!isAdmin) {
+    const { data: ok } = await admin.rpc('ai_ok', { uid: user.id, est: 0.03 });
+    if (ok !== true) return json({ error: 'Auto-marking comes with Pro. Mark this one yourself.', pro: true }, 403);
+  }
   const { data: rv, error: rerr } = await admin.rpc('qmark_reserve', { uid: user.id, per_day: isAdmin ? 0 : Number(s.qmark_daily ?? 80),
-    month_cap: Number(s.qmark_monthly_cap_usd ?? 20), est: 0.02, is_duel: !!body.duel, qid });
+    month_cap: Number(s.qmark_monthly_cap_usd ?? 10), est: 0.02, is_duel: !!body.duel, qid });
   if (rerr || !rv?.id) {
     if (rerr) { console.error(rerr); return json({ error: 'Auto-marking hit a problem. Mark it yourself this time.' }, 500); }
     return json({ error: rv?.err === 'day' ? "You've auto-marked a lot today. Mark this one yourself." : 'Auto-marking has used this month\'s budget. Mark it yourself.' }, 429);

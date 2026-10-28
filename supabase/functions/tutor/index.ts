@@ -196,6 +196,11 @@ Deno.serve(async (req) => {
     const ok = access === 'pro' && (isPro || packLeft > 0);
     if (!ok) return json({ error: access === 'pro' ? 'The tutor comes with Pro, or with a pack of tutor messages.' : 'The tutor is in testing and not open yet.' }, 403);
   }
+  // never lose money: without pack messages, a reply only goes ahead while this month's AI spend is inside what they pay for
+  if (!isAdmin && packLeft <= 0) {
+    const { data: ok } = await admin.rpc('ai_ok', { uid: user.id, est: 0.03 });
+    if (ok === false) return json({ error: isPro ? "You've reached this month's tutor limit. It resets on the 1st, or get a pack of messages to keep going." : 'The tutor comes with Pro, or with a pack of tutor messages.', out: true }, 429);
+  }
   // each student's monthly allowance (Sydney months); pack messages aren't counted against it
   const sydMonth = new Date(new Date().toLocaleString('en-US', { timeZone: 'Australia/Sydney' })); sydMonth.setDate(1); sydMonth.setHours(0, 0, 0, 0);
   const since = new Date(Date.now() - (Date.now() - sydMonth.getTime()) - 11 * 36e5).toISOString();

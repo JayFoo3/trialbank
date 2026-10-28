@@ -784,7 +784,8 @@
     $('check-online').hidden = !obj || !!x.syllabus_note;
     $('sol-wrap').hidden = true; $('sol-wrap').classList.remove('marked'); $('show-sol').hidden = false; $('show-sol').disabled = !x.solutionUrl && !on;
     // written answers: the marker reads what they wrote. In a battle that's the only way to mark, and the solution stays hidden until then
-    const canAuto = x.type === 'short' && !on && !!x.solutionUrl && !x.syllabus_note && !state.preview;
+    const paysAi = state.release?.tier === 'admin' || (!!state.release?.sub && !state.release?.trial);   // AI costs money: only for students who pay for it
+    const canAuto = paysAi && x.type === 'short' && !on && !!x.solutionUrl && !x.syllabus_note && !state.preview;
     $('auto-mark').hidden = !canAuto; $('auto-mark').disabled = false; $('auto-mark').textContent = 'Mark my working';
     if (s.duel && canAuto) $('show-sol').hidden = true;
     $('show-sol').textContent = x.solutionUrl || on ? 'Show solution' : 'No solution available';
@@ -3393,7 +3394,7 @@
     const P = (x) => Math.floor(Number(x) / PER_PAPER_USD);
     const pl = pool || { cap_usd: 0, spent_usd: 0, enabled: false };
     const poolTotal = P(pl.cap_usd), poolLeft = Math.max(0, Math.min(poolTotal, P(Number(pl.cap_usd) - Number(pl.spent_usd))));
-    const freeOn = !!pl.enabled && (adminOn() || can('automark'));
+    const freeOn = !!pl.enabled && poolTotal > 0 && (adminOn() || can('automark'));
     const freeTotal = P(u.limit_usd), freeLeft = Math.max(0, Math.min(freeTotal, P(Number(u.limit_usd) - Number(u.used_usd))));
     const free = u.unlimited ? null : freeOn ? Math.min(freeLeft, poolLeft) : 0;
     return { bought: m.balance || 0, pro: m.pro_left || 0, free, freeLeft, freeTotal, freeOn, poolLeft, poolTotal, unlimited: !!u.unlimited, canBuy: !!m.can_buy,
@@ -3423,7 +3424,7 @@
       c.pro || state.release?.level === 'pro' ? stat(c.pro, `Pro · ${short}`, '', `Refills on ${reset}`) : '',
       c.unlimited ? stat('∞', 'admin') : c.freeOn ? stat(`${c.freeLeft}<em>/${c.freeTotal}</em>`, `free · ${short}`, '', `Back on ${reset}`)
         : stat('–', lite ? 'free after trials' : 'free', 'off'),
-      stat(`${c.poolLeft}<em>/${c.poolTotal}</em>`, 'shared pool', 'pool', `Everyone's free marking comes from this. Bought and Pro papers are used first. Resets on ${reset}.`),
+      !c.poolTotal ? '' : stat(`${c.poolLeft}<em>/${c.poolTotal}</em>`, 'shared pool', 'pool', `Everyone's free marking comes from this. Bought and Pro papers are used first. Resets on ${reset}.`),
     ].join('');
     const chip = $('mk-chip'); chip.hidden = false;
     chip.className = 'mk-chip' + (!c.unlimited && !c.total ? ' out' : '');

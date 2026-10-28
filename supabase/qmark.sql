@@ -1,6 +1,6 @@
 -- One written question auto-marked at a time (practice sets and 1v1 battles). Safe to re-run.
 -- Kept apart from paper marking, so marking single questions never uses up a student's paper marks or daily paper limit.
--- Limits live in settings: qmark_daily (per student per day, default 80), qmark_monthly_cap_usd (everyone together, default 20),
+-- Limits live in settings: qmark_daily (per student per day, default 80), qmark_monthly_cap_usd (everyone together, default 10),
 -- qmark_enabled ('off' switches it off).
 create table if not exists public.question_marks (
   id bigint generated always as identity primary key,
