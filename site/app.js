@@ -110,13 +110,13 @@
   }
   const shortName = (n) => n.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext ').replace('Standard ', 'Std ')
     .replace('Earth and Environmental Science', 'Earth & Env').replace('Investigating Science', 'Inv Science').replace('Community and Family Studies', 'CAFS')
-    .replace('Studies of Religion', 'SOR').replace('Design and Technology', 'D&T').replace('Society and Culture', 'Society & Culture').replace(' Continuers', '');
+    .replace('Studies of Religion', 'SOR').replace('Design and Technology', 'D&T').replace('Society and Culture', 'Society & Culture').replace(' Continuers', '').replace('Software Engineering', 'Software Eng').replace('Engineering Studies', 'Engineering');
   function drawSubject() {
     const el = $('subject-switch'); el.innerHTML = '';
     const mine = mySubjects() || Object.keys(C.subjects);
     if (!mine.includes(state.subject)) state.subject = mine[0];
     const names = chosenNames() || Object.values(C.subjects);
-    const btn = mk('button', 'subj-btn', `${esc(shortName(C.subjects[state.subject]))}<span class="caret" aria-hidden="true"></span>`);
+    const btn = mk('button', 'subj-btn', `<span class="subj-l">${esc(shortName(C.subjects[state.subject]))}</span><span class="caret" aria-hidden="true"></span>`);
     btn.title = C.subjects[state.subject]; btn.setAttribute('aria-haspopup', 'true'); btn.setAttribute('aria-expanded', 'false');
     const menu = mk('div', 'menu subj-menu'); menu.hidden = true;
     const ready = names.filter(keyOf), later = names.filter(n => !keyOf(n));
@@ -1035,7 +1035,8 @@
     const cfpe = by.cfpe; delete by.cfpe;
     const total = Object.values(by).reduce((x, r) => x + r.n, 0);
     el.innerHTML = '';
-    if (!total && !cfpe) { el.innerHTML = '<p class="muted small">Nothing tagged yet. After checking a solution, tap which marks you lost and why.</p>'; return; }
+    el.closest('.card').hidden = !total && !cfpe;   // nothing tagged yet: no empty card
+    if (!total && !cfpe) return;
     if (cfpe) {
       const top = Object.entries(cfpe.topics).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t, n]) => `${t} (${n})`).join(', ');
       const p = mk('p', 'small', `<b>${cfpe.n} mark${cfpe.n === 1 ? '' : 's'} still earned CFPE</b> <span class="muted">· your method held up after an earlier slip · mostly ${top}</span>`);
@@ -1126,6 +1127,7 @@
     (state.preview ? [] : recent || []).forEach(a => { const d = per[dayOf(new Date(a.created_at))]; if (d) { d.n++; d.s += Number(a.score || 0); d.o += Number(a.out_of || 0); } });
     const maxN = Math.max(1, ...Object.values(per).map(d => d.n)), weekN = days.slice(7).reduce((a, d) => a + per[d].n, 0), activeDays = days.filter(d => per[d].n).length;
     $('pg-week-sum').textContent = activeDays ? `${weekN} question${weekN === 1 ? '' : 's'} this week · ${activeDays} of 14 days` : 'Nothing yet';
+    $('pg-days').closest('.card').hidden = !activeDays;   // an empty fortnight says nothing
     $('pg-days').innerHTML = days.map((d, i) => { const x = per[d], h = x.n ? Math.max(8, Math.round(100 * x.n / maxN)) : 0, dt = new Date(d + 'T12:00:00');
       return `<div class="pg-day${d === dayOf() ? ' today' : ''}" title="${dt.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short' })}: ${x.n} question${x.n === 1 ? '' : 's'}${x.o ? `, ${Math.round(100 * x.s / x.o)}% of marks` : ''}">
         <span class="pg-n">${x.n || ''}</span><span class="pg-col"><i style="height:${h}%"></i></span><span class="pg-d">${dt.toLocaleDateString('en-AU', { weekday: 'narrow' })}</span></div>`; }).join('');
@@ -1153,6 +1155,7 @@
       box.appendChild(sec);
     });
     if (!box.children.length) box.innerHTML = '<p class="muted small">No topics in this subject yet.</p>';
+    document.querySelector('#view-progress .pr-key').hidden = !Object.keys(my).length;   // the colour key only once there are colours
     hscPredictions().then(p => {   // predicted band, linking to the full HSC estimate
       const x = p[state.subject], t = $('hsc-teaser'); if (!t) return;
       const need = x && !x.ready ? Math.max(0, Math.ceil(x.need)) : 40, got = 40 - need;

@@ -2054,7 +2054,7 @@ body.st-hosting .st-board canvas { cursor: crosshair; }
 @media (max-width: 720px) {
   .pg-top { grid-template-columns: 1fr; }
   .pg-big { font-size: 2.8rem; }
-  .pg-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t p" "bar do"; row-gap: 6px; padding: 9px 0; }
+  .pg-row { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "t p do" "bar bar do"; column-gap: 10px; row-gap: 6px; padding: 9px 0; }
   .pg-t { grid-area: t; } .pg-p { grid-area: p; } .pg-track { grid-area: bar; } .pg-do { grid-area: do; }
   .pg-days { gap: 3px; height: 100px; }
 }
@@ -2988,3 +2988,6 @@ canvas.fire.nogl { background: radial-gradient(60% 70% at 50% 100%, rgba(255,170
 #duel-me, #duel-them { background-image: linear-gradient(180deg, color-mix(in srgb, var(--pc, transparent) 45%, transparent), transparent 70%); }
 #duel-me .dp-av, #duel-them .dp-av, .fr.me { cursor: pointer; }
 .avatar { cursor: pointer; }
+
+.pr-key[hidden] { display: none !important; }
+.subj-btn .subj-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
