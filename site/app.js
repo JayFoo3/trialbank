@@ -223,7 +223,11 @@
   }
   function tabs() { drawSubject(); }   // older views called this per page; the switch now lives in the header
   // account menu
-  $('account-btn').onclick = (ev) => { ev.stopPropagation(); const m = $('account-menu'); m.hidden = !m.hidden; $('account-btn').setAttribute('aria-expanded', !m.hidden); };
+  $('account-btn').onclick = (ev) => {
+    ev.stopPropagation();
+    if (!state.user || state.preview || !window.__openPlayer) { const m = $('account-menu'); m.hidden = !m.hidden; $('account-btn').setAttribute('aria-expanded', !m.hidden); return; }
+    $('account-menu').hidden = true; window.__openPlayer('me');
+  };
   document.addEventListener('click', (ev) => { if (!ev.target.closest('.account')) $('account-menu').hidden = true; });
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') $('account-menu').hidden = true; });
   window.addEventListener('hashchange', route);
@@ -5576,8 +5580,8 @@
   const RANKS = [[0, 'Spark'], [3, 'Flame'], [6, 'Blaze'], [11, 'Inferno'], [20, 'Supernova']];
   const myWins = () => battleWins();
   const rankOf = (w) => [...RANKS].reverse().find(([n]) => w >= n)[1];
-  const myProf = () => { const pr = myProfile(); return { pet: pr.pet && pr.pet !== 'photo' ? pr.pet : null, color: pr.color || 'blue', border: pr.border || 'none', level: state.lvl?.level || 1, wins: myWins() }; };
-  const profOk = (v) => v && typeof v === 'object' ? { pet: typeof v.pet === 'string' ? v.pet.slice(0, 30) : null, color: String(v.color || 'blue').slice(0, 20), border: String(v.border || 'none').replace(/[^a-z-]/g, '').slice(0, 20), level: int(v.level) || 1, wins: int(v.wins) } : null;
+  const myProf = () => { const pr = myProfile(); return { pet: pr.pet && pr.pet !== 'photo' ? pr.pet : null, color: pr.color || 'blue', border: pr.border || 'none', level: state.lvl?.level || 1, wins: myWins(), title: pr.title || null }; };
+  const profOk = (v) => v && typeof v === 'object' ? { pet: typeof v.pet === 'string' ? v.pet.slice(0, 30) : null, color: String(v.color || 'blue').slice(0, 20), border: String(v.border || 'none').replace(/[^a-z-]/g, '').slice(0, 20), level: int(v.level) || 1, wins: int(v.wins), title: typeof v.title === 'string' ? v.title.replace(/[^a-z0-9-]/g, '').slice(0, 20) : null } : null;
   // a player's face: their pet if they have one, else their initial
   const avatar = (p, size = 'md') => p?.prof?.pet ? petBadge(p.prof, size) : `<span class="dp-ini">${esc((p?.name || '?').slice(0, 1).toUpperCase())}</span>`;
   const EMOTES = ['Nice one', 'Too easy', 'Oof', 'GG', 'Catch me'];
@@ -5802,30 +5806,85 @@ void main() {
     const f = state.friends.find(x => x.friend_id === chip.dataset.fid); if (f) openFriendCard(f);
   });
   document.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.matches?.('.fr[data-fid]')) { ev.preventDefault(); ev.target.click(); } });
-  function openFriendCard(f) {
-    const m = mk('div', 'modal fc-modal');
-    const rec = recLine(f.friend_id, f.name);
-    m.innerHTML = `<div class="modal-card fc-card" role="dialog" aria-modal="true" aria-label="${esc(f.name)}">
-      <button class="link fc-x" data-x aria-label="Close">✕</button>
-      <div class="fc-top"><div class="fc-av">${petBadge(f, 'lg')}<i class="fc-on" hidden></i></div><h2>${esc(f.name)}</h2>
-        <p class="fc-stats"><span>Lv ${int(f.level) || 1}</span><span class="fr-fl">${flame(int(f.streak))}</span><span>${int(f.streak)} day streak</span></p>
-        ${rec ? `<p class="fc-rec">${rec}</p>` : ''}</div>
-      <div class="fc-body"><button class="duel-btn big" id="fc-duel">${fireHTML(9)}<span>1v1</span></button>
-        <p class="fc-prize"><span>Win <b>+50 XP</b></span>${state.battles && !state.battles.today ? '<span>First battle today <b>+100 XP</b></span>' : ''}<span>Borders at <b>1, 10, 25</b> wins</span></p>
-        <p class="fc-state small muted"></p></div></div>`;
-    // are they on Trialbank right now? (the same presence the study invites use)
-    const watch = sb.channel(`inbox:${f.friend_id}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
-    const online = () => {
-      const on = !!watch.presenceState?.()?.[f.friend_id];
-      m.querySelector('.fc-on').hidden = !on;
-      const st2 = m.querySelector('.fc-state'); if (st2) st2.textContent = on ? 'Online now' : "Offline: they'll get the link to join";
-    };
-    watch.on('presence', { event: 'sync' }, online).subscribe((x) => { if (x === 'SUBSCRIBED') watch.track({ w: 1 }); });
-    const close = () => { m.classList.add('out'); setTimeout(() => m.remove(), 180); try { sb.removeChannel(watch); } catch {} };
-    m.onclick = (ev) => { if (ev.target === m || ev.target.closest('[data-x]')) close(); };
-    document.body.appendChild(m); fx().sfx?.whoosh?.();
-    m.querySelector('#fc-duel').onclick = () => duelPickTopic(f, m.querySelector('.fc-body'), close);
+  // ---------- player cards: tap anyone's picture to see their banner, pet, title, level and record ----------
+  const TITLES = [['rookie', 'Rookie', {}], ['grinder', 'Grinder', { lvl: 5 }], ['scholar', 'Scholar', { lvl: 10 }], ['band6', 'Band 6 Bound', { lvl: 15 }], ['mastermind', 'Mastermind', { lvl: 25 }],
+    ['first-blood', 'First Blood', { wins: 1 }], ['duellist', 'Duellist', { wins: 5 }], ['champion', 'Champion', { wins: 15 }], ['legend', 'Legend', { wins: 30 }],
+    ['on-fire', 'On Fire', { streak: 7 }], ['unstoppable', 'Unstoppable', { streak: 30 }], ['pro', 'Pro', { pro: 1 }]];
+  function titleName(k) { return (TITLES.find(t => t[0] === k) || [])[1] || ''; }
+  function titleLock(t, me) {   // '' when unlocked, else what it takes
+    const u = t[2];
+    if (u.lvl && me.level < u.lvl) return `Level ${u.lvl}`;
+    if (u.wins && me.wins < u.wins) return `${u.wins} win${u.wins === 1 ? '' : 's'}`;
+    if (u.streak && me.best < u.streak) return `${u.streak} day streak`;
+    if (u.pro && !me.pro) return 'Pro';
+    return '';
   }
+  function openPlayer(who) {
+    const me = who === 'me';
+    const pr = me ? myProfile() : who, st = me ? streakData() : null;
+    const name = me ? (myName() || 'You').split(/\s+/)[0] : who.name;
+    const stats = me ? { level: state.lvl?.level || 1, wins: battleWins(), streak: liveStreak(st), best: st.best || 0, pro: state.release?.level === 'pro' || adminOn() }
+      : { level: int(who.level) || 1, wins: int(who.wins), streak: int(who.streak), best: int(who.best) };
+    const m = mk('div', 'modal pc-modal');
+    const draw = () => {
+      const p2 = me ? myProfile() : who, tn = titleName(p2.title);
+      const rec = me ? '' : recLine(who.friend_id, who.name);
+      m.innerHTML = `<div class="modal-card pc-card" role="dialog" aria-modal="true" aria-label="${esc(name)}" style="--pc:${colorCss(p2.color)}">
+        <button class="link pc-x" data-x aria-label="Close">✕</button>
+        <div class="pc-banner"></div>
+        <div class="pc-av">${petBadge(me ? p2 : who, 'xl')}<i class="fc-on" hidden></i></div>
+        <h2 class="pc-name">${esc(name)}</h2>
+        ${tn ? `<p class="pc-title">${esc(tn)}</p>` : ''}
+        <div class="pc-stats"><span><b>${stats.level}</b>Level</span><span><b>${rankOf(stats.wins)}</b>Rank</span><span><b>${stats.streak}</b>Streak</span><span><b>${stats.wins}</b>Wins</span></div>
+        ${rec ? `<p class="fc-rec pc-rec">${rec}</p>` : ''}
+        <div class="pc-body">${me ? `
+          <div class="pc-acts">
+            <a class="pc-act" href="#profile" data-go="pet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg><span>Customise</span></a>
+            <a class="pc-act" href="#progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Progress</span></a>
+            <a class="pc-act" href="#profile" data-go="friends"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg><span>Friends</span></a>
+            <button class="pc-act" data-menu><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg><span>Settings</span></button>
+          </div>
+          <p class="pc-label">Title</p>
+          <div class="pc-titles">${TITLES.map(t => { const lock = titleLock(t, stats); return `<button class="pc-t${p2.title === t[0] ? ' on' : ''}${lock ? ' locked' : ''}" data-t="${t[0]}"${lock ? ` title="${esc(lock)}"` : ''}><span>${esc(t[1])}</span>${lock ? `<em>${esc(lock)}</em>` : ''}</button>`; }).join('')}</div>`
+        : `<button class="duel-btn big" id="pc-duel"${$('view-duel') && !$('view-duel').hidden ? ' hidden' : ''}>${fireHTML(9)}<span>1v1</span></button>
+          <p class="fc-prize"><span>Win <b>+50 XP</b></span>${state.battles && !state.battles.today ? '<span>First battle today <b>+100 XP</b></span>' : ''}</p>
+          <p class="fc-state small muted"></p>`}</div></div>`;
+      wire();
+    };
+    let watch = null;
+    const close = () => { m.classList.add('out'); setTimeout(() => m.remove(), 180); if (watch) { try { sb.removeChannel(watch); } catch {} } };
+    const wire = () => {
+      m.querySelectorAll('[data-go]').forEach(a => a.onclick = () => { pfTab = a.dataset.go; close(); if (location.hash === '#profile') renderProfile(); });
+      m.querySelectorAll('a.pc-act:not([data-go])').forEach(a => a.onclick = () => close());
+      const mb = m.querySelector('[data-menu]'); if (mb) mb.onclick = (ev) => { ev.stopPropagation(); close(); const mm = $('account-menu'); mm.hidden = false; $('account-btn').setAttribute('aria-expanded', true); };
+      m.querySelectorAll('.pc-t').forEach(b => b.onclick = async () => {
+        if (b.classList.contains('locked')) { fx().sfx?.bad?.(); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); return toast(`Unlocks at ${esc(b.title)}.`); }
+        const k = b.dataset.t, cur = myProfile().title;
+        await saveProfile({ title: cur === k ? null : k }); fx().sfx?.good?.(2); draw();
+      });
+      const d = m.querySelector('#pc-duel'); if (d) d.onclick = () => duelPickTopic(who, m.querySelector('.pc-body'), close);
+    };
+    m.onclick = (ev) => { if (ev.target === m || ev.target.closest('[data-x]')) close(); };
+    draw();
+    document.body.appendChild(m); fx().sfx?.whoosh?.();
+    if (!me) {   // are they on Trialbank right now?
+      watch = sb.channel(`inbox:${who.friend_id}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
+      const online = () => {
+        const on = !!watch.presenceState?.()?.[who.friend_id];
+        const dot = m.querySelector('.fc-on'); if (dot) dot.hidden = !on;
+        const st2 = m.querySelector('.fc-state'); if (st2) st2.textContent = on ? 'Online now' : "Offline: they'll get the link to join";
+      };
+      watch.on('presence', { event: 'sync' }, online).subscribe((x) => { if (x === 'SUBSCRIBED') watch.track({ w: 1 }); });
+    }
+  }
+  // any face opens that person's card: friend chips, your own chip, the top-right picture, the battle screen
+  document.addEventListener('click', (ev) => {
+    const t = ev.target;
+    if (t.closest('.fr.me') || t.closest('#duel-me .dp-av') || t.closest('.ds-p.me .ds-av, .ds-p.me .dp-av')) { ev.preventDefault(); return openPlayer('me'); }
+    if (t.closest('#duel-them .dp-av') || t.closest('.ds-p.them .ds-av, .ds-p.them .dp-av')) { const f = state.friends.find(x => x.friend_id === duel.themId); if (f) openPlayer(f); }
+  });
+  function openFriendCard(f) { return openPlayer(f); }
+  window.__openPlayer = openPlayer;
   async function duelPickTopic(f, box, close) {
     let subj = state.subject, pick = new Set(), n = 5, stakes = '';
     const subs = (mySubjects() || []).filter(x => C.subjects[x]);
@@ -6154,7 +6213,7 @@ void main() {
   function duelCard(p, label, extra = '') {
     if (!p) return `<div class="dp-av wait"><span></span><span></span></div><b class="dp-name">${esc(duel.invitee?.name || 'Your friend')}</b><span class="dp-sub">${duel.declined ? 'Not right now' : duel.invitee ? 'Challenge sent' : 'Waiting…'}</span>`;
     const pr = p === duel.me ? myProf() : p.prof;
-    return `<div class="dp-av${p.prof?.pet || (p === duel.me && pr.pet) ? ' has-pet' : ''}${p !== duel.me && p.here === false ? ' away' : ''}">${avatar(p === duel.me ? { ...p, prof: pr } : p, 'lg')}</div><b class="dp-name">${esc(p.name)}</b>${pr ? `<span class="dp-rank">${rankOf(pr.wins || 0)} · Lv ${pr.level || 1}</span>` : ''}<span class="dp-sub">${label}</span>${extra}`;
+    return `<div class="dp-av${p.prof?.pet || (p === duel.me && pr.pet) ? ' has-pet' : ''}${p !== duel.me && p.here === false ? ' away' : ''}">${avatar(p === duel.me ? { ...p, prof: pr } : p, 'lg')}</div><b class="dp-name">${esc(p.name)}</b>${pr ? `<span class="dp-rank">${titleName(pr.title) ? `${esc(titleName(pr.title))} · ` : ''}${rankOf(pr.wins || 0)} · Lv ${pr.level || 1}</span>` : ''}<span class="dp-sub">${label}</span>${extra}`;
   }
   function duelDraw() {
     if (!$('view-duel') || !duel.code) return;
@@ -6164,6 +6223,7 @@ void main() {
     if (key && arena.dataset.k === key) return;   // nothing new: don't replay the results
     arena.dataset.k = key;
     $('duel-title').textContent = duel.title || '…';
+    $('duel-me').style.setProperty('--pc', colorCss(myProf().color)); $('duel-them').style.setProperty('--pc', th?.prof ? colorCss(th.prof.color) : 'transparent');   // each side in its own banner colour
     arena.classList.remove('win', 'lose', 'draw', 'lobby', 'race');
     bd.innerHTML = '';
     if (duel.phase === 'done') {
