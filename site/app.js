@@ -5826,29 +5826,29 @@ void main() {
     const stats = me ? { level: state.lvl?.level || 1, wins: battleWins(), streak: liveStreak(st), best: st.best || 0, pro: state.release?.level === 'pro' || adminOn() }
       : { level: int(who.level) || 1, wins: int(who.wins), streak: int(who.streak), best: int(who.best) };
     const m = mk('div', 'modal pc-modal');
+    let titlesOpen = false;
     const draw = () => {
       const p2 = me ? myProfile() : who, tn = titleName(p2.title);
       const rec = me ? '' : recLine(who.friend_id, who.name);
+      const statLine = [`Level ${stats.level}`, rankOf(stats.wins), `${stats.streak} day streak`, `${stats.wins} win${stats.wins === 1 ? '' : 's'}`].map(x => `<span>${esc(x)}</span>`).join('');
       m.innerHTML = `<div class="modal-card pc-card" role="dialog" aria-modal="true" aria-label="${esc(name)}" style="--pc:${colorCss(p2.color)}">
-        <button class="link pc-x" data-x aria-label="Close">✕</button>
-        <div class="pc-banner"></div>
-        <div class="pc-av">${petBadge(me ? p2 : who, 'xl')}<i class="fc-on" hidden></i></div>
-        <h2 class="pc-name">${esc(name)}</h2>
-        ${tn ? `<p class="pc-title">${esc(tn)}</p>` : ''}
-        <div class="pc-stats"><span><b>${stats.level}</b>Level</span><span><b>${rankOf(stats.wins)}</b>Rank</span><span><b>${stats.streak}</b>Streak</span><span><b>${stats.wins}</b>Wins</span></div>
-        ${rec ? `<p class="fc-rec pc-rec">${rec}</p>` : ''}
-        <div class="pc-body">${me ? `
-          <div class="pc-acts">
-            <a class="pc-act" href="#profile" data-go="pet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg><span>Customise</span></a>
-            <a class="pc-act" href="#progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Progress</span></a>
-            <a class="pc-act" href="#profile" data-go="friends"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5.5 5.5 0 0 1 3.5 6"/></svg><span>Friends</span></a>
-            <button class="pc-act" data-menu><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg><span>Settings</span></button>
-          </div>
-          <p class="pc-label">Title</p>
-          <div class="pc-titles">${TITLES.map(t => { const lock = titleLock(t, stats); return `<button class="pc-t${p2.title === t[0] ? ' on' : ''}${lock ? ' locked' : ''}" data-t="${t[0]}"${lock ? ` title="${esc(lock)}"` : ''}><span>${esc(t[1])}</span>${lock ? `<em>${esc(lock)}</em>` : ''}</button>`; }).join('')}</div>`
-        : `<button class="duel-btn big" id="pc-duel"${$('view-duel') && !$('view-duel').hidden ? ' hidden' : ''}>${fireHTML(9)}<span>1v1</span></button>
-          <p class="fc-prize"><span>Win <b>+50 XP</b></span>${state.battles && !state.battles.today ? '<span>First battle today <b>+100 XP</b></span>' : ''}</p>
-          <p class="fc-state small muted"></p>`}</div></div>`;
+        <div class="pc-banner">${me ? '<button class="pc-ic" data-menu aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>' : ''}<button class="pc-ic" data-x aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+        <div class="pc-head"><div class="pc-av">${petBadge(me ? p2 : who, 'xl')}<i class="fc-on" hidden></i></div></div>
+        <div class="pc-main">
+          <h2 class="pc-name">${esc(name)}${tn ? `<span class="pc-title">${esc(tn)}</span>` : ''}</h2>
+          <p class="pc-line">${statLine}</p>
+          ${rec ? `<p class="pc-rec">${rec}</p>` : ''}
+          <div class="pc-body">${me ? `
+            <div class="pc-acts">
+              <a class="pc-act" href="#profile" data-go="pet">Customise</a>
+              <a class="pc-act" href="#progress">Progress</a>
+              <a class="pc-act" href="#profile" data-go="friends">Friends</a>
+            </div>
+            <button class="pc-tbtn" data-tt aria-expanded="${!!titlesOpen}"><span>Title</span><b>${esc(tn || 'None')}</b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="pc-titles"${titlesOpen ? '' : ' hidden'}>${TITLES.map(t => { const lock = titleLock(t, stats); return `<button class="pc-t${p2.title === t[0] ? ' on' : ''}${lock ? ' locked' : ''}" data-t="${t[0]}"${lock ? ` title="${esc(lock)}"` : ''}>${esc(t[1])}${lock ? `<em>${esc(lock)}</em>` : ''}</button>`; }).join('')}</div>`
+          : `<button class="secondary pc-go" id="pc-duel"${$('view-duel') && !$('view-duel').hidden ? ' hidden' : ''}>Challenge to a 1v1</button>
+            <p class="fc-state small muted"></p>`}</div>
+        </div></div>`;
       wire();
     };
     let watch = null;
@@ -5857,10 +5857,11 @@ void main() {
       m.querySelectorAll('[data-go]').forEach(a => a.onclick = () => { pfTab = a.dataset.go; close(); if (location.hash === '#profile') renderProfile(); });
       m.querySelectorAll('a.pc-act:not([data-go])').forEach(a => a.onclick = () => close());
       const mb = m.querySelector('[data-menu]'); if (mb) mb.onclick = (ev) => { ev.stopPropagation(); close(); const mm = $('account-menu'); mm.hidden = false; $('account-btn').setAttribute('aria-expanded', true); };
+      const tt = m.querySelector('[data-tt]'); if (tt) tt.onclick = () => { titlesOpen = !titlesOpen; draw(); };
       m.querySelectorAll('.pc-t').forEach(b => b.onclick = async () => {
         if (b.classList.contains('locked')) { fx().sfx?.bad?.(); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); return toast(`Unlocks at ${esc(b.title)}.`); }
         const k = b.dataset.t, cur = myProfile().title;
-        await saveProfile({ title: cur === k ? null : k }); fx().sfx?.good?.(2); draw();
+        await saveProfile({ title: cur === k ? null : k }); fx().sfx?.good?.(2); titlesOpen = false; draw();
       });
       const d = m.querySelector('#pc-duel'); if (d) d.onclick = () => duelPickTopic(who, m.querySelector('.pc-body'), close);
     };

@@ -2950,36 +2950,41 @@ canvas.fire.nogl { background: radial-gradient(60% 70% at 50% 100%, rgba(255,170
 .view-as-row { display: flex !important; align-items: center; justify-content: space-between; gap: 10px; }
 .view-as-row select { width: auto; margin: 0; }
 
-/* ---------- player card: tap any face ---------- */
-.pc-modal .pc-card { position: relative; width: min(420px, calc(100vw - 24px)); padding: 0 0 22px; overflow: hidden; text-align: center; border-radius: 28px; }
-.pc-banner { height: 112px; background: var(--pc, var(--biro)); position: relative; }
-.pc-banner::after { content: ''; position: absolute; inset: 0; background: radial-gradient(120% 140% at 85% -20%, rgba(255,255,255,.35), transparent 55%), linear-gradient(180deg, transparent 55%, rgba(0,0,0,.12)); }
-.pc-x { position: absolute; top: 12px; right: 14px; z-index: 2; color: #fff !important; font-size: 1.1rem; text-shadow: 0 1px 3px rgba(0,0,0,.3); }
-.pc-av { position: relative; width: 116px; height: 116px; margin: -62px auto 0; border-radius: 50%; background: var(--paper); padding: 6px; box-shadow: 0 8px 22px rgba(20,24,40,.18); display: grid; place-items: center; }
-.pc-av > * { max-width: 100%; }
-.pc-av .fc-on { position: absolute; right: 10px; bottom: 10px; width: 18px; height: 18px; border-radius: 50%; background: var(--good); border: 3px solid var(--paper); }
-.pc-name { margin: 10px 0 0; font-size: 1.7rem; line-height: 1.1; }
-.pc-title { display: inline-block; margin: 6px 0 0; padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: .85rem; color: #fff; background: var(--pc, var(--biro)); }
-.pc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 16px 18px 0; }
-.pc-stats span { display: flex; flex-direction: column; gap: 1px; padding: 10px 4px; border-radius: 14px; background: var(--soft); font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-.pc-stats b { font-family: var(--display); font-size: 1.15rem; color: var(--ink); text-transform: none; letter-spacing: 0; }
-.pc-rec { margin: 12px 18px 0; }
-.pc-body { margin: 16px 18px 0; }
-.pc-acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.pc-act { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px; border-radius: 16px; border: 2px solid var(--rule); background: var(--paper); color: var(--ink) !important; font-weight: 800; font-size: .82rem; text-decoration: none !important; box-shadow: 0 2px 0 var(--rule); }
-.pc-act:hover { border-color: var(--biro); }
-.pc-act svg { width: 24px; height: 24px; fill: none; stroke: var(--biro); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.pc-label { margin: 18px 0 8px; text-align: left; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.pc-titles { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-start; max-height: 168px; overflow-y: auto; }
-.pc-t { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 2px solid var(--rule); background: var(--paper); font-weight: 800; font-size: .85rem; box-shadow: none; min-height: 0; }
+/* ---------- player card: tap any face (a calm popout: banner, face on its edge, name, one line of stats) ---------- */
+.pc-modal .pc-card { position: relative; width: min(380px, calc(100vw - 24px)); padding: 0; overflow: hidden; text-align: left; border-radius: 22px; }
+.pc-banner { position: relative; height: 92px; background: var(--pc, var(--biro)); display: flex; justify-content: flex-end; gap: 6px; padding: 10px; }
+.pc-ic { width: 32px; height: 32px; min-height: 0; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,.22); box-shadow: none; color: #fff; }
+.pc-ic:hover { background: rgba(0,0,0,.32); }
+.pc-ic svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.pc-head { padding: 0 20px; height: 40px; }
+.pc-av { position: relative; top: -48px; width: 88px; height: 88px; border-radius: 50%; background: var(--paper); padding: 5px; display: grid; place-items: center; overflow: visible; }
+.pc-av > :not(.fc-on) { width: 78px !important; height: 78px !important; font-size: 2rem; }
+.pc-av img { width: 100%; height: 100%; object-fit: cover; }
+.pc-av .fc-on { position: absolute; right: 4px; bottom: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--good); border: 3px solid var(--paper); }
+.pc-main { padding: 6px 20px 20px; }
+.pc-name { margin: 0; font-size: 1.45rem; line-height: 1.2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pc-title { font-family: var(--font); font-size: .75rem; font-weight: 800; padding: 3px 9px; border-radius: 999px; color: var(--pc, var(--biro)); background: color-mix(in srgb, var(--pc, var(--biro)) 13%, transparent); }
+.pc-line { margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 4px 0; color: var(--muted); font-size: .88rem; font-weight: 700; }
+.pc-line span + span::before { content: '·'; margin: 0 7px; opacity: .6; }
+.pc-rec { margin: 10px 0 0; font-size: .92rem; }
+.pc-body { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.pc-acts { display: flex; gap: 6px; }
+.pc-act { flex: 1; text-align: center; padding: 9px 6px; border-radius: 12px; background: var(--soft); color: var(--ink) !important; font-weight: 800; font-size: .88rem; text-decoration: none !important; }
+.pc-act:hover { background: color-mix(in srgb, var(--pc, var(--biro)) 12%, var(--soft)); }
+.pc-tbtn { margin-top: 8px; width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 0; border-radius: 12px; background: transparent; box-shadow: none; min-height: 0; font-weight: 700; color: var(--muted); }
+.pc-tbtn:hover { background: var(--soft); }
+.pc-tbtn b { margin-left: auto; color: var(--ink); }
+.pc-tbtn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+.pc-tbtn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.pc-titles { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 2px 2px; max-height: 150px; overflow-y: auto; }
+.pc-titles[hidden] { display: none; }
+.pc-t { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--rule); background: var(--paper); font-weight: 700; font-size: .82rem; box-shadow: none; min-height: 0; }
 .pc-t.on { background: var(--pc, var(--biro)); border-color: transparent; color: #fff; }
-.pc-t.locked { color: var(--muted); background: var(--soft); border-style: dashed; }
-.pc-t em { font-style: normal; font-weight: 700; font-size: .72rem; opacity: .8; }
-.pc-body .duel-btn { width: 100%; }
+.pc-t.locked { color: var(--muted); background: transparent; border-style: dashed; }
+.pc-t em { font-style: normal; font-weight: 600; font-size: .7rem; opacity: .75; }
+.pc-go { width: 100%; }
+.pc-body .fc-state { margin: 8px 0 0; text-align: center; }
+.pc-body .fc-subs, .pc-body .fc-find, .pc-body .fc-topics, .pc-body .fc-stakes, .pc-body .fc-go { text-align: left; }
 #duel-me, #duel-them { background-image: linear-gradient(180deg, color-mix(in srgb, var(--pc, transparent) 45%, transparent), transparent 70%); }
 #duel-me .dp-av, #duel-them .dp-av, .fr.me { cursor: pointer; }
 .avatar { cursor: pointer; }
-.pc-av { width: 120px; height: 120px; overflow: hidden; }
-.pc-av > :not(.fc-on) { width: 108px !important; height: 108px !important; font-size: 2.6rem; }
-.pc-av img { width: 100%; height: 100%; object-fit: cover; }
-.pc-name { margin-top: 12px; }
