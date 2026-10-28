@@ -5060,6 +5060,7 @@
   }
   async function tuSend(text) {
     if (tu.busy) return;
+    let study = null;
     text = (text || '').trim();
     if (text && /\b20[0-3]\d\b/.test(text)) {   // they named a question: switch to it
       const f = await tuFind(text, tuSubject()).catch(() => null);
@@ -5083,7 +5084,7 @@
         tuDraw();
       }
       const { data, error } = await sb.functions.invoke('tutor', { body: {
-        subject: tu.subject || tuSubject(), mode: tu.mode, question_id: tu.q?.id || null, chunks: tu.chunks,
+        subject: tu.subject || tuSubject(), mode: tu.mode, question_id: tu.q?.id || null, chunks: tu.chunks, syllabus: tuSyllabus(),
         messages: tu.msgs.filter(m => !m.error && !m.greet && (m.role === 'student' || m.role === 'tutor' || m.role === 'result')).map(m => m.role === 'result'
           ? { role: 'student', text: `(Auto-mark result for ${m.rec.title}: ${m.rec.results.map(r => `${r.label} ${r.awarded}/${r.out_of}${r.feedback ? ` (${r.feedback})` : ''}`).join('; ')})`.slice(0, 2000), images: [] }
           : { role: m.role, text: m.text || '', images: m.images || [] }),
@@ -5096,11 +5097,33 @@
       if (data.full_paper && tu.msgs.some(m => m.images?.length)) tu.msgs.push({ role: 'offer' });
       if (data.flagged && !tu.flagged) { tu.flagged = true; tu.msgs.push({ sys: true, text: 'The tutor flagged this question so it gets fixed.' }); }
       if (data.done && !tu.done) await tuFinish(data);
+      if (data.study) study = data.study;
     } catch (err) {
       tu.msgs.push({ role: 'tutor', error: true, text: err.message || String(err), buy: !!err.out });
     } finally {
       tu.busy = false; tuDraw(); tuSave(); drawTuRecent();
     }
+    if (study) await tuStudy(study);
+  }
+  // what the tutor needs to turn "we're up to geometric progressions" into a class position: each subject's topics in teaching order
+  function tuSyllabus() {
+    const subs = tuSubjects().filter(sj => !mySubjects() || mySubjects().includes(sj) || sj === tuSubject());
+    return Object.fromEntries(subs.map(sj => [sj, { topics: (TOPIC_GROUPS[sj] || []).flatMap(([, ts]) => ts), steps: STEPS[sj] || {}, at: classPos(sj), step: classStep(sj) }]));
+  }
+  // the tutor heard what they want to study: save where the class is up to, then start on a question that only uses that much
+  async function tuStudy({ subject: subj, topic, step }) {
+    if (!tuSubjects().includes(subj)) return;
+    const order = (TOPIC_GROUPS[subj] || []).flatMap(([, ts]) => ts), at = order.indexOf(topic);
+    if (at < 0) return;
+    if (state.subject !== subj) { state.subject = subj; state.topics = new Set(); try { localStorage.setItem('tb_subject', subj); } catch {} drawSubject(); }
+    await saveSkipped(new Set(order.slice(at + 1)), subj);
+    await saveClassPos(topic, step || null, subj);
+    const steps = topicSteps(topic, subj), si = steps && step ? steps.findIndex(([id]) => id === step) : -1;
+    const where = `${C.subjects[subj] || subj} · up to ${si >= 0 ? steps[si][1].split(':')[0].toLowerCase() : topicName(topic)}`;
+    tu.topic = topic; tu.focus = null; if (tu.mode === 'check' || tu.mode === 'coach') { tu.mode = 'quiz'; lsSet('tb_tu_mode', 'quiz'); drawTuModes(); }
+    const said = tu.msgs.slice(-2).filter(m => m.role === 'student' || m.role === 'tutor').map(m => ({ ...m, greet: true }));   // kept on screen, not re-sent
+    await tuStart(false);
+    if (tu.q) { tu.msgs.unshift(...said, { sys: true, text: where }); tuDraw(); tuSave(); }
   }
   async function tuFinish(d) {
     if (d.next_level === 'harder') tu.level = Math.min(3, tu.level + 1);
