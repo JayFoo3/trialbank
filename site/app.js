@@ -5503,107 +5503,142 @@
   const cleanStakes = (v) => String(v || '').replace(/[<>]/g, '').trim().slice(0, 40);
   const pipsOk = (v) => String(v || '').replace(/[^cpws-]/g, '').slice(0, 20);
   const clock = (ms) => { const s2 = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s2 / 60)}:${String(s2 % 60).padStart(2, '0')}`; };
-  // real-looking fire: a small heat simulation (hot air rising, cooling and drifting at random, like the classic demo-scene
-  // fire) drawn at a quarter size and smoothed up, so it moves in tongues. Every canvas.fire on the page lights itself;
-  // data-heat sets how fierce (and tall) it burns.
+  // Fire: one shared WebGL shader draws every canvas.fire on the page. Rising, domain-warped noise makes the flame
+  // tongues, a blackbody colour ramp makes them read as fire (white-yellow core, orange body, red tips that tear off),
+  // and a soft halo around them is the glow. data-heat sets how tall and fierce it burns; .mini is a single flame.
   const fireHTML = (n = 11, cls = '') => `<canvas class="fire${cls ? ' ' + cls : ''}" data-heat="${n}" aria-hidden="true"></canvas>`;
-  const FIRE_RGBA = (() => {   // heat 0..255 -> colour: clear, deep red, orange, yellow, white-hot
-    const out = new Uint8ClampedArray(256 * 4);
-    const stops = [[0, [0, 0, 0, 0]], [.1, [70, 6, 2, 0]], [.2, [150, 22, 6, 110]], [.34, [215, 60, 10, 210]], [.5, [245, 112, 20, 250]], [.68, [255, 165, 40, 255]], [.84, [255, 218, 110, 255]], [1, [255, 250, 220, 255]]];
-    for (let h = 0; h < 256; h++) {
-      const t = h / 255; let k = 0; while (k < stops.length - 2 && t > stops[k + 1][0]) k++;
-      const [t0, c0] = stops[k], [t1, c1] = stops[k + 1], u = (t - t0) / (t1 - t0 || 1);
-      for (let c = 0; c < 4; c++) out[h * 4 + c] = c0[c] + (c1[c] - c0[c]) * u;
+  const FIRE_FRAG = `
+precision highp float;
+uniform vec2 uRes; uniform float uTime, uHeat, uSeed, uMini, uEdge;
+vec2 hash(vec2 p) { p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return -1.0 + 2.0 * fract(sin(p) * 43758.5453); }
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(dot(hash(i), f), dot(hash(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0)), u.x),
+             mix(dot(hash(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0)), dot(hash(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0)), u.x), u.y);
+}
+float fbm(vec2 p) {
+  float v = 0.0, a = 0.5; mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
+  for (int i = 0; i < 5; i++) { v += a * noise(p); p = m * p; a *= 0.5; }
+  return v;
+}
+vec3 ramp(float T) {
+  vec3 c = mix(vec3(0.38, 0.02, 0.0), vec3(0.85, 0.14, 0.01), smoothstep(0.0, 0.2, T));
+  c = mix(c, vec3(1.0, 0.36, 0.03), smoothstep(0.15, 0.42, T));
+  c = mix(c, vec3(1.0, 0.62, 0.1), smoothstep(0.38, 0.72, T));
+  c = mix(c, vec3(1.0, 0.84, 0.36), smoothstep(0.7, 1.1, T));
+  c = mix(c, vec3(1.0, 0.97, 0.82), smoothstep(1.15, 1.6, T));
+  return c;
+}
+void main() {
+  float H = uRes.y, aspect = uRes.x / uRes.y, t = uTime;
+  vec2 p = gl_FragCoord.xy / H;                       // y: 0 at the bottom, 1 at the top; x in flame heights
+  float y = p.y;
+  float reach = 0.46 + 0.16 * uHeat;                   // how far up the flames reach, on average
+  float flick = 0.94 + 0.09 * noise(vec2(t * 2.1, uSeed));
+  float T, lum;
+  if (uMini > 0.5) {
+    float L = reach * 1.45;
+    vec2 q = vec2((p.x - aspect * 0.5) * 3.0 + uSeed, y * 1.6 - t * 2.2);
+    float n = fbm(q + vec2(fbm(q * 0.8 + vec2(0.0, -t * 0.6)), 0.0));
+    float yn = y / (L * (1.0 + n * 0.35));
+    float cx = (p.x - aspect * 0.5) - n * 0.3 * pow(max(yn, 0.0), 1.4);
+    float hw = 0.34 * L * sqrt(clamp(yn * 3.2 + 0.08, 0.0, 1.0)) * pow(max(0.0, 1.0 - yn), 0.85) + 0.004;
+    float k = cx / hw;
+    T = (1.0 - k * k) * (1.45 - yn * 1.1) + n * 0.25;
+    lum = 1.0;
+  } else {
+    vec2 q = vec2(p.x * 3.4 + uSeed, y * 0.85 - t * 1.6);
+    vec2 w = vec2(fbm(q * 0.55 + vec2(0.0, -t * 0.3)), fbm(q * 0.55 + vec2(5.2, 1.3 - t * 0.4)));
+    float n = fbm(q + w * 1.1);
+    float fine = noise(vec2(p.x * 10.0 + uSeed, y * 4.0 - t * 4.2));
+    float streak = fbm(vec2(p.x * 6.0 + uSeed * 2.0, y * 1.2 - t * 2.4) + w * 0.8);
+    T = 1.0 - y / reach + (n * 2.1 + fine * 0.2) * (0.2 + y * 1.35) + smoothstep(0.2, 0.0, y) * (0.15 + 0.4 * clamp(0.5 + streak * 2.0, 0.0, 1.0));
+    if (uEdge > 0.5) T -= (1.0 - smoothstep(0.0, 0.5, min(p.x, aspect - p.x))) * 0.6;
+    lum = 0.62 + 0.85 * clamp(0.5 + streak * 1.8, 0.0, 1.0);
+  }
+  T *= flick;
+  T -= smoothstep(0.62, 1.0, y) * 0.9;              // die away before the top of the canvas, never a hard edge
+  float body = smoothstep(0.0, 0.08, T);
+  float halo = smoothstep(-0.45, 0.05, T) * (1.0 - body) * 0.22 * (1.0 - min(y, 1.0) * 0.8);
+  vec3 col = min(ramp(T * lum) * mix(0.85, 1.1, lum - 0.7), 1.0) * body + vec3(1.0, 0.3, 0.04) * halo;
+  float a = clamp(body * (0.6 + 0.4 * smoothstep(0.08, 0.5, T)) + halo, 0.0, 1.0);
+  gl_FragColor = vec4(col, a);
+}`;
+  const Fire = (() => {
+    let gl = null, glc = null, prog = null, U = {}, tried = false;
+    const lit = new Set();
+    function init() {
+      tried = true;
+      try {
+        glc = document.createElement('canvas'); glc.width = 64; glc.height = 64;
+        gl = glc.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false, preserveDrawingBuffer: true });
+        if (!gl) return;
+        const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+        prog = gl.createProgram();
+        gl.attachShader(prog, sh(gl.VERTEX_SHADER, 'attribute vec2 a; void main() { gl_Position = vec4(a, 0.0, 1.0); }'));
+        gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FIRE_FRAG));
+        gl.linkProgram(prog); if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+        gl.useProgram(prog);
+        const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+        const a = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
+        ['uRes', 'uTime', 'uHeat', 'uSeed', 'uMini', 'uEdge'].forEach(k => { U[k] = gl.getUniformLocation(prog, k); });
+        glc.addEventListener('webglcontextlost', (e) => { e.preventDefault(); gl = null; });
+      } catch (e) { console.warn('fire', e); gl = null; }
     }
-    return out;
-  })();
-  function lightFire(cv) {
-    if (cv._lit || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    cv._lit = true;
-    const ctx = cv.getContext('2d'), mini = cv.classList.contains('mini');
-    const fierceNow = () => Math.min(2, (Number(cv.dataset.heat) || 10) / 12);
-    const off = document.createElement('canvas'), octx = off.getContext('2d');
-    const glow = document.createElement('canvas'), gctx = glow.getContext('2d');
-    let gw = 0, gh = 0, heat = null, next = null, cool = null, img = null, row = 0, last = performance.now(), acc = 0, W = 0, H = 0;
-    const sparks = [];
-    const CELL = mini ? 2 : 3;
-    // the "cooling map": soft, lumpy noise that scrolls upward with the flames, so tongues break up in natural shapes
-    const coolRow = (y) => {
-      for (let x = 0; x < gw; x++) cool[y * gw + x] = Math.pow(Math.random(), 2.4);
-      for (let pass = 0; pass < 1; pass++) for (let x = 1; x < gw - 1; x++) { const k = y * gw + x; cool[k] = (cool[k - 1] + cool[k] * 2 + cool[k + 1]) / 4; }
-    };
-    const setup = () => {
-      gw = Math.max(8, Math.round(W / CELL)); gh = Math.max(12, Math.round(H / CELL));
-      heat = new Float32Array(gw * gh); next = new Float32Array(gw * gh); cool = new Float32Array(gw * gh);
-      for (let y = 0; y < gh; y++) coolRow(y);
-      for (let pass = 0; pass < 1; pass++) for (let y = 1; y < gh - 1; y++) for (let x = 0; x < gw; x++) { const k = y * gw + x; cool[k] = (cool[k - gw] + cool[k] * 2 + cool[k + gw]) / 4; }
-      off.width = gw; off.height = gh; img = octx.createImageData(gw, gh);
-      glow.width = Math.max(2, gw >> 2); glow.height = Math.max(2, gh >> 2);
-    };
-    const step = (now) => {
-      const fierce = fierceNow(), t = now / 1000;
-      const strength = (mini ? 5.2 : 4.2) / (gh * (.5 + .32 * fierce));   // how fast rising air cools: sets the flame height
-      // fuel along the bottom two rows, flaring unevenly
-      for (let x = 0; x < gw; x++) {
-        const u = x / gw, edge = mini ? Math.min(1, Math.max(0, 1.6 - Math.abs(u - .5) * 3.6)) : Math.min(1, u * 7, (1 - u) * 7);
-        const flare = .7 + .16 * Math.sin(u * 13 + t * 1.9) + .14 * Math.sin(u * 37 - t * 3.1);
-        const v = Math.min(1, flare * edge * (Math.random() < .82 ? .88 + Math.random() * .25 : .35));
-        heat[(gh - 1) * gw + x] = v; heat[(gh - 2) * gw + x] = Math.max(heat[(gh - 2) * gw + x], v * .96);
-      }
-      // each cell becomes the average of the air just below it, minus a little cooling
-      row = (row + 1) % gh; coolRow((row + gh - 1) % gh);
-      const sway = Math.sin(t * .7) * .5;
-      for (let y = 0; y < gh - 2; y++) {
-        const cy = ((y + row) % gh) * gw;
-        for (let x = 0; x < gw; x++) {
-          const xl = x > 0 ? x - 1 : x, xr = x < gw - 1 ? x + 1 : x, b = (y + 1) * gw, b2 = (y + 2) * gw;
-          const xs = sway > .2 ? xl : sway < -.2 ? xr : x;
-          const avg = (heat[b + xl] + heat[b + x] + heat[b + xr] + heat[b2 + xs]) * .25;
-          next[y * gw + x] = Math.max(0, avg - cool[cy + x] * strength);
-        }
-      }
-      for (let k = 0; k < (gh - 2) * gw; k++) heat[k] = next[k];
-      // sparks thrown off the hottest tips
-      if (!mini && sparks.length < W / 14 && Math.random() < .5 * fierce) {
-        const x = Math.floor(Math.random() * gw), y = Math.floor(gh * (.35 + Math.random() * .3));
-        if (heat[y * gw + x] > .45) sparks.push({ x: x * CELL, y: y * CELL, vx: (Math.random() - .5) * .8, vy: -(1.2 + Math.random() * 1.6), life: 1, d: .012 + Math.random() * .02 });
-      }
-    };
-    const draw = () => {
-      const d = img.data;
-      for (let i = 0; i < heat.length; i++) { const k = Math.min(255, Math.round(heat[i] * 255)) * 4, o = i * 4; d[o] = FIRE_RGBA[k]; d[o + 1] = FIRE_RGBA[k + 1]; d[o + 2] = FIRE_RGBA[k + 2]; d[o + 3] = FIRE_RGBA[k + 3]; }
-      octx.putImageData(img, 0, 0);
-      const sx = cv.width / W;
-      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+    function paint(cv, now) {
+      const rect = cv.getBoundingClientRect();
+      if (!rect.width || !rect.height || cv.offsetParent === null) return;
+      if (rect.bottom < -50 || rect.top > innerHeight + 50) return;
+      const dpr = Math.min(2, window.devicePixelRatio || 1), mini = cv.classList.contains('mini');
+      const cw = Math.round(rect.width * dpr), ch = Math.round(rect.height * dpr);
+      if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+      // the shader is soft by nature, so big fires are drawn smaller and scaled up
+      const rs = mini ? Math.min(2, dpr) : Math.min(1, Math.max(.75, 170 / rect.height));
+      const w = Math.max(2, Math.round(rect.width * rs)), h = Math.max(2, Math.round(rect.height * rs));
+      if (glc.width < w || glc.height < h) { glc.width = Math.max(glc.width, w); glc.height = Math.max(glc.height, h); }
+      gl.viewport(0, 0, w, h);
+      gl.uniform2f(U.uRes, w, h);
+      gl.uniform1f(U.uTime, ((now / 1000) + cv._seed * 7) % 900);
+      gl.uniform1f(U.uHeat, Math.min(2, (Number(cv.dataset.heat) || 10) / 12));
+      gl.uniform1f(U.uSeed, cv._seed * 13.7);
+      gl.uniform1f(U.uMini, mini ? 1 : 0);
+      gl.uniform1f(U.uEdge, cv.classList.contains('edge') ? 1 : 0);
+      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      const ctx = cv._ctx || (cv._ctx = cv.getContext('2d'));
+      ctx.clearRect(0, 0, cw, ch);
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(off, 0, 0, cv.width, cv.height);
-      // bloom: a tiny copy blown up is naturally soft, added on top for the glow real fire throws
-      gctx.clearRect(0, 0, glow.width, glow.height); gctx.drawImage(off, 0, 0, glow.width, glow.height);
-      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .55;
-      ctx.drawImage(glow, -cv.width * .03, -cv.height * .08, cv.width * 1.06, cv.height * 1.1);
-      ctx.globalAlpha = 1;
-      for (let i = sparks.length - 1; i >= 0; i--) {
-        const p = sparks[i]; p.x += p.vx + Math.sin(p.y * .08) * .4; p.y += p.vy; p.vy *= .995; p.life -= p.d;
-        if (p.life <= 0 || p.y < -6) { sparks.splice(i, 1); continue; }
-        ctx.fillStyle = `rgba(255,${180 + Math.round(70 * p.life)},${Math.round(120 * p.life)},${p.life})`;
-        ctx.beginPath(); ctx.arc(p.x * sx, p.y * sx, Math.max(.6, 1.6 * p.life) * sx, 0, 6.283); ctx.fill();
+      ctx.drawImage(glc, 0, glc.height - h, w, h, 0, 0, cw, ch);
+      // sparks: bright specks thrown up off the flames, drifting as they cool
+      const sp = cv._sparks || (cv._sparks = []), fierce = Math.min(2, (Number(cv.dataset.heat) || 10) / 12);
+      if (!mini && rect.height > 70 && sp.length < rect.width / 18 && Math.random() < .35 * fierce)
+        sp.push({ x: Math.random() * rect.width, y: rect.height * (.45 + Math.random() * .3), vx: (Math.random() - .5) * .6, vy: -(.9 + Math.random() * 1.4), life: 1, d: .008 + Math.random() * .014, r: .7 + Math.random() * 1.1 });
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = sp.length - 1; i >= 0; i--) {
+        const s = sp[i]; s.x += s.vx + Math.sin(s.y * .05 + i) * .35; s.y += s.vy; s.life -= s.d;
+        if (s.life <= 0 || s.y < -4) { sp.splice(i, 1); continue; }
+        ctx.fillStyle = `rgba(255,${150 + Math.round(90 * s.life)},${Math.round(70 * s.life)},${Math.min(1, s.life * 1.4)})`;
+        ctx.beginPath(); ctx.arc(s.x * dpr, s.y * dpr, s.r * dpr * (.5 + .5 * s.life), 0, 6.283); ctx.fill();
       }
       ctx.globalCompositeOperation = 'source-over';
-    };
-    const frame = (now) => {
-      if (!cv.isConnected) return;
-      const rect = cv.getBoundingClientRect();
-      if (!rect.width || !rect.height || cv.offsetParent === null) { last = now; requestAnimationFrame(frame); return; }
-      const dpr = Math.min(1.5, window.devicePixelRatio || 1);
-      if (Math.round(rect.width * dpr) !== cv.width || Math.round(rect.height * dpr) !== cv.height) { cv.width = Math.round(rect.width * dpr); cv.height = Math.round(rect.height * dpr); }
-      if (rect.width !== W || rect.height !== H || !heat) { W = rect.width; H = rect.height; setup(); for (let k = 0; k < gh * 1.5; k++) step(now); }
-      acc += Math.min(.1, (now - last) / 1000); last = now;
-      let n = 0; while (acc >= 1 / 45 && n < 3) { step(now); acc -= 1 / 45; n++; }   // about 45 steps a second, whatever the screen's rate
-      if (n) draw();
-      requestAnimationFrame(frame);
-    };
-    requestAnimationFrame(frame);
-  }
+    }
+    let running = false;
+    function loop(now) {
+      for (const cv of lit) { if (!cv.isConnected) { lit.delete(cv); continue; } if (gl) paint(cv, now); }
+      if (lit.size && gl) requestAnimationFrame(loop); else running = false;
+    }
+    function light(cv) {
+      if (cv._lit) return; cv._lit = true; cv._seed = Math.random();
+      if (!tried) init();
+      if (!gl) { cv.classList.add('nogl'); return; }
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) { requestAnimationFrame((n) => paint(cv, n)); return; }
+      lit.add(cv);
+      if (!running) { running = true; requestAnimationFrame(loop); }
+    }
+    return { light };
+  })();
+  const lightFire = (cv) => Fire.light(cv);
   new MutationObserver((ms) => ms.forEach(m => m.addedNodes.forEach(n => {
     if (n.nodeType !== 1) return;
     if (n.matches?.('canvas.fire')) lightFire(n); else n.querySelectorAll?.('canvas.fire').forEach(lightFire);
