@@ -4319,11 +4319,14 @@
       // subjects that have at least one paper this student can open
       const { data: ps } = await sb.from('papers').select('subject');
       const count = {}; (ps || []).forEach(p => { if (C.subjects[p.subject]) count[p.subject] = (count[p.subject] || 0) + 1; });
+      // only subjects launched in the last two weeks get a popup (config.announce: { Econ: '2026-11-02' })
+      const ann = Array.isArray(C.announce) ? {} : (C.announce || {});
+      const isNew = (x) => ann[x] && Date.now() - Date.parse(ann[x]) < 14 * 864e5 && Date.now() >= Date.parse(ann[x]);
       const subs = Object.keys(count).sort();
       if (subs.length) {
         // first visit: remember what's there now, except subjects still being announced (config.announce)
-        const known = seen.subjects || subs.filter(x => !(C.announce || []).includes(x));
-        const fresh = subs.filter(x => !known.includes(x));
+        const known = seen.subjects || subs.filter(x => !isNew(x));
+        const fresh = subs.filter(x => !known.includes(x) && isNew(x));
         for (const x of fresh) {
           const mine = mySubjects() || [];
           const have = mine.includes(x);
