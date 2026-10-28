@@ -299,6 +299,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <button class="primary wide" id="check-online" hidden>Check answer</button>
 
     <div id="short-controls" hidden>
+      <button class="primary wide am-go" id="auto-mark">Mark my working</button>
+      <input type="file" id="am-photo" accept="image/*" capture="environment" hidden>
       <button class="secondary wide" id="show-sol">Show solution</button>
       <div id="sol-wrap" hidden>
         

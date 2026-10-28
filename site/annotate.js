@@ -381,5 +381,31 @@
     };
     return btn;
   }
-  window.Annotate = { button, stop, active: () => active };
+  // everything written for this key as one picture (pen only, no highlighter), each part of the page as its own block,
+  // working space last. Works whether or not annotation is switched on. Returns a PNG blob, or null if nothing's written.
+  async function image(key, W = 1100) {
+    const groups = new Map();
+    load(key).s.forEach(st => { if (st.t === 'hl' || !st.p || !st.p.length) return; const k = st.a || '__legacy'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(st); });
+    if (!groups.size) return null;
+    const pad = 24, gap = 18;
+    const bands = [...groups.entries()].sort(([a], [b]) => (a === 'space') - (b === 'space')).map(([, ss]) => {
+      let y0 = Infinity, y1 = -Infinity;
+      ss.forEach(st => { for (let i = 1; i < st.p.length; i += 3) { y0 = Math.min(y0, st.p[i]); y1 = Math.max(y1, st.p[i]); } });
+      return { ss, y0, h: (y1 - y0) * W + pad * 2 };
+    });
+    let x0 = Infinity, x1 = -Infinity;
+    groups.forEach(ss => ss.forEach(st => { for (let i = 0; i < st.p.length; i += 3) { x0 = Math.min(x0, st.p[i]); x1 = Math.max(x1, st.p[i]); } }));
+    const cw = Math.max(200, Math.round((x1 - x0) * W + pad * 2));
+    const ch = Math.min(7000, Math.round(bands.reduce((a, b) => a + b.h, 0) + gap * (bands.length - 1)));
+    const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cw, ch);
+    let y = 0;
+    bands.forEach((b, i) => {
+      if (i) { ctx.fillStyle = '#d9d9d9'; ctx.fillRect(pad, y - gap / 2, cw - pad * 2, 1); }
+      b.ss.forEach(st => drawStroke(ctx, st, W, y + pad - b.y0 * W, pad - x0 * W));
+      y += b.h + gap;
+    });
+    return new Promise(r => c.toBlob(r, 'image/png'));
+  }
+  window.Annotate = { button, stop, image, active: () => active };
 })();

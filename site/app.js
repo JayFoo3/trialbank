@@ -782,7 +782,11 @@
     if (on) { x._v = null; $('q-online').appendChild(Online.render(x, { onChange: v => { x._v = v; } })); }
     if (obj) { $('mcq-controls').hidden = true; $('short-controls').hidden = true; }
     $('check-online').hidden = !obj || !!x.syllabus_note;
-    $('sol-wrap').hidden = true; $('show-sol').hidden = false; $('show-sol').disabled = !x.solutionUrl && !on;
+    $('sol-wrap').hidden = true; $('sol-wrap').classList.remove('marked'); $('show-sol').hidden = false; $('show-sol').disabled = !x.solutionUrl && !on;
+    // written answers: the marker reads what they wrote. In a battle that's the only way to mark, and the solution stays hidden until then
+    const canAuto = x.type === 'short' && !on && !!x.solutionUrl && !x.syllabus_note && !state.preview;
+    $('auto-mark').hidden = !canAuto; $('auto-mark').disabled = false; $('auto-mark').textContent = 'Mark my working';
+    if (s.duel && canAuto) $('show-sol').hidden = true;
     $('show-sol').textContent = x.solutionUrl || on ? 'Show solution' : 'No solution available';
     document.querySelectorAll('#mcq-controls button').forEach(b => { b.className = ''; b.disabled = false; });
     if (x.type === 'short') {
@@ -835,6 +839,37 @@
     const ai = x.answer_source === 'ai' ? ' (This paper has no official key, so this answer was worked out by AI.)' : '';
     verdict(ok === null ? 'No answer key for this one.' : (ok ? 'Correct.' : `Not quite. Answer: ${x.answer}.`) + ai, ok === null ? 'warn' : ok ? 'good' : 'bad');
   });
+  // ---------- auto-mark one written answer from what they wrote on it (or a photo of their working) ----------
+  async function autoMark(photo = null) {
+    const s = state.set, x = s && s.qs[s.i], btn = $('auto-mark');
+    if (!x || btn.disabled || s.results[s.i]) return;
+    let blob = photo ? await shrinkImage(photo, 1600) : await window.Annotate?.image(`tb_ann_${state.user.id}_${s.sid}_${x.id}`).catch(() => null);
+    if (!blob) { $('am-photo').click(); return; }   // nothing written on screen: a photo of their paper working instead
+    const at = s.i, folder = `${state.user.id}/qm-${Date.now().toString(36)}`, paths = [];
+    btn.disabled = true; btn.innerHTML = '<span class="am-spin" aria-hidden="true"></span>Marking…';
+    try {
+      const path = `${folder}/w1.${blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg'}`;
+      const { error: ue } = await sb.storage.from('submissions').upload(path, blob, { contentType: blob.type || 'image/png', upsert: true });
+      if (ue) throw ue;
+      paths.push(path);
+      const chunks = await sliceTallImages([x], folder, () => {}, paths);
+      const { data, error } = await sb.functions.invoke('mark-question', { body: { question_id: x.id, pages: [path], chunks, duel: !!s.duel } });
+      if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
+      if (state.set !== s || s.i !== at) return;   // they moved on while it marked
+      if (!data.found && s.duel) { toast('Nothing to mark yet. Write your working on the question first.'); return; }
+      await record(data.awarded, data.out_of || x.marks || 0, null, $('self-mark'), null, data);
+      $('sol-wrap').classList.add('marked'); $('show-sol').hidden = false; $('show-sol').click();
+    } catch (err) {
+      if (state.set !== s || s.i !== at) return;
+      toast(esc(err.message || 'Could not mark that. Mark it yourself.'));
+      if (s.duel) $('show-sol').hidden = false;   // fall back to marking it yourself
+    } finally {
+      if (paths.length) sb.storage.from('submissions').remove(paths).catch(() => {});
+      if (state.set === s && s.i === at && !s.results[at]) { btn.disabled = false; btn.textContent = 'Mark my working'; }
+    }
+  }
+  $('auto-mark').onclick = () => autoMark();
+  $('am-photo').onchange = (ev) => { const f = ev.target.files[0]; ev.target.value = ''; if (f) autoMark(f); };
   $('show-sol').onclick = () => {
     const x = state.set.qs[state.set.i];
     $('sol-html').innerHTML = ''; $('sol-img').parentElement.hidden = !!x.content;
@@ -857,16 +892,17 @@
     $('verdict').innerHTML = `<span class="vm">${Mascot(mood, '', { still: true })}</span><span>${esc(text)}</span>`;
     $('verdict').className = 'verdict ' + cls; $('verdict').hidden = false;
   }
-  async function record(score, outOf, chosen, group, btn) {
+  async function record(score, outOf, chosen, group, btn, ai = null) {
     if (state.preview) previewFlags.attempted = 1;
     const s = state.set, x = s.qs[s.i];
-    if (group) { group.querySelectorAll('button').forEach(o => { o.disabled = true; }); btn.classList.add('picked'); }
-    s.results[s.i] = { q: x, score, outOf }; keepSet();
+    if (group) { group.querySelectorAll('button').forEach(o => { o.disabled = true; }); btn?.classList.add('picked'); }
+    s.results[s.i] = { q: x, score, outOf, ...(ai ? { lost: ai.lost || [], ai: true } : {}) }; keepSet();
+    $('auto-mark').hidden = true;
     if (window.Juice) { if (outOf && score >= outOf) Juice.reward(outOf); else if (score > 0) Juice.partial(score); else Juice.miss(); }
-    if (x.type === 'short' && !(x.content && Online.objective(x))) verdict(score === outOf ? 'Full marks.' : score === 0 ? 'Mark it, move on. It will come back around.' : `${score}/${outOf}.`, score === outOf ? 'good' : score === 0 ? 'bad' : 'warn');
+    if (x.type === 'short' && !(x.content && Online.objective(x))) verdict(ai ? `${score}/${outOf}. ${ai.feedback || ''}`.trim() : score === outOf ? 'Full marks.' : score === 0 ? 'Mark it, move on. It will come back around.' : `${score}/${outOf}.`, score === outOf ? 'good' : score === 0 ? 'bad' : 'warn');
     $('next').hidden = false; $('skip').hidden = true;
     if (s.duel) duelAnswered(score, outOf);
-    if (x.type === 'short' && score < outOf && !(x.content && Online.objective(x))) showLost(s.results[s.i], outOf - score);
+    if (x.type === 'short' && score < outOf && !ai && !(x.content && Online.objective(x))) showLost(s.results[s.i], outOf - score);
     if (score < outOf) showExplain(x, score, outOf, chosen, s.results[s.i]);
     const { data: row, error } = await sb.from('attempts').insert({ user_id: state.user.id, question_id: x.id, score, out_of: outOf, chosen }).select('id').single();
     if (error) console.warn('attempt not saved', error.message);
@@ -2890,7 +2926,7 @@
   function firstHint(x) {
     const k = x.type === 'mcq' ? 'hint_mcq' : 'hint_short', el = $('set-hint');
     if (flag(k)) { el.hidden = true; return; }
-    el.textContent = x.type === 'mcq' ? 'Tap an answer. You find out straight away.' : 'Do it on paper, check the solution, then give yourself a mark.';
+    el.textContent = x.type === 'mcq' ? 'Tap an answer. You find out straight away.' : 'Write your working on the question (or on paper), then tap Mark my working.';
     el.hidden = false; flag(k, 1);
   }
 
