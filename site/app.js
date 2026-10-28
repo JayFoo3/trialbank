@@ -1197,18 +1197,18 @@
     const others = Object.entries(preds).filter(([s, p]) => s !== subj && p.ready);
     const box = $('hsc-band');
     if (!x || !x.ready) {
-      box.innerHTML = `<p class="hsc-kick">Predicted band · ${esc(name)}</p><h2 class="hsc-big muted">Not enough yet</h2>
+      box.innerHTML = `<p class="hsc-kick">Predicted band · ${esc(shortName(name))}</p><h2 class="hsc-big muted">Not enough yet</h2>
         <p>Answer about <b>${Math.max(1, Math.ceil(x?.need ?? 40))} more marks</b> of questions in ${esc(name)} and your predicted band appears here.</p>
         <button class="primary" id="hsc-daily">Do today's Daily 5</button>`;
       $('hsc-daily').onclick = () => { location.hash = '#home'; };
     } else {
       const range = x.bandLo === x.bandHi ? `Very likely ${x.band}` : `Somewhere from ${x.bandLo} to ${x.bandHi}`;
-      box.innerHTML = `<p class="hsc-kick">Predicted band · ${esc(name)}</p>
+      box.innerHTML = `<p class="hsc-kick">Predicted band · ${esc(shortName(name))}</p>
         <div class="hsc-head"><h2 class="hsc-big">${x.band}</h2>
           <div class="hsc-meta">${pro ? `<b>About ${x.mark}/${outOf}</b> <span class="muted">(${x.lo} to ${x.hi})</span><br>` : ''}<span class="muted small">${range} · from ${x.marks} marks of questions, about ${x.raw}% raw</span></div></div>
         <h3 class="hsc-h3">What's holding you back</h3>
         <div class="hsc-hold ${pro ? '' : 'locked'}">${(pro ? x.holding : [{ topic: 'Topic one', pct: 48, gain: 3.1 }, { topic: 'Topic two', pct: 55, gain: 2.2 }, { topic: 'Topic three', pct: 61, gain: 1.4 }]).map(h => `
-          <div class="hsc-row"><span class="hsc-t">${esc(pro ? topicName(h.topic) : h.topic)}</span><span class="muted small">${h.pct}% right</span><b>+${h.gain.toFixed(1)}%</b>${pro ? `<button class="link small" data-topic="${esc(h.topic)}">Practise</button>` : ''}</div>`).join('') || '<p class="muted small">Nothing stands out: your topics are all close to your average.</p>'}
+          <div class="hsc-row"><span class="hsc-t">${esc(pro ? topicName(h.topic) : h.topic)}</span><span class="muted small hsc-pct">${h.pct}% right</span><b>+${h.gain.toFixed(1)}%</b>${pro ? `<button class="link small" data-topic="${esc(h.topic)}">Practise</button>` : ''}</div>`).join('') || '<p class="muted small">Nothing stands out: your topics are all close to your average.</p>'}
           ${pro ? (x.holding.length ? '<p class="small muted">Lifting each topic to your average raises your raw mark by about this much. <button class="link small" id="hsc-paper">Make me a paper on these</button></p>' : '') : '<div class="hsc-lock"><b>See exactly which topics are costing you marks</b><span>and how much each one is worth.</span><button class="primary" id="hsc-pro">Unlock with Pro</button></div>'}
         </div>
         ${others.length ? `<div class="hsc-others">${others.map(([s, p]) => `<span class="chip">${esc(C.subjects[s])} <b>${p.band}</b></span>`).join('')}</div>` : ''}`;
@@ -1232,7 +1232,7 @@
     const paint = () => {
       const r = HSCX.atar(rows);
       box.innerHTML = `<div class="atar-top"><div><p class="hsc-kick">ATAR estimate</p>
-          <div class="atar-big${r.ok ? '' : ' muted'}">${r.ok ? (r.atar == null ? 'Below 47' : r.atar.toFixed(2)) : '??.??'}</div>
+          <div class="atar-big${r.ok ? '' : ' muted'}">${r.ok ? (r.atar == null ? 'Below 47' : r.atar.toFixed(2)) : '–'}</div>
           <p class="small muted">${r.ok ? `Aggregate ${r.aggregate} of 500 · best 10 units, including 2 of English` : esc(r.why)}</p></div></div>
         <div class="atar-rows">${rows.map((row, i) => { const c = HSCX.SCALING[row.code]; return `
           <div class="atar-row"><select data-i="${i}" data-k="code" aria-label="Course">${opts(row.code)}</select>
@@ -1242,7 +1242,7 @@
         ${rows.some(x => x.code === 'Ext1') && !rows.some(x => x.code === 'Adv' || x.code === 'Ext2') ? '<p class="small atar-hint">Doing Extension 1? Add <b>Mathematics Advanced</b> too: you get a mark in both.</p>' : ''}
         <div class="atar-foot"><button class="secondary" id="atar-add">Add a course</button>
           ${Object.values(preds).some(p => p.ready) ? '<button class="link small" id="atar-fill">Use my predicted marks</button>' : ''}</div>
-        <p class="small muted atar-note">Enter the HSC mark you expect in each course (extension courses out of 50). Scaling from ${esc(HSCX.YEAR)}${rows.some(x => HSCX.SCALING[x.code]?.approx) ? '; Physics, Software Engineering and Music 1 are approximate' : ''}. A guide only: real scaling changes every year.</p>`;
+        <p class="small muted atar-note">${esc(HSCX.YEAR)}${rows.some(x => HSCX.SCALING[x.code]?.approx) ? ' (Physics, Software Engineering and Music 1 approximate)' : ''}. A guide only.</p>`;
       box.querySelectorAll('select[data-k]').forEach(el => el.onchange = () => { rows[+el.dataset.i].code = el.value; rows[+el.dataset.i].auto = false; save(); paint(); });
       box.querySelectorAll('input[data-k]').forEach(el => el.oninput = () => {
         const i = +el.dataset.i; rows[i].mark = el.value === '' ? '' : +el.value; rows[i].auto = false; save();
@@ -3612,7 +3612,7 @@
       c.to > c.from ? `${esc(topicName(c.topic))} up to level ${c.to}` : c.days <= 1 ? `${esc(topicName(c.topic))} comes back tomorrow` : `${esc(topicName(c.topic))} back in ${c.days} days`);
     const extra = items.length ? `<ul class="tbp-list">${items.map(t => `<li>${t}</li>`).join('')}</ul>` : '';
     const box = celebrate({ kind: 'daily', panel: panel({ kicker: "Today's 5 done", big: '0', sub: 'day streak', mood: 'happy', cls: 'streak-n' }),
-      title: `${r.score} / ${r.out_of} today`, body: `Do tomorrow's 5 to make it ${n + 1}.` + (state.friends.length ? `<br><span class="small muted">${friendsDone()}.</span>` : ''), extra, primary: 'See results' });
+      title: `${r.score} of ${r.out_of} marks today`, body: `Do tomorrow's 5 to make it ${n + 1}.` + (state.friends.length ? `<br><span class="small muted">${friendsDone()}.</span>` : ''), extra, primary: 'See results' });
     payoff(box.card, { at: 250, count: n });
     return box;
   }
@@ -4232,7 +4232,11 @@
     const card = m.firstElementChild;
     let done;
     const result = new Promise(res => { done = res; });
-    const close = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 200); document.removeEventListener('keydown', k); done(v); };
+    const close = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 200); document.removeEventListener('keydown', k); removeEventListener('hashchange', nav); done(v); };
+    let here = null;   // leaving the page (back button, a nav link) takes the popup with it; the route it opened on settles first
+    const nav = () => { if (here != null && location.hash !== here) close(null); };
+    setTimeout(() => { here = location.hash; }, 800);
+    addEventListener('hashchange', nav);
     const k = (ev) => { if (ev.key === 'Escape') close(null); };
     m.onclick = (ev) => { if (ev.target === m) close(null); const b = ev.target.closest('button[data-k]'); if (b) close(b.dataset.k); };
     document.addEventListener('keydown', k); document.body.appendChild(m);
@@ -4768,8 +4772,17 @@
       const { data: tc } = await sb.from('topic_counts').select('topic, n, type').eq('subject', subj);
       const skip = skipped(subj);
       const topics = [...new Set((tc || []).filter(r => r.type === 'short' && r.topic && r.n >= 5).map(r => r.topic))].filter(t => !skip.has(t));
-      box.innerHTML = '';
-      teachingOrder(topics).forEach(([, t]) => { const b = mk('button', 'tu-start-chip', esc(topicName(t))); b.type = 'button'; b.onclick = () => { tu.topic = t; go(mode); }; box.appendChild(b); });
+      box.innerHTML = ''; box.classList.add('picking');
+      const back = mk('button', 'link small tu-pick-back', '‹ Back'); back.type = 'button';
+      back.onclick = () => { const fresh = tuStarters(); box.replaceWith(fresh); }; box.appendChild(back);
+      const chip = (t) => { const b = mk('button', 'tu-start-chip sm', esc(topicName(t))); b.type = 'button'; b.onclick = () => { tu.topic = t; go(mode); }; return b; };
+      const left = new Set(topics), groups = (TOPIC_GROUPS[subj] || []).map(([g, ts]) => [g, ts.filter(t => left.has(t))]).filter(g => g[1].length);
+      groups.forEach(g => g[1].forEach(t => left.delete(t)));
+      if (left.size) groups.push([groups.length ? 'Other' : '', teachingOrder([...left]).map(x => x[1])]);
+      groups.forEach(([g, ts]) => {   // grouped like the syllabus, so 20 topics read as 5 short rows
+        const sec = mk('div', 'tu-pick-g', g ? `<span class="tu-pick-l">${esc(g)}</span>` : '');
+        const row = mk('div', 'tu-pick-row'); ts.forEach(t => row.appendChild(chip(t))); sec.appendChild(row); box.appendChild(sec);
+      });
     }
     return box;
   }
@@ -5072,7 +5085,7 @@
     const rate = used / Math.max(gone, 1), proj = rate * days;
     if (proj > allowance * 1.03) {
       const runOut = new Date(start.getTime() + (allowance / rate) * 864e5), early = Math.round((end - runOut) / 864e5);
-      return { tick, cls: 'warn', text: early >= 7 ? `At this pace you'll run out around ${runOut.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}, ${Math.round(early / 7) > 1 ? `about ${Math.round(early / 7)} weeks` : 'about a week'} early.` : `At this pace you'll run out ${early <= 1 ? 'a day or so' : `${early} days`} early.` };
+      return { tick, cls: 'warn', text: early >= 7 ? `Runs out around ${runOut.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} at this pace` : `Runs out ${early <= 1 ? 'a day or so' : `${early} days`} early at this pace` };
     }
     if (proj >= allowance * 0.85) return { tick, cls: 'ok', text: 'On track to use about all of it.' };
     const spare = Math.round(allowance - proj);
@@ -5115,6 +5128,7 @@
       n.innerHTML = m.head; fill.style.width = `${Math.max(m.out ? 0 : 1.5, Math.round(1000 * m.fill) / 10)}%`;
       fill.parentNode.style.setProperty('--tick', `${m.tick}%`);
       r.textContent = m.sub; r.className = `${r.dataset.base} pace-${m.cls}`;
+      r.hidden = m.cls === 'ok' && !tuLeft.unlimited && !m.more;   // "on track" says nothing worth reading: only speak up when it matters
       let g = root.querySelector('.tu-more');
       if (m.more && packsOpen() && !tuLeft.unlimited) {
         if (!g) { g = mk('button', 'link small tu-more', 'Get more'); g.onclick = openTutorPacks; r.after(g); }

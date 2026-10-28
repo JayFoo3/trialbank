@@ -1402,7 +1402,7 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 @media (max-width: 420px) {
   .top-in { gap: 6px; }
   .top-right { gap: 5px; min-width: 0; }
-  .subject .subj-btn { max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 10px; padding-right: 8px; }
+  .subject .subj-btn { max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 10px; padding-right: 8px; }
   .calc-btn, .timer-btn { width: 36px; height: 36px; padding: 0; }
   .avatar { width: 36px; height: 36px; }
   .brand { font-size: 1.35rem; }
@@ -1822,9 +1822,11 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .hsc-teaser b { font-size: 22px; font-family: var(--display); }
 .hsc-teaser-go { margin-left: auto; color: var(--biro); font-weight: 700; }
 @media (max-width: 560px) {
-  .atar-row { grid-template-columns: minmax(0, 1fr) 118px 24px; }
-  .atar-row .atar-sc { grid-column: 1 / -1; margin-top: -4px; }
-  .atar-row .atar-x { grid-row: 1; grid-column: 3; }
+  .atar-row { grid-template-columns: auto minmax(0, 1fr) 24px; grid-template-areas: "c c x" "m s s"; row-gap: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+  .atar-row select { grid-area: c; } .atar-row .atar-mark { grid-area: m; } .atar-row .atar-sc { grid-area: s; } .atar-row .atar-x { grid-area: x; }
+  .hsc-row { grid-template-columns: minmax(0, 1fr) auto auto; row-gap: 2px; }
+  .hsc-row .hsc-t { grid-column: 1 / -1; font-weight: 600; }
+  .hsc-row .hsc-pct { white-space: nowrap; }
 }
 .atar-hint { margin: -2px 0 12px; color: var(--biro-dark); }
 .atar-mark span { white-space: nowrap; }
@@ -2991,3 +2993,11 @@ canvas.fire.nogl { background: radial-gradient(60% 70% at 50% 100%, rgba(255,170
 
 .pr-key[hidden] { display: none !important; }
 .subj-btn .subj-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* tutor: topic picker grouped by syllabus area */
+.tu-starters.picking { display: grid; gap: 12px; }
+.tu-pick-back { justify-self: start; padding: 0; }
+.tu-pick-g { display: grid; gap: 6px; }
+.tu-pick-l { font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tu-pick-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.tu-start-chip.sm { padding: 6px 12px; font-size: .84rem; font-weight: 600; }
