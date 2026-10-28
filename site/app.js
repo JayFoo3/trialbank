@@ -86,7 +86,7 @@
     return busy(async () => {
       if (h === 'practise') { show('practise'); drawCpCard(); drawResume(); await renderBuild(); return; }
       if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
-      if (h === 'admin' && adminOn()) { show('admin'); await renderAdmin(); return; }
+      if (h === 'admin' && adminOn()) { show('admin'); await renderAdmin(); adminTabs(); return; }
       if (h === 'profile') { show('profile'); await renderProfile(); return; }
       if (h === 'hsc') { show('hsc'); await renderHsc(); return; }
       if (h === 'study') { show('study'); await renderStudy(arg); return; }
@@ -1537,6 +1537,25 @@
       } catch (err) { $('steps-status').textContent = err.message || String(err); }
       finally { btn.disabled = false; renderSteps(); }
     };
+  }
+  // the admin page in tabs instead of one long scroll: each card goes in a group by its heading
+  const ADMIN_TABS = [['overview', 'Overview', /^engagement/i], ['questions', 'Questions', /^(flagged|syllabus)/i], ['money', 'Money', /^(ai spending|auto-marking)/i],
+    ['access', 'Access', /^(release|access levels|who can sign|class list|class names|test account)/i], ['people', 'People', /^(accounts|phone alerts)/i]];
+  let adminTab = null;
+  function adminTabs() {
+    const v = $('view-admin'); if (!v) return;
+    const cards = [...v.children].filter(c => c.classList.contains('card'));
+    cards.forEach(c => { const t = (c.querySelector('h2,h3')?.textContent || '').trim(); c.dataset.at = (ADMIN_TABS.find(([, , re]) => re.test(t)) || ['overview'])[0]; });
+    if (!adminTab) adminTab = cards.some(c => c.dataset.at === 'questions' && /\b[1-9]\d* open/.test(c.textContent)) ? 'questions' : 'overview';
+    let bar = v.querySelector('.adm-tabs');
+    if (!bar) {
+      bar = mk('div', 'pf-tabs adm-tabs'); bar.setAttribute('role', 'tablist');
+      bar.innerHTML = ADMIN_TABS.map(([k, t]) => `<button role="tab" data-at="${k}">${t}</button>`).join('');
+      (v.querySelector('h1') || v.firstChild).after(bar);
+      bar.onclick = (ev) => { const b = ev.target.closest('[data-at]'); if (b) { adminTab = b.dataset.at; adminTabs(); } };
+    }
+    bar.querySelectorAll('[data-at]').forEach(b => { const on = b.dataset.at === adminTab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    cards.forEach(c => c.classList.toggle('adm-off', c.dataset.at !== adminTab));
   }
   async function renderAdmin() {
     renderStats(); renderUsage(); renderFlags(); renderSteps();
@@ -3401,7 +3420,8 @@
   }
   function drawNavBadge(c) {
     const b = $('nav-marks'); if (!b) return;
-    b.hidden = !c || c.unlimited; if (c && !c.unlimited) { b.textContent = c.total > 99 ? '99+' : String(c.total); b.classList.toggle('zero', c.total === 0); }
+    const low = c && !c.unlimited && c.total <= 3;   // only worth a badge when they're nearly out
+    b.hidden = !low; if (low) { b.textContent = String(c.total); b.classList.toggle('zero', c.total === 0); }
   }
   let markPapers = [];
   async function renderMark() {
@@ -3775,6 +3795,7 @@
       if (!tutorOnly) sessionStorage.clear();
     } catch {}
   }
+  let pfTab = 'pet';
   async function renderProfile() {
     const [lv] = await Promise.all([myLevel(), loadFriends()]);
     const pr = myProfile(), st = streakData(), L = lv.level, lo = xpFor(L), hi = xpFor(L + 1);
@@ -3786,29 +3807,28 @@
         <div class="pf-pet">${petBadge(pr, 'xl')}</div>
         <div class="pf-who">
           <h1>${esc(nm)}</h1>
-          <p class="pf-lv"><b>Level ${L}</b><span>${lv.xp} XP${L < 50 ? ` · ${hi - lv.xp} to level ${L + 1}` : ''}</span></p>
+          <p class="pf-lv" title="2 XP for every question, 10 for every mark, 50 for finishing your Daily 5"><b>Level ${L}</b><span>${lv.xp} XP${L < 50 ? ` · ${hi - lv.xp} to level ${L + 1}` : ''}</span></p>
           <div class="pf-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
           <p class="pf-stats"><span><span class="fr-fl">${flame(liveStreak(st))}</span>${liveStreak(st)} day streak</span><span>Best ${st.best || 0}</span><span>${state.friends.length} friend${state.friends.length === 1 ? '' : 's'}</span></p>
         </div>
       </section>
-      <p class="small muted pf-earn">Earn XP: 2 for every question, 10 for every mark, 50 for finishing your Daily 5.</p>
-      <h2 class="sec">Pet</h2>
-      <div class="pf-grid pets" id="pf-pets">${photoTile(pr)}${PETS.map(p => tile('pet', p[0], `${petImg(p[0])}<span>${p[1]}</span>`, p[4], p[5], pr.pet === p[0])).join('')}</div>
-      <h2 class="sec">Banner</h2>
-      <div class="pf-grid colors" id="pf-colors">${COLORS.map(c => tile('color', c[0], `<i style="background:${c[2]}"></i><span>${c[1]}</span>`, c[3], c[4], pr.color === c[0])).join('')}</div>
-      <h2 class="sec">Border</h2>
-      <div class="pf-grid borders" id="pf-borders">${BORDERS.map(x => tile('border', x[0], `${petBadge({ ...pr, border: x[0] }, 'sm')}<span>${x[1]}</span>`, x[2], x[3], (pr.border || 'none') === x[0], x[4])).join('')}</div>
-      <div class="sec-head"><h2 class="sec">Friends</h2><button class="link small" id="pf-fr">Add a friend</button></div>
+      <div class="pf-tabs" role="tablist">${[['pet', 'Pet'], ['color', 'Banner'], ['border', 'Border'], ['friends', 'Friends'], ['data', 'Your data']].map(([k, t]) => `<button role="tab" data-pt="${k}" aria-selected="${pfTab === k}" class="${pfTab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <div class="pf-panel" data-pp="pet"><div class="pf-grid pets" id="pf-pets">${photoTile(pr)}${PETS.map(p => tile('pet', p[0], `${petImg(p[0])}<span>${p[1]}</span>`, p[4], p[5], pr.pet === p[0])).join('')}</div></div>
+      <div class="pf-panel" data-pp="color"><div class="pf-grid colors" id="pf-colors">${COLORS.map(c => tile('color', c[0], `<i style="background:${c[2]}"></i><span>${c[1]}</span>`, c[3], c[4], pr.color === c[0])).join('')}</div></div>
+      <div class="pf-panel" data-pp="border"><div class="pf-grid borders" id="pf-borders">${BORDERS.map(x => tile('border', x[0], `${petBadge({ ...pr, border: x[0] }, 'sm')}<span>${x[1]}</span>`, x[2], x[3], (pr.border || 'none') === x[0], x[4])).join('')}</div></div>
+      <div class="pf-panel" data-pp="friends"><div class="sec-head"><span></span><button class="link small" id="pf-fr">Add a friend</button></div>
       <div class="friends pf-friends" id="pf-friends">${state.friends.length ? [meRow(), ...state.friends].sort((a, b) => (b.level || 1) - (a.level || 1) || b.streak - a.streak).map(friendChip).join('')
-        : '<p class="small muted">Add friends to see their pets, levels and streaks here.</p>'}</div>
-      <div class="card pf-data" id="pf-data">
-        <h2>Your data</h2>
-        <p class="small muted">What Trialbank keeps about you, and how to take it with you or remove it. <a href="info.html#privacy">How your data is used</a></p>
-        <div class="pf-data-row"><div><b>Download my data</b><span class="small muted">Your answers, scores, settings, marking and tutor records, as a file.</span></div><button class="secondary" id="pf-export">Download</button></div>
-        <div class="pf-data-row"><div><b>Clear what the tutor remembers</b><span class="small muted">Its notes on how you learn and your recent slips. Your tutor chat is only kept on this device.</span></div><button class="secondary" id="pf-forget">Clear</button></div>
-        <div class="pf-data-row"><div><b>Delete my account</b><span class="small muted">Removes your account, progress, uploads and friends for good. This can't be undone.</span></div><button class="danger" id="pf-delete">Delete</button></div>
+        : '<p class="small muted">No friends yet.</p>'}</div></div>
+      <div class="pf-panel" data-pp="data"><div class="card pf-data" id="pf-data">
+        <div class="pf-data-row"><div><b>Download my data</b></div><button class="secondary" id="pf-export">Download</button></div>
+        <div class="pf-data-row"><div><b>Clear what the tutor remembers</b></div><button class="secondary" id="pf-forget">Clear</button></div>
+        <div class="pf-data-row"><div><b>Delete my account</b></div><button class="danger" id="pf-delete">Delete</button></div>
+        <p class="small muted pf-priv"><a href="info.html#privacy">How your data is used</a></p>
         <p class="error" id="pf-data-err" hidden></p>
-      </div>`;
+      </div></div>`;
+    const showTab = () => el.querySelectorAll('.pf-panel').forEach(x => { x.hidden = x.dataset.pp !== pfTab; });
+    showTab();
+    el.querySelectorAll('[data-pt]').forEach(b => b.onclick = () => { pfTab = b.dataset.pt; el.querySelectorAll('[data-pt]').forEach(o => { const on = o === b; o.classList.toggle('on', on); o.setAttribute('aria-selected', on); }); showTab(); });
     $('pf-fr').onclick = () => openFriends().then(() => {});
     drawDataControls();
     el.querySelectorAll('.pf-tile').forEach(b => b.onclick = async () => {

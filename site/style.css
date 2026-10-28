@@ -2921,3 +2921,31 @@ canvas.fire.nogl { background: radial-gradient(60% 70% at 50% 100%, rgba(255,170
 .am-spin { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; animation: am-spin .8s linear infinite; }
 @keyframes am-spin { to { transform: rotate(360deg); } }
 #sol-wrap.marked > p, #sol-wrap.marked #self-mark { display: none; }
+
+/* ---------- organised: account menu in sections, tools as one group, profile in tabs ---------- */
+.menu { min-width: 240px; padding: 8px; }
+.menu-email { padding: 4px 10px 6px; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-sec { padding: 4px 0; border-top: 1px solid var(--rule); }
+.menu-sec:not(:has(.menu-item:not([hidden]))) { display: none; }
+.menu-label { margin: 4px 10px 2px; font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.menu .menu-item { padding: 8px 10px; }
+.menu-out { margin-top: 2px; border-top: 1px solid var(--rule) !important; border-radius: 0 0 var(--r-sm) var(--r-sm); color: var(--muted) !important; }
+.menu-admin .menu-label { color: var(--muted); }
+.tools { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 999px; background: var(--soft); }
+.tools .calc-btn, .tools .timer-btn { border: 0 !important; box-shadow: none !important; background: transparent !important; border-radius: 999px; }
+.tools .calc-btn:hover, .tools .timer-btn:hover { background: var(--paper) !important; }
+.pf-tabs { display: flex; gap: 4px; padding: 4px; margin: 18px 0 14px; background: var(--soft); border-radius: 999px; overflow-x: auto; scrollbar-width: none; }
+.pf-tabs::-webkit-scrollbar { display: none; }
+.pf-tabs button { flex: 1 0 auto; border: 0; background: transparent; box-shadow: none; padding: 9px 16px; border-radius: 999px; font-weight: 800; color: var(--muted); min-height: 0; white-space: nowrap; }
+.pf-tabs button:hover { background: transparent; color: var(--ink); }
+.pf-tabs button.on { background: var(--paper); color: var(--ink); box-shadow: 0 1px 0 var(--rule), 0 4px 12px rgba(20, 24, 40, .07); }
+.pf-panel[hidden] { display: none !important; }
+.pf-panel .sec-head { margin-top: 0; }
+.pf-data { margin-top: 0; }
+.pf-data .pf-data-row b { font-size: 1rem; }
+.pf-priv { margin: 12px 0 0; }
+
+#view-admin > .card.adm-off { display: none; }
+.adm-tabs { margin: 6px 0 16px; }
+.view-as-row { display: flex !important; align-items: center; justify-content: space-between; gap: 10px; }
+.view-as-row select { width: auto; margin: 0; }
