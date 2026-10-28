@@ -4232,11 +4232,8 @@
     const card = m.firstElementChild;
     let done;
     const result = new Promise(res => { done = res; });
-    const close = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 200); document.removeEventListener('keydown', k); removeEventListener('hashchange', nav); done(v); };
-    let here = null;   // leaving the page (back button, a nav link) takes the popup with it; the route it opened on settles first
-    const nav = () => { if (here != null && location.hash !== here) close(null); };
-    setTimeout(() => { here = location.hash; }, 800);
-    addEventListener('hashchange', nav);
+    const close = (v) => { m.classList.add('out'); setTimeout(() => m.remove(), 200); document.removeEventListener('keydown', k); done(v); };
+
     const k = (ev) => { if (ev.key === 'Escape') close(null); };
     m.onclick = (ev) => { if (ev.target === m) close(null); const b = ev.target.closest('button[data-k]'); if (b) close(b.dataset.k); };
     document.addEventListener('keydown', k); document.body.appendChild(m);
