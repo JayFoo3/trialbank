@@ -2332,17 +2332,25 @@
     const box = $('mark-results'), q = $('mark-search').value.trim().toLowerCase();
     const words = q.split(/\s+/).filter(Boolean);
     const list = words.length ? markPapers.filter(p => words.every(w => `${p.school} ${p.year} ${p.difficulty || ''}`.toLowerCase().includes(w))) : markPapers.slice(0, 6);
-    box.innerHTML = list.length ? list.slice(0, 8).map(p => `<button type="button" class="mk-hit" data-id="${p.id}"><b>${esc(p.school)}</b><span>${p.year}${p.difficulty ? ' · ' + esc(p.difficulty) : ''}</span><em>Upload working ›</em></button>`).join('')
-      + (list.length > 8 ? `<p class="small muted">${list.length - 8} more. Keep typing to narrow it down.</p>` : '') + (!words.length ? '<p class="small muted">Newest papers. Type to search all of them.</p>' : '')
-      : '<p class="small muted">No paper matches that. Check the spelling, or upload it yourself below.</p>';
+    box.innerHTML = list.length ? list.slice(0, 8).map(p => `<button type="button" class="mk-hit" data-id="${p.id}"><b>${esc(p.school)}</b><span>${p.year}${p.difficulty ? ' · ' + esc(p.difficulty) : ''}</span><em aria-hidden="true">›</em></button>`).join('')
+      + (list.length > 8 ? `<p class="small muted">+${list.length - 8} more</p>` : '')
+      : '<p class="small muted">No match</p>';
   }
   $('mark-search').oninput = drawMarkSearch;
+  // My paper / A Trialbank paper: one card at a time
+  const mkTab = (k) => {
+    document.querySelectorAll('.mk-seg [data-mk]').forEach(b => { const on = b.dataset.mk === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    $('mk-own').hidden = k !== 'own'; $('mk-ours').hidden = k !== 'ours';
+    if (k === 'ours' && matchMedia('(hover: hover)').matches) $('mark-search').focus();
+  };
+  document.querySelectorAll('.mk-seg [data-mk]').forEach(b => { b.onclick = () => mkTab(b.dataset.mk); });
   $('mark-results').onclick = (ev) => { const b = ev.target.closest('.mk-hit'); if (!b) return; const p = markPapers.find(x => x.id === Number(b.dataset.id)); if (p) markPaper(p); };
   // the file pickers show what's been chosen
   [['own-work', 'drop-work'], ['own-sol', 'drop-sol'], ['own-paper', 'drop-paper']].forEach(([id, drop]) => {
     const inp = $(id), lab = $(id + '-f'), box = $(drop);
     const show = () => { const f = [...inp.files]; box.classList.toggle('has', !!f.length);
-      lab.textContent = !f.length ? 'Choose file' : f.length === 1 ? f[0].name : `${f.length} files`; };
+      lab.dataset.empty ??= lab.textContent;
+      lab.textContent = !f.length ? lab.dataset.empty : f.length === 1 ? f[0].name : `${f.length} files`; };
     inp.onchange = show;
     box.ondragover = (ev) => { ev.preventDefault(); box.classList.add('over'); };
     box.ondragleave = () => box.classList.remove('over');
@@ -2370,7 +2378,7 @@
       const paper_pages = await up(P, 'q', 24, 'Paper');
       const pages = await up(W, 'p', P.length ? 30 : 40, P.length ? 'Your working' : 'Your paper');
       const sol_pages = S.length ? await up(S, 's', 24, 'Solutions') : [];
-      say('Marking the whole paper… this takes one to two minutes. Keep this page open.');
+      say('Marking… about two minutes. Keep this page open.');
       const { data, error } = await sb.functions.invoke('automark', { body: { custom: true, annotated: !paper_pages.length, subject: state.subject, paper_pages, sol_pages, pages, session } });
       if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
       const rec = { at: Date.now(), subject: state.subject, title: data.title || 'Your uploaded paper', results: data.results, sol: !!sol_pages.length };
@@ -2382,7 +2390,7 @@
   async function runOwnMark() {
     const say = (t, err) => { $('own-status').textContent = t; $('own-status').className = 'small ' + (err ? 'error' : 'muted'); };
     const P = $('own-paper').files, W = $('own-work').files, S = $('own-sol').files;
-    if (!W.length) return say('Add your annotated paper first.', true);
+    if (!W.length) return say('Add your paper first.', true);
     if (!S.length && (await choiceBox('Mark it without solutions?<span class="cb-sub">The marker works each question out itself first. It\'s usually right, but marking against the real solutions is more reliable.</span>', [['no', 'Add solutions', 'secondary'], ['yes', 'Mark without them', 'primary']])) !== 'yes') return;
     const btn = $('own-go'); btn.disabled = true; $('own-result').innerHTML = '';
     try { const rec = await ownMark(P, W, S, say); say(''); $('own-result').appendChild(ownResult(rec)); }
@@ -2405,11 +2413,11 @@
     const box = $('own-history'); if (!box) return;
     const hist = (lsGet(OWN_KEY()) || []).filter(r => r && r.subject === state.subject);
     if (!hist.length) { box.innerHTML = ''; return; }
-    box.innerHTML = `<h2 class="sec">Papers you uploaded</h2><div class="list">${hist.map((r, i) => {
+    box.innerHTML = `<h2 class="sec">Marked</h2><div class="list">${hist.map((r, i) => {
       const got = r.results.reduce((a, x) => a + x.awarded, 0), of = r.results.reduce((a, x) => a + x.out_of, 0);
       return `<button class="li" data-i="${i}"><span><strong>${esc(r.title)}</strong><span class="small muted">${new Date(r.at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} · ${got}/${of}</span></span><span class="go" aria-hidden="true">›</span></button>`;
     }).join('')}</div>`;
-    box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { $('mk-own').hidden = false; $('own-result').innerHTML = ''; $('own-result').appendChild(ownResult(hist[Number(b.dataset.i)])); $('own-result').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { mkTab('own'); $('own-result').innerHTML = ''; $('own-result').appendChild(ownResult(hist[Number(b.dataset.i)])); $('own-result').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   }
   $('quick-set').onclick = async () => {
     $('quick-error').hidden = true; $('quick-set').disabled = true;
@@ -3372,27 +3380,20 @@
     const next = new Date(); next.setUTCMonth(next.getUTCMonth() + 1, 1);
     const reset = next.toLocaleDateString('en-AU', { day: 'numeric', month: 'long' });
     const lite = state.release?.lite && !adminOn();
-    const tile = (n, label, sub, cls = '') => `<div class="mk-tile ${cls}"><b>${n}</b><span>${label}</span><small>${sub}</small></div>`;
-    const tiles = [
-      tile(c.bought, 'Bought', 'Never expire'),
-      c.pro || state.release?.level === 'pro' ? tile(c.pro, 'Pro', `Refill on ${reset}`) : '',
-      c.unlimited ? tile('∞', 'Free', 'Admin') : c.freeOn ? tile(`${c.freeLeft}<em>/${c.freeTotal}</em>`, 'Free this month', `Back on ${reset}`)
-        : tile('–', 'Free', lite ? 'Unlocks after trials' : 'Not on your plan', 'off'),
+    const short = next.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+    const stat = (n, label, cls = '', tip = '') => `<div class="mk-stat ${cls}"${tip ? ` title="${tip}"` : ''}><b>${n}</b><span>${label}</span></div>`;
+    const stats = [
+      stat(c.bought, 'bought', '', 'Never expire'),
+      c.pro || state.release?.level === 'pro' ? stat(c.pro, `Pro · ${short}`, '', `Refills on ${reset}`) : '',
+      c.unlimited ? stat('∞', 'admin') : c.freeOn ? stat(`${c.freeLeft}<em>/${c.freeTotal}</em>`, `free · ${short}`, '', `Back on ${reset}`)
+        : stat('–', lite ? 'free after trials' : 'free', 'off'),
+      stat(`${c.poolLeft}<em>/${c.poolTotal}</em>`, 'shared pool', 'pool', `Everyone's free marking comes from this. Bought and Pro papers are used first. Resets on ${reset}.`),
     ].join('');
-    const pct = c.poolTotal ? Math.round(100 * c.poolLeft / c.poolTotal) : 0;
     const chip = $('mk-chip'); chip.hidden = false;
     chip.className = 'mk-chip' + (!c.unlimited && !c.total ? ' out' : '');
-    chip.innerHTML = c.unlimited ? '<b>∞</b> papers' : `<b>${c.total}</b> paper${c.total === 1 ? '' : 's'} left`;
+    chip.innerHTML = c.unlimited ? '<b>∞</b>' : `<b>${c.total}</b> left`;
     chip.onclick = () => $('mk-balance').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    $('mk-balance').innerHTML = `<h2>Your marking</h2>
-      <div class="mk-big"><b>${c.unlimited ? '∞' : c.total}</b><span>${c.unlimited ? 'unlimited marks (admin)' : `paper${c.total === 1 ? '' : 's'} you can get marked right now`}</span></div>
-      <div class="mk-tiles">${tiles}</div>
-      <div class="mk-pool">
-        <div class="between small"><span><b>Shared free pool</b> · everyone's free marking comes from here</span><span>${c.poolLeft} of ${c.poolTotal} papers left</span></div>
-        <div class="mk-bar"><i style="width:${pct}%"></i></div>
-        <p class="small muted">Resets on ${reset}. Bought and Pro papers are used first, so the free pool lasts longer for everyone.</p>
-      </div>
-      ${c.canBuy ? '<button class="primary mk-buy" id="mk-buy">Mark more papers</button>' : lite ? '<p class="small muted mk-later">Marking packs open after trials.</p>' : ''}`;
+    $('mk-balance').innerHTML = `<div class="mk-stats">${stats}</div>${c.canBuy ? '<button class="secondary mk-buy" id="mk-buy">Get more</button>' : ''}`;
     if ($('mk-buy')) $('mk-buy').onclick = openBuy;
   }
   async function drawMarkLeft() {

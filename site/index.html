@@ -18,7 +18,7 @@
 <title>Trialbank</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&family=Kalam:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=dev">
 <script>/* apply the student's saved look before anything paints */
 try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = document.documentElement;
@@ -418,43 +418,40 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <!-- ===== marking: balance, the shared pool, and uploading a paper ===== -->
   <section id="view-mark" class="view" hidden>
     <div class="mk-head">
-      <div><h1>Mark a paper</h1><p class="muted mk-lede">Upload a paper you've done and its solutions, and get every question marked the way an HSC marker would.</p></div>
+      <h1>Mark a paper</h1>
       <button class="mk-chip" id="mk-chip" hidden></button>
     </div>
-    <ol class="mk-how">
-      <li><b>Sit it</b><span>On paper, ideally on the clock</span></li>
-      <li><b>Upload it</b><span>Your annotated PDF and the solutions</span></li>
-      <li><b>Get marked</b><span>Every question, and where marks went</span></li>
-    </ol>
+    <div class="mk-seg" role="tablist" aria-label="Which paper">
+      <button class="on" data-mk="own" role="tab" aria-selected="true">My paper</button>
+      <button data-mk="ours" role="tab" aria-selected="false">A Trialbank paper</button>
+    </div>
     <div class="card mk-main" id="mk-own">
-      <h2>Upload your paper</h2>
-      <p class="small muted">The paper you wrote on, and the solutions or marking guidelines that came with it.</p>
       <div class="mk-drops">
         <label class="mk-drop" id="drop-work"><input type="file" id="own-work" accept="application/pdf,image/*" multiple>
-          <span class="mk-dn">1</span><b>Your annotated paper</b><span class="mk-dh">The PDF with your working on it, or photos of each page</span><span class="mk-df" id="own-work-f">Choose file</span></label>
+          <span class="mk-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="m9 14 3-3 3 3M12 11v6"/></svg></span>
+          <b>Your paper</b><span class="mk-df" id="own-work-f">With your working</span></label>
         <label class="mk-drop" id="drop-sol"><input type="file" id="own-sol" accept="application/pdf,image/*" multiple>
-          <span class="mk-dn">2</span><b>The solutions</b><span class="mk-dh">Marking guidelines or worked solutions, PDF or photos</span><span class="mk-df" id="own-sol-f">Choose file</span></label>
+          <span class="mk-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="m9 14 2 2 4-5"/></svg></span>
+          <b>Solutions</b><span class="mk-df" id="own-sol-f">Marking guidelines</span></label>
       </div>
-      <details class="mk-sep"><summary class="small">Wrote your answers on separate paper?</summary>
+      <details class="mk-sep"><summary class="small">Answers on separate sheets?</summary>
         <label class="mk-drop small-drop" id="drop-paper"><input type="file" id="own-paper" accept="application/pdf,image/*" multiple>
-          <b>The question paper</b><span class="mk-dh">Add the blank paper here, and your answer sheets as the annotated paper above</span><span class="mk-df" id="own-paper-f">Choose file</span></label>
+          <b>The blank paper</b><span class="mk-df" id="own-paper-f">Choose file</span></label>
       </details>
-      <div class="mk-row"><button class="primary mk-go" id="own-go">Mark my paper</button><span class="small muted" id="own-status"></span></div>
-      <p class="small muted mk-priv">Your pages are sent to Anthropic's Claude for marking, then deleted from Trialbank.</p>
+      <button class="primary mk-go" id="own-go">Mark it</button>
+      <p class="small muted mk-status" id="own-status"></p>
       <div id="own-result"></div>
     </div>
-    <div class="card mk-upload">
-      <h2>Did a Trialbank paper?</h2>
-      <p class="small muted">We already have its solutions. Find it, then upload just your working.</p>
+    <div class="card mk-upload" id="mk-ours" hidden>
       <div class="mk-find">
-        <input id="mark-search" type="search" placeholder="Search a school or year, e.g. Ruse 2023" autocomplete="off" aria-label="Search for the paper">
+        <input id="mark-search" type="search" placeholder="Search, e.g. Ruse 2023" autocomplete="off" aria-label="Search for the paper">
         <div class="mk-results" id="mark-results" role="listbox"></div>
       </div>
       <select id="mark-paper" hidden aria-hidden="true"><option value="">Pick the paper</option></select>
       <p class="error" id="mk-error" hidden></p>
     </div>
     <div id="own-history"></div>
-    <div class="card mk-balance" id="mk-balance"><p class="muted">Loading…</p></div>
+    <div class="mk-balance" id="mk-balance"></div>
   </section>
 
   <section id="view-tutor" class="view" hidden>
