@@ -14,3 +14,15 @@ keyfix/
 keyfix*.tgz
 aikeys/
 aikeys*.tgz
+# working files: scratch screenshots, fix staging, run lists
+_sheet*.png
+chk_*.png
+fixwork/
+fixes/
+keyfix2/
+supabase/.temp/
+compress_done.txt
+new_papers.txt
+held_papers.txt
+site/media/
+stems_*.json

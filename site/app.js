@@ -221,7 +221,6 @@
       route();
     };
   }
-  function tabs() { drawSubject(); }   // older views called this per page; the switch now lives in the header
   // account menu
   $('account-btn').onclick = (ev) => {
     ev.stopPropagation();
@@ -512,15 +511,6 @@
     topicCounts = data;
     return data;
   }
-  function tabs(elId, onPick) {
-    const el = $(elId); el.innerHTML = ''; el.className = 'row tabs';
-    for (const [key, label] of Object.entries(C.subjects)) {
-      const b = document.createElement('button');
-      b.textContent = label; b.className = key === state.subject ? 'on' : '';
-      b.onclick = () => { state.subject = key; state.topics.clear(); onPick(); };
-      el.appendChild(b);
-    }
-  }
   let prMine = {};   // topic -> { score, out_of } for this subject, so each topic shows how you're going
   const prLevel = (m) => !m || !m.out_of ? 'new' : m.score / m.out_of < 0.5 ? 'low' : m.score / m.out_of < 0.75 ? 'mid' : 'high';
   async function renderBuild() {
@@ -558,7 +548,7 @@
       box.appendChild(head);   // (per-group select-all dropped: too much on screen)
       const list = mk('div', 'tp-list');
       ts.forEach(t => {
-        const m = prMine[t], lv = prLevel(m), pct = m && m.out_of ? Math.round(100 * m.score / m.out_of) : null, n = byTopic[t].mcq + byTopic[t].short;
+        const m = prMine[t], lv = prLevel(m), pct = m && m.out_of ? Math.round(100 * m.score / m.out_of) : null;
         const b = mk('button', `tp ${lv}${state.topics.has(t) ? ' on' : ''}${topicSteps(t) ? ' has-steps' : ''}`);
         b.type = 'button'; b.setAttribute('aria-pressed', state.topics.has(t));
         b.innerHTML = `<i class="tp-box" aria-hidden="true"></i><span class="tp-name">${esc(topicName(t))}<small hidden></small></span>
@@ -575,7 +565,7 @@
         };
         const drawSteps = () => {
           if (!panel || panel.hidden) return;
-          const sel = state.steps.get(t) || new Set(), counts = panel._counts || {};
+          const sel = state.steps.get(t) || new Set();
           panel.innerHTML = (panel._tagged ? '' : '<p class="small muted">Not sorted into dot points yet.</p>')
             + steps.map(([id, lab]) => `<button type="button" class="tp-step${sel.has(id) ? ' on' : ''}" data-s="${id}" ${panel._tagged ? '' : 'disabled'}><i aria-hidden="true"></i><span>${esc(lab)}</span></button>`).join('')
             + (sel.size ? '<button type="button" class="link small tp-all">Whole topic</button>' : '');
@@ -1698,7 +1688,6 @@
   // v2: papers library, exam mode, review tools
   // ======================================================================
   const qLabel = (q) => label(q);
-  const diffOf = (p) => (['Easier', 'Medium', 'Hard'].includes(p.difficulty) ? p.difficulty : null);
   // four-step difficulty for display: James Ruse sits above the other hard papers
   const LEVELS = { easy: [1, 'Easy'], medium: [2, 'Medium'], hard: [3, 'Hard'], impossible: [4, 'Impossible'], hsc: [0, 'HSC'] };
   const isHsc = (p) => p.difficulty === 'HSC';
@@ -2928,23 +2917,7 @@
   };
   // accounts that are more than a day old have already been shown around
   const returning = () => !!state.user?.created_at && Date.now() - Date.parse(state.user.created_at) > 864e5;
-  function renderOnboard() {
-    $('onboard').hidden = true; return;   // replaced by the spotlight tour below
-    const box = $('onboard');
-    const done = { subject: flag('picked_subject'), first: !!state.attempted, papers: flag('seen_papers') };
-    if (flag('onboard_hidden') || (done.subject && done.first && done.papers)) { box.hidden = true; return; }
-    box.hidden = false;
-    for (const k of ['subject', 'first', 'papers']) $('ob-' + k).classList.toggle('done', done[k]);
-    const subs = $('ob-subjects'); subs.innerHTML = '';
-    for (const [key, label] of Object.entries(C.subjects)) {
-      const b = mk('button', key === state.subject && done.subject ? 'on' : '', label.replace('Mathematics ', 'Maths ').replace('Extension ', 'Ext '));
-      b.onclick = () => {
-        flag('picked_subject', 1);
-        if (key !== state.subject) $('subject-switch').querySelectorAll('button')[Object.keys(C.subjects).indexOf(key)].click(); else renderOnboard();
-      };
-      subs.appendChild(b);
-    }
-  }
+  function renderOnboard() { $('onboard').hidden = true; }   // replaced by the spotlight tour
   $('onboard-hide').onclick = () => { flag('onboard_hidden', 1); $('onboard').hidden = true; };
   $('ob-first-go').onclick = async () => {
     $('ob-first-go').disabled = true;
@@ -4751,17 +4724,7 @@
     if (tu.handoff) { const q = tu.handoff; tu.handoff = null; tuStart(false, q); return; }
     if (tu.active) { tuDraw(); drawTuRecent(); return; }
     if (!tu.restoreTried) { tu.restoreTried = true; try { if (await tuRestore()) { drawTuRecent(); return; } } catch (err) { console.warn('tutor restore', err); } }
-    await tuBlank(); return;
-    const [{ data: tc }, { data: notes }] = await Promise.all([
-      sb.from('topic_counts').select('topic, n, type').eq('subject', subj),
-      sb.from('tutor_notes').select('notes').eq('subject', subj).maybeSingle(),
-    ]);
-    const topics = [...new Set((tc || []).filter(r => r.type === 'short' && r.topic && r.n >= 5).map(r => r.topic))].sort((a, b) => topicName(a).localeCompare(topicName(b)));
-    $('tu-topic').innerHTML = '<option value="">My weak spots</option>' + topics.map(t => `<option value="${esc(t)}">${esc(topicName(t))}</option>`).join('');
-    $('tu-topic').value = tu.topic && topics.includes(tu.topic) ? tu.topic : '';
-    const n = notes?.notes || [];
-    $('tu-learnt').innerHTML = n.length ? `<b>What I've learnt about how you work</b><ul>${n.slice(-3).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`
-      : '<span class="muted">I learn how you like to work as we go, and remember it next time.</span>';
+    await tuBlank();
   }
   // an empty chat, ready to type into; the starters underneath pick a way of working
   async function tuBlank() {
@@ -6243,7 +6206,6 @@ void main() {
       if (th.score > duel.me.score && before.score <= duel.me.score) duelFeed(`${esc(th.name)} took the lead`, 'bad');
     }
   }
-  const initial = (n) => esc((n || '?').slice(0, 1).toUpperCase());
   const CROWN = '<svg class="dp-crown" viewBox="0 0 48 32" aria-hidden="true"><path d="M4 28h40l-4-20-10 9-6-14-6 14-10-9z"/></svg>';
   function duelCard(p, label, extra = '') {
     if (!p) return `<div class="dp-av wait"><span></span><span></span></div><b class="dp-name">${esc(duel.invitee?.name || 'Your friend')}</b><span class="dp-sub">${duel.declined ? 'Not right now' : duel.invitee ? 'Challenge sent' : 'Waiting…'}</span>`;
