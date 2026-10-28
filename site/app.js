@@ -5123,7 +5123,8 @@
     tu.topic = topic; tu.focus = null; if (tu.mode === 'check' || tu.mode === 'coach') { tu.mode = 'quiz'; lsSet('tb_tu_mode', 'quiz'); drawTuModes(); }
     const said = tu.msgs.slice(-2).filter(m => m.role === 'student' || m.role === 'tutor').map(m => ({ ...m, greet: true }));   // kept on screen, not re-sent
     await tuStart(false);
-    if (tu.q) { tu.msgs.unshift(...said, { sys: true, text: where }); tuDraw(); tuSave(); }
+    if (tu.q) { tu.msgs.unshift(...said); tuDraw(); tuSave(); }
+    toast(`Saved: ${esc(where)}`);
   }
   async function tuFinish(d) {
     if (d.next_level === 'harder') tu.level = Math.min(3, tu.level + 1);
