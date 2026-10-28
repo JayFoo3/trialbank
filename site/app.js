@@ -784,8 +784,7 @@
     $('check-online').hidden = !obj || !!x.syllabus_note;
     $('sol-wrap').hidden = true; $('sol-wrap').classList.remove('marked'); $('show-sol').hidden = false; $('show-sol').disabled = !x.solutionUrl && !on;
     // written answers: the marker reads what they wrote. In a battle that's the only way to mark, and the solution stays hidden until then
-    const paysAi = state.release?.tier === 'admin' || (!!state.release?.sub && !state.release?.trial);   // AI costs money: only for students who pay for it
-    const canAuto = paysAi && x.type === 'short' && !on && !!x.solutionUrl && !x.syllabus_note && !state.preview;
+    const canAuto = x.type === 'short' && !on && !!x.solutionUrl && !x.syllabus_note && !state.preview;
     $('auto-mark').hidden = !canAuto; $('auto-mark').disabled = false; $('auto-mark').textContent = 'Mark my working';
     if (s.duel && canAuto) $('show-sol').hidden = true;
     $('show-sol').textContent = x.solutionUrl || on ? 'Show solution' : 'No solution available';

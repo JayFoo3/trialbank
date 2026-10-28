@@ -83,16 +83,17 @@ Deno.serve(async (req) => {
   if (s.qmark_enabled === 'off') return json({ error: 'Auto-marking is switched off right now. Mark it yourself.' }, 403);
   const me = user.email_confirmed_at ? String(user.email ?? '').trim().toLowerCase() : '';
   const isAdmin = !!me && String(s.admin_emails ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean).includes(me);
-  // never lose money: auto-marking is part of what Pro pays for, within that student's monthly AI budget
+  // never lose money: inside this student's monthly AI budget (set by what they pay), and free use comes out of one capped shared pool
+  const { data: pays } = await admin.rpc('ai_pays', { uid: user.id });
   if (!isAdmin) {
     const { data: ok } = await admin.rpc('ai_ok', { uid: user.id, est: 0.03 });
-    if (ok !== true) return json({ error: 'Auto-marking comes with Pro. Mark this one yourself.', pro: true }, 403);
+    if (ok !== true) return json({ error: pays ? "You've used this month's auto-marking. It resets on the 1st. Mark this one yourself." : "You've used your free auto-marking this month. Go Pro for more, or mark this one yourself.", pro: !pays }, 429);
   }
   const { data: rv, error: rerr } = await admin.rpc('qmark_reserve', { uid: user.id, per_day: isAdmin ? 0 : Number(s.qmark_daily ?? 80),
-    month_cap: Number(s.qmark_monthly_cap_usd ?? 10), est: 0.02, is_duel: !!body.duel, qid });
+    month_cap: Number(s.qmark_free_pool_usd ?? 10), est: 0.02, is_duel: !!body.duel, qid, is_free: !(isAdmin || pays) });
   if (rerr || !rv?.id) {
     if (rerr) { console.error(rerr); return json({ error: 'Auto-marking hit a problem. Mark it yourself this time.' }, 500); }
-    return json({ error: rv?.err === 'day' ? "You've auto-marked a lot today. Mark this one yourself." : 'Auto-marking has used this month\'s budget. Mark it yourself.' }, 429);
+    return json({ error: rv?.err === 'day' ? "You've auto-marked a lot today. Mark this one yourself." : 'Free auto-marking is used up for this month. Mark it yourself.' }, 429);
   }
   const runId = Number(rv.id);
   const fail = async (msg: string) => { await admin.from('question_marks').update({ cost_usd: 0, error: msg.slice(0, 200) }).eq('id', runId); };
