@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 upload_fixes.py  -  put the hand-fixed flagged questions live, and close their flags.
-  fixes/<slug>/<qid>.png      -> replaces that question's image
+  fixes/<slug>/<qid>.png      -> replaces that question's image (or gives it its own, if it shared a whole-page one)
   fixes/<slug>/sol_qNN.png    -> replaces that paper's solution image (every part of question NN uses it)
 Also hides the written questions of papers listed in HIDE (their scan can't be cut reliably yet), so they stay out of practice.
 
@@ -32,7 +32,16 @@ def main():
         r = requests.get(f'{URL}/rest/v1/questions', headers=H, params={'select': 'id,image_path', 'id': f'eq.{qid}'}, timeout=60)
         rows = r.json() if r.status_code < 300 else []
         if not rows or not rows[0].get('image_path'): print(f'  {qid}: not in the database, skipped'); continue
-        put_object(rows[0]['image_path'], to_webp(f, 85)); closed.append(qid); print(f'  {qid}')
+        path = rows[0]['image_path']
+        if os.path.basename(path) != name + '.webp':   # it shared a whole-page image: give it its own, and it's no longer "whole page"
+            path = f'{slug}/{name}.webp'
+            put_object(path, to_webp(f, 85))
+            r = requests.patch(f'{URL}/rest/v1/questions', headers={**H, 'Content-Type': 'application/json'}, params={'id': f'eq.{qid}'},
+                               data=json.dumps({'image_path': path, 'coarse': False}), timeout=60)
+            if r.status_code >= 300: print(f'  {qid}: could not point at its new image ({r.status_code})'); continue
+        else:
+            put_object(path, to_webp(f, 85))
+        closed.append(qid); print(f'  {qid}')
     for slug in HIDE:
         r = requests.patch(f'{URL}/rest/v1/questions', headers={**H, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
                            params={'id': f'like.{slug}/*', 'type': 'eq.short'}, data=json.dumps({'image_path': None}), timeout=60)

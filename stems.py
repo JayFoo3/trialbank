@@ -17,7 +17,7 @@ DPI = 150
 BOILER = re.compile(r'(booklet|writing (page|space)|answer (page|sheet)|new (page|booklet)|attempt (question|this)|separate|^marks$|continued|^end of|'
                     r'^question\s+\d+\s*(\(\s*\d+\s*marks?\s*\))?\s*\.?$|^\(\s*\d+\s*marks?\s*\)$|^\d+\s*marks?$|'
                     r'answer (this|the) question|in the (space|lines) provided|^page \d+)', re.I)
-HEADWORD = re.compile(r'^(question|\d{1,2}[.)]?|\(\d+|marks?\)?\.?|\(\d+\s*marks?\)\.?)$', re.I)
+HEADWORD = re.compile(r'^(question|\d{1,2}[.)]?|\(\d+|marks?\)?\.?|\(\d+\s*marks?\)\.?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|twenty-\w+|thirty-\w+|forty-\w+)$', re.I)
 
 
 def running_heads(pages):
@@ -61,7 +61,13 @@ def stem_crops(pages, head, part, running=frozenset()):
     return out, ' '.join(text)
 
 
-RE_HEAD = lambda n: re.compile(rf'^(question\s+{n}\b|{n}[.)]?$|{n}[.)]\s)', re.I)
+_ONES = 'one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen'.split()
+_TENS = {2: 'twenty', 3: 'thirty', 4: 'forty', 5: 'fifty'}
+def _words(n):   # 25 -> "twenty[ -]five": some schools (Sydney Grammar) head questions "QUESTION TWENTY FIVE"
+    if n < 20: return _ONES[n - 1]
+    t, o = divmod(n, 10)
+    return _TENS[t] + (rf'[\s-]+{_ONES[o - 1]}' if o else '')
+RE_HEAD = lambda n: re.compile(rf'^(question\s+{n}\b|question\s+{_words(n)}\b(?![\s-]+(one|two|three|four|five|six|seven|eight|nine)\b)|{n}[.)]?$|{n}[.)]\s)', re.I)
 RE_FIRST = lambda lab: re.compile(rf'^\(?{re.escape(lab)}[).]', re.I)   # (a)  a)  a.  (i)  i.
 
 
