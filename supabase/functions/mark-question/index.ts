@@ -108,7 +108,12 @@ Deno.serve(async (req) => {
   try {
     const subject = SUBJECTS[(q.papers as { subject?: string })?.subject ?? ''] ?? 'Mathematics';
     const content: Record<string, unknown>[] = [{ type: 'text', text: `The question (${outOf} mark${outOf === 1 ? '' : 's'}):` }, ...await pics(q.image_path)];
-    content.push({ type: 'text', text: 'The solutions / marking guideline:' }, ...await pics(q.solution_path));
+    // a textbook question: the answers image covers the whole exercise, and gives final answers rather than a marking guideline
+    const tb = /^margaret-[^/]+\/(?:ex([\d.]+)|(test|challenge))-q(\d+)$/.exec(qid);
+    const where = tb ? (tb[1] ? `Exercise ${tb[1]}` : tb[2] === 'test' ? 'Test yourself' : 'Challenge exercise') : '';
+    content.push({ type: 'text', text: tb
+      ? `The textbook's answers for the whole of ${where}. Use ONLY the answers to question ${Number(tb[3])} (every part of it). These are final answers, not a marking guideline: give one mark per part whose final answer matches (equivalent forms count), and for "show that" or proof parts judge whether the working proves it. If the student only attempted some parts, mark those and give 0 for the rest.`
+      : 'The solutions / marking guideline:' }, ...await pics(q.solution_path));
     content.push({ type: 'text', text: "The student's response:" }, ...await Promise.all(pages.map((p) => img('submissions', p))));
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

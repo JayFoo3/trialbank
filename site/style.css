@@ -3008,3 +3008,14 @@ canvas.fire.nogl { background: radial-gradient(60% 70% at 50% 100%, rgba(255,170
 .fc-go .seg.fc-k { margin-right: auto; }
 .fc-go { flex-wrap: wrap; }
 @media (max-width: 560px) { .fc-go #fc-send { flex: 1 1 100%; } }
+
+/* the Margaret textbook (admins only): exercises, then a grid of question numbers */
+.tb-card #tb-body { display: grid; gap: 2px; padding: 0 18px 14px; }
+.tb-ex { border-top: 1px solid var(--rule); }
+.tb-ex-h { width: 100%; display: flex; justify-content: space-between; align-items: baseline; background: none; border: 0; box-shadow: none; padding: 11px 2px; min-height: 0; }
+.tb-ex-h span { color: var(--muted); font-size: .85rem; font-weight: 700; }
+.tb-ex.open .tb-ex-h b { color: var(--biro); }
+.tb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; padding: 2px 0 12px; }
+.tb-q { padding: 0; height: 40px; min-height: 0; font-weight: 800; border-radius: 10px; }
+.tb-q.on { background: var(--biro); border-color: var(--biro); color: #fff; }
+.tb-go { width: 100%; margin-bottom: 10px; }

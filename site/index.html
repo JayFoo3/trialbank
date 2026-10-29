@@ -231,6 +231,10 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </div>
     <div class="pr-resume" id="pr-resume" hidden><button class="pr-res-go"><span><b>Continue your set</b><small class="pr-res-n"></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button><button class="pr-res-x" aria-label="Discard this set" title="Discard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <button class="pr-pick" id="pr-smart"><span><b>Pick 10 for me</b></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    <details class="card cp-card tb-card" id="tb-card" hidden>
+      <summary><span><b>Margaret</b></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div id="tb-body"></div>
+    </details>
     <p class="error" id="pr-error" hidden></p>
     <div class="card pr-topics">
       <div class="pr-tools">

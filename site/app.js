@@ -343,7 +343,8 @@
   // papers a "Free" preview can open (the database lets the admin see everything, so this mirrors the dial)
   // quick questions: short textbook-style questions kept in their own 'paper' (slug quick-...); never shown as a paper
   const isQuick = (p) => /^quick-/.test(p?.slug || '');
-  const seePaper = (p) => !isQuick(p) && (state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial);
+  const isBook = (p) => /^margaret-/.test(p?.slug || '');   // the Margaret textbook: a private set only admins can see (subject 'Book')
+  const seePaper = (p) => !isQuick(p) && !isBook(p) && (state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial);
   // Pro can be bought (pro_sales) or tried free (pro_trials); 'admin' means only admins see it while testing
   const proOpen = () => !!state.user && !state.preview && [state.proSale, state.pro?.trials].some(v => v === 'on' || (v === 'admin' && adminOn()));
   function applyRelease() {
@@ -518,7 +519,39 @@
   }
   let prMine = {};   // topic -> { score, out_of } for this subject, so each topic shows how you're going
   const prLevel = (m) => !m || !m.out_of ? 'new' : m.score / m.out_of < 0.5 ? 'low' : m.score / m.out_of < 0.75 ? 'mid' : 'high';
+  // ---------- the Margaret textbook: chapters cut into exercise questions, only for admins, auto-marked against the book's answers ----------
+  let tbRows = null, tbPick = new Set(), tbEx = null;
+  const bookEx = (q) => { const m = /(?:ex([\d.]+)|(test|challenge))-q(\d+)$/.exec(q.qid || ''); return !m ? '' : m[1] ? `Exercise ${m[1]}` : m[2] === 'test' ? 'Test yourself' : 'Challenge'; };
+  const bookQ = (q) => Number((/-q(\d+)$/.exec(q.qid || '') || [])[1] || 0);
+  const bookLabel = (q) => `${bookEx(q)} Q${bookQ(q)}`;
+  async function drawTextbook() {
+    const card = $('tb-card'); if (!card) return;
+    card.hidden = !adminOn() || state.preview; if (card.hidden) return;
+    if (!tbRows) { const { data } = await sb.from('questions').select(QCOLS).like('id', 'margaret-%').limit(3000); tbRows = (data || []).sort((a, b) => a.number - b.number); }
+    if (!tbRows.length) { card.hidden = true; return; }
+    const groups = {}; tbRows.forEach(q => { (groups[bookEx(q)] = groups[bookEx(q)] || []).push(q); });
+    const body = $('tb-body'); body.innerHTML = '';
+    Object.entries(groups).forEach(([ex, qs]) => {
+      const open = tbEx === ex, row = mk('div', 'tb-ex' + (open ? ' open' : ''));
+      const head = mk('button', 'tb-ex-h', `<b>${esc(ex)}</b><span>${qs.length}</span>`); head.type = 'button';
+      head.onclick = () => { tbEx = open ? null : ex; tbPick = new Set(); drawTextbook(); };
+      row.appendChild(head);
+      if (open) {
+        const go = mk('button', 'primary tb-go', 'Start all'); go.type = 'button';
+        const grid = mk('div', 'tb-grid');
+        qs.forEach(q => {
+          const b = mk('button', 'tb-q', String(bookQ(q))); b.type = 'button';
+          b.onclick = () => { tbPick.has(q.id) ? tbPick.delete(q.id) : tbPick.add(q.id); b.classList.toggle('on', tbPick.has(q.id)); go.textContent = tbPick.size ? `Start ${tbPick.size}` : 'Start all'; };
+          grid.appendChild(b);
+        });
+        go.onclick = () => busy(async () => { const pick = tbPick.size ? qs.filter(q => tbPick.has(q.id)) : qs; await startSet(pick.map(q => ({ ...q }))); });
+        row.append(grid, go);
+      }
+      body.appendChild(row);
+    });
+  }
   async function renderBuild() {
+    drawTextbook().catch(err => console.warn('textbook', err));
     $('open-syllabus').hidden = !SYLLABUS[state.subject];
     $('pr-error').hidden = true;
     const [counts, { data: mine }] = await Promise.all([loadTopicCounts(), sb.from('my_topic_stats').select('*').eq('subject', state.subject)]);
@@ -756,7 +789,7 @@
     if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${s.sid}_${x.id}`, { scope: $('view-set'), full: true })); qcard.prepend(tb); }
     $('set-pos').innerHTML = `<b>${s.i + 1} of ${s.qs.length}</b><span>${esc(topicName(x.topic))}</span>`;
     firstHint(x);
-    $('set-meta').textContent = isQuick(x.papers) ? `Quick question · ${topicName(x.topic)}` : `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
+    $('set-meta').textContent = isQuick(x.papers) ? `Quick question · ${topicName(x.topic)}` : isBook(x.papers) ? `Margaret · ${bookLabel(x)}` : `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
     const qi = $('q-img'); qi.crossOrigin = 'anonymous';
     if (x.content) qi.removeAttribute('src');
