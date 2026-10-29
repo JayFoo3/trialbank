@@ -288,7 +288,7 @@
   // ---------- NESA formula / reference sheet, beside the calculator ----------
   // one official sheet per course: the maths one holds Ext 2, Ext 1 and Advanced pages, so each course shows its own and the ones beneath it
   const SHEETS = { Adv: ['m3', 'm4'], Ext1: ['m2', 'm3', 'm4'], Ext2: ['m1', 'm2', 'm3', 'm4'], Physics: ['p1', 'p2', 'p3', 'p4'] };
-  const sheetSubj = () => (location.hash.startsWith('#set') && state.set?.qs?.[state.set.i]?.papers?.subject) || state.subject;
+  const sheetSubj = () => { const s = (location.hash.startsWith('#set') && state.set?.qs?.[state.set.i]?.papers?.subject) || state.subject; return s === 'Book' ? 'Ext1' : s; };   // the Margaret book is Extension 1
   function drawSheetBtns() {
     const has = !!SHEETS[sheetSubj()];
     document.querySelectorAll('[data-sheet]').forEach(b => { b.hidden = !has; });
@@ -822,8 +822,8 @@
     $('sol-wrap').hidden = true; $('sol-wrap').classList.remove('marked'); $('show-sol').hidden = false; $('show-sol').disabled = !x.solutionUrl && !on;
     // written answers: the marker reads what they wrote. In a battle that's the only way to mark, and the solution stays hidden until then
     const canAuto = x.type === 'short' && !on && !!x.solutionUrl && !x.syllabus_note && !state.preview;
-    $('auto-mark').hidden = !canAuto; $('auto-mark').disabled = false; $('auto-mark').textContent = 'Mark my working';
-    if (s.duel && canAuto) $('show-sol').hidden = true;
+    $('auto-mark').hidden = !canAuto || !!state.markBlocked; $('auto-mark').disabled = false; $('auto-mark').textContent = 'Mark my working';
+    if (s.duel && canAuto && !state.markBlocked) $('show-sol').hidden = true;
     $('show-sol').textContent = x.solutionUrl || on ? 'Show solution' : 'No solution available';
     document.querySelectorAll('#mcq-controls button').forEach(b => { b.className = ''; b.disabled = false; });
     if (x.type === 'short') {
@@ -891,7 +891,8 @@
       paths.push(path);
       const chunks = await sliceTallImages([x], folder, () => {}, paths);
       const { data, error } = await sb.functions.invoke('mark-question', { body: { question_id: x.id, pages: [path], chunks, duel: !!s.duel } });
-      if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch {} throw new Error(msg); }
+      if (error) { let msg = error.message, blocked = false; try { const j = await error.context.json(); msg = j.error || msg; blocked = !!j.blocked; } catch {} if (blocked) { markBlocked(msg); return; } throw new Error(msg); }
+      if (data.blocked) { markBlocked(data.error || 'Not cool bro.'); return; }   // wrote something inappropriate: no more auto-marking
       if (state.set !== s || s.i !== at) return;   // they moved on while it marked
       if (!data.found && s.duel) { toast('Nothing to mark yet. Write your working on the question first.'); return; }
       await record(data.awarded, data.out_of || x.marks || 0, null, $('self-mark'), null, data);
@@ -904,6 +905,12 @@
       if (paths.length) sb.storage.from('submissions').remove(paths).catch(() => {});
       if (state.set === s && s.i === at && !s.results[at]) { btn.disabled = false; btn.textContent = 'Mark my working'; }
     }
+  }
+  function markBlocked(msg) {
+    state.markBlocked = true;
+    const btn = $('auto-mark'); btn.hidden = true;
+    verdict(msg, 'bad');
+    const s = state.set; if (s?.duel) $('show-sol').hidden = false;   // a battle still needs a way to mark it
   }
   $('auto-mark').onclick = () => autoMark();
   $('am-photo').onchange = (ev) => { const f = ev.target.files[0]; ev.target.value = ''; if (f) autoMark(f); };
