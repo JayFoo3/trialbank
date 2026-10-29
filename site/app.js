@@ -753,7 +753,7 @@
     // write on the question: pencil, highlighter, eraser, plus working space underneath
     if (window.Annotate) { Annotate.stop(); qcard?.querySelector('.ann-tools')?.remove(); }
     if (!s.sid) { s.sid = 's' + Date.now().toString(36); annPrune(s.sid); }   // writing belongs to this set: a new set starts with clean questions
-    if (window.Annotate && qcard && state.user && !isQuick(x.papers)) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${s.sid}_${x.id}`, { scope: $('view-set'), full: true })); qcard.prepend(tb); }
+    if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${s.sid}_${x.id}`, { scope: $('view-set'), full: true })); qcard.prepend(tb); }
     $('set-pos').innerHTML = `<b>${s.i + 1} of ${s.qs.length}</b><span>${esc(topicName(x.topic))}</span>`;
     firstHint(x);
     $('set-meta').textContent = isQuick(x.papers) ? `Quick question · ${topicName(x.topic)}` : `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
