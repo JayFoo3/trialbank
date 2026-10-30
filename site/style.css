@@ -566,7 +566,7 @@ h2.sec { font-family: var(--display); color: var(--ink); font-size: 1.3rem; font
 @keyframes m-ponder { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-2.5deg); } }
 
 /* personalise */
-.me-card { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; }
+.me-card { width: min(520px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; }
 .me-top { display: flex; align-items: center; gap: 16px; }
 .me-top .avatar { width: 76px; height: 76px; font-size: 1.7rem; flex: none; }
 .me-top .row { margin: 0; }
@@ -1109,7 +1109,7 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .calc-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 /* the fx-8200 AU replica: black body, light round keys, blue SHIFT labels, a green-grey LCD */
 .cw { --cwk: #e4e5e8; --cwk-ink: #202328; --cwblue: #2f5bd8; --cwlbl: #5b8cff;
-  position: fixed; right: 16px; bottom: 16px; z-index: 1050; width: 292px; max-width: calc(100vw - 16px); max-height: calc(100vh - 24px); overflow: auto;
+  position: fixed; right: 16px; bottom: 16px; z-index: 1050; width: 292px; max-width: calc(100vw - 16px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); overflow: auto;
   background: linear-gradient(180deg, #303236, #1f2023 60%, #1a1b1d); color: #fff; border-radius: 30px 30px 34px 34px; padding: 12px 14px 18px;
   box-shadow: 0 18px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.4); font-family: var(--font); user-select: none; -webkit-user-select: none; }
 .cw[hidden] { display: none; }
@@ -1252,7 +1252,7 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .cw-kl sub { vertical-align: -.35em; line-height: 0; }
 .cw-sh { letter-spacing: -.01em; }
 @media (max-width: 640px) {
-  .cw { left: 50% !important; right: auto !important; top: auto !important; transform: translateX(-50%); bottom: calc(72px + env(safe-area-inset-bottom)) !important; max-height: calc(100vh - 90px); }
+  .cw { left: 50% !important; right: auto !important; top: auto !important; transform: translateX(-50%); bottom: calc(72px + env(safe-area-inset-bottom)) !important; max-height: calc(100vh - 90px); max-height: calc(100dvh - 90px); }
   body.focus .cw { bottom: calc(8px + env(safe-area-inset-bottom)) !important; }
 }
 @media (prefers-reduced-motion: reduce) { .cw-k.hit { animation: none; } .cw-caret { animation: none; } }
@@ -3023,3 +3023,24 @@ canvas.fire.nogl { background: radial-gradient(60% 70% at 50% 100%, rgba(255,170
 /* answering a question: the bar with Exit, calculator and formula sheet stays on screen as you scroll */
 body.focus .top { position: static; }
 #view-set .setbar { position: sticky; top: 0; z-index: 15; background: var(--bg); margin: 0 -8px 10px; padding: calc(6px + env(safe-area-inset-top)) 8px 6px; }
+
+/* phones on their side (Android and iPhone): a short screen, so one slim header row with the tabs inline, and popups that scroll */
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 560px) {
+  .top-in { flex-wrap: nowrap; padding-top: 4px; padding-bottom: 4px; gap: 8px; }
+  .mainnav { order: 0; flex-basis: auto; flex: 1 1 auto; justify-content: center; position: static; background: none; border: 0; padding: 0; backdrop-filter: none; }
+  .mainnav a { flex: 0 1 auto; flex-direction: row; font-size: .9rem; padding: 5px 9px; }
+  .mainnav svg { display: none; }
+  .brand { font-size: 1.2rem; }
+  main { padding-bottom: 24px; } footer { padding-bottom: 24px; }
+  .startbar, .pr-set .startbar { bottom: 10px; }
+  #view-practise { padding-bottom: 90px; }
+  .modal-card, .pc-modal .pc-card, .me-card { max-height: calc(100dvh - 16px); overflow-y: auto; }
+  .hello { font-size: 1.5rem; } h1 { font-size: 1.5rem; }
+  #view-set .setbar { margin-bottom: 4px; }
+}
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 800px) {   /* small phones sideways: icon tabs, so the tools and account still fit */
+  .mainnav a { padding: 7px 10px; }
+  .mainnav a span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .mainnav svg { display: block; width: 21px; height: 21px; }
+  .subject .subj-btn { max-width: 104px; }
+}
