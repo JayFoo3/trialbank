@@ -138,14 +138,20 @@ def mcq_starts(pages, first, last, lo, hi):
         if m and l['x0'] < 0.3 * W and (len(ws) > 1 or level_text(pages[pi]['lines'], l)):
             cands.append((pi, l['y0'], l['x0'], int(m.group(1))))
     if cands:
+        # the column the question numbers sit in: try each x where numbers start (most common first) and keep the one
+        # that finds the most of 1, 2, 3 ... in order (fraction digits in the questions can outnumber the question numbers)
         xs = [round(c[2] / 5) * 5 for c in cands]
-        col = max(set(xs), key=xs.count)
-        pos = (lo, -1)
-        for n in want:
-            hit = next((c for c in sorted(cands) if c[3] == n and abs(c[2] - col) < 40 and (c[0], c[1]) > pos), None)   # 40: some papers indent a page's numbers
-            if hit:
-                found[n] = (hit[0], hit[1])
-                pos = (hit[0], hit[1])
+        best = {}
+        for col in sorted(set(xs), key=lambda x: (-xs.count(x), x)):
+            got, pos = {}, (lo, -1)
+            for n in want:
+                hit = next((c for c in sorted(cands) if c[3] == n and abs(c[2] - col) < 40 and (c[0], c[1]) > pos), None)   # 40: some papers indent a page's numbers
+                if hit:
+                    got[n] = (hit[0], hit[1])
+                    pos = (hit[0], hit[1])
+            if len(got) > len(best):
+                best = got
+        found = best
     if len(found) >= 0.7 * len(want):
         return [found.get(n) for n in want]
 
@@ -438,6 +444,7 @@ def main():
     ap.add_argument('--out', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output'))
     ap.add_argument('--dpi', type=int, default=150)
     ap.add_argument('--no-ocr', action='store_true', help='do not OCR scanned papers (whole-page fallback)')
+    ap.add_argument('--ocr', action='store_true', help='OCR even when the PDF has a text layer')
     a = ap.parse_args()
 
     pdf = os.path.abspath(a.pdf)
@@ -464,7 +471,14 @@ def main():
 
     pages = parse_pages(pdf)
     n = len(pages)
-    scanned = sum(len(l['text']) for p in pages for l in p['lines']) < 200
+    alltext = ' '.join(l['text'] for p in pages for l in p['lines'])
+    scanned = len(alltext) < 200
+    words = re.findall(r'[A-Za-z]{3,}', alltext)
+    common = sum(w.lower() in ('the', 'question', 'marks', 'find', 'show', 'that', 'and', 'value', 'answer', 'section') for w in words)
+    garbled = len(alltext) >= 200 and common < max(5, n)   # a text layer in a scrambled font encoding reads as noise: treat it like a scan
+    garbled = garbled or len(alltext) < 150 * n             # only a header or two has text: the questions themselves are images
+    if garbled: print(f'{os.path.basename(pdf)}: text layer is unreadable, using OCR', file=sys.stderr)
+    scanned = scanned or garbled or a.ocr
     ocr_used = False
     if scanned and not a.no_ocr:
         cache_dir = os.path.join(a.out, '_ocr4', digest[:12])
@@ -530,6 +544,10 @@ def main():
                 tl = [[None, q.get('marks') or 0, [str(num)]]]
             letters = [t[0] for t in tl if t[0]]
             starts = [None] * len(tl) if scanned or not letters else part_starts(pages, letters, lo, hi, head)
+            if not letters and head:
+                starts = [head]                    # one-part question: it starts at its heading
+            # where the next question starts, so the last part stops there instead of running on to the page bottom
+            qend = None if scanned else question_head(pages, num + 1, lo, min(n - 1, hi + 1))
             if letters and ocr_used and not all(starts):
                 starts = part_starts_fuzzy(pages, letters, lo, hi, head)
             if letters and sum(1 for s in starts if s) < len(starts):
@@ -556,6 +574,8 @@ def main():
                         st = starts[merged_from]
                 if st:
                     nxt = next((s for s in starts[(merged_from if merged_from is not None else i) + 1:] if s), None)
+                    if nxt is None and qend and qend > st:
+                        nxt = qend
                     crops = region(pages, st, nxt, hi)
                     img = crop_image(pdf, pages, crops, a.dpi, cache, tmp)
                     if img:
