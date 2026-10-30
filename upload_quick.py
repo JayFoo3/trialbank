@@ -8,9 +8,10 @@ URL = os.environ.get('SUPABASE_URL', '').rstrip('/'); KEY = os.environ.get('SUPA
 if not URL or not KEY: sys.exit('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
 H = {'apikey': KEY, 'Authorization': f'Bearer {KEY}', 'Content-Type': 'application/json'}
 HERE = os.path.dirname(os.path.abspath(__file__))
-TOPIC = {'ss': 'Sequences and Series'}
-SUBJ = {'quick-adv': 'Adv'}
-LEVEL = {'ss1': 1, 'ss2': 1, 'ss5': 1, 'ss3': 2, 'ss6': 2, 'ss4': 3, 'ss7': 3, 'ss8': 3}
+TOPIC = {'ss': 'Sequences and Series', 'pi': 'Proof Induction', 'be': 'Binom. Exp.', 'pc': 'Perms/Combs', 'rf': 'Rem/Fact Th.', 'sp': 'Sum/Prod. Roots', 'it': 'Inverse Trig Fns'}
+SUBJ = {'quick-adv': 'Adv', 'quick-ext1': 'Ext1'}
+LEVEL = {'ss1': 1, 'ss2': 1, 'ss5': 1, 'ss3': 2, 'ss6': 2, 'ss4': 3, 'ss7': 3, 'ss8': 3,
+         'be1': 1, 'pc1': 1, 'rf2': 1, 'sp1': 1, 'sp2': 1, 'it1': 1, 'it2': 1, 'pi3': 3, 'be3': 3, 'be4': 3, 'pc5': 3, 'sp4': 3, 'rf1': 3}
 
 def ok(r, what):
     if r.status_code >= 300: sys.exit(f'{what}: {r.status_code} {r.text[:300]}')
