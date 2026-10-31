@@ -561,7 +561,7 @@ def main():
             for i, (letter, marks, subs) in enumerate(tl):
                 qid = f'q{num:02d}' + (letter or '')
                 keys = [re.sub(r'[()]', '', s) for s in subs]
-                tps = [topics.get(f'{num}{k}') for k in keys]
+                tps = [topics.get(f'{num}{k}') for k in keys] if letter else [topics.get(str(num))]   # a one-part question is keyed by its number alone
                 tps = [t for t in dict.fromkeys(tps) if t]
                 entry = dict(id=qid, number=num, part=letter, type='short', marks=marks, subparts=subs,
                              topic=tps[0] if tps else None, topics=tps, image=None, pages=[], text='')
