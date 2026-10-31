@@ -359,11 +359,21 @@ def build_regions(pages, items, end_markers, sol_start):
 def render_page(pdf, page_index, dpi, cache, tmpdir):
     if page_index in cache:
         return cache[page_index]
+    disk = os.environ.get('CUT_RENDER_CACHE')   # optional folder that keeps renders between runs (slow scanned papers)
+    if disk:
+        import hashlib
+        key = hashlib.md5(os.path.abspath(pdf).encode()).hexdigest()[:10]
+        fn = os.path.join(disk, f'{key}-{dpi}-{page_index}.png')
+        if os.path.exists(fn):
+            cache[page_index] = Image.open(fn).convert('RGB')
+            return cache[page_index]
     prefix = os.path.join(tmpdir, f'p{page_index}')
     run(['pdftoppm', '-r', str(dpi), '-png', '-f', str(page_index + 1), '-l', str(page_index + 1),
          pdf, prefix])
     out = [f for f in os.listdir(tmpdir) if f.startswith(f'p{page_index}-') and f.endswith('.png')]
     img = Image.open(os.path.join(tmpdir, out[0])).convert('RGB')
+    if disk:
+        os.makedirs(disk, exist_ok=True); img.save(fn + '.tmp.png'); os.replace(fn + '.tmp.png', fn)
     cache[page_index] = img
     return img
 
