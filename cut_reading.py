@@ -218,12 +218,27 @@ def top_level_parts(parts):
     return out
 
 
+_ONES = 'one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen'.split()
+_TENS = {'twenty': 20, 'thirty': 30, 'forty': 40}
+def word_num(w):
+    """'Eleven' -> 11, 'Twenty-three' -> 23; None if it isn't a number word"""
+    parts = re.split(r'[- ]', w.lower())
+    if len(parts) == 1:
+        return _ONES.index(parts[0]) + 1 if parts[0] in _ONES else _TENS.get(parts[0])
+    if parts[0] in _TENS and parts[1] in _ONES[:9]:
+        return _TENS[parts[0]] + _ONES.index(parts[1]) + 1
+    return None
+
+
 def question_head(pages, number, lo, hi):
     for pi, l in body_lines(pages, lo, hi):
         W = pages[pi]['width']
         t = l['text'].strip()
         m = RE_QHEAD.match(t)
         if m and int(m.group(1)) == number and l['x0'] < 0.35 * W and not re.search(r'cont', t, re.I):
+            return (pi, l['y0'])
+        mw = re.match(r'^Q\w*\s+(?:\w+\s+)?([A-Za-z]+(?:[- ][A-Za-z]+)?)\b', t)   # "Question Eleven", "Question Twenty-three"
+        if mw and l['x0'] < 0.35 * W and word_num(mw.group(1)) == number and not re.search(r'cont', t, re.I):
             return (pi, l['y0'])
         mn = RE_NUM.match(l['words'][0][4])
         if mn and int(mn.group(1)) == number and l['x0'] < 0.2 * W and (len(l['words']) > 1 or level_text(pages[pi]['lines'], l)):
