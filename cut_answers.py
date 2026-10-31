@@ -49,9 +49,11 @@ for hi, h in enumerate(heads):
         y0 = (min(nums) - 16) if nums else top   # where the answers carry on (skips a page title and intro)
     pieces = []
     for (pi, x0, y0, x1, y1) in segs:
+        if y1 - y0 < 6: continue
         c = img(pi).crop((int(x0 * S), int(y0 * S), int(x1 * S), int(y1 * S)))
         g = np.asarray(c.convert('L')); ys, xs = np.where(g < 200)
         if len(ys) and ys.max() - ys.min() > 10: pieces.append(c.crop((max(0, xs.min() - 10), max(0, ys.min() - 8), min(c.size[0], xs.max() + 10), min(c.size[1], ys.max() + 8))))
+    if not pieces: print(h['key'], 'empty'); continue
     Wd = max(p.size[0] for p in pieces); o = Image.new('RGB', (Wd, sum(p.size[1] + 16 for p in pieces)), 'white'); y = 0
     for p in pieces: o.paste(p, (0, y)); y += p.size[1] + 16
     o.save(os.path.join(out, f"ans-{h['key']}.png"), optimize=True); print(h['key'], o.size)

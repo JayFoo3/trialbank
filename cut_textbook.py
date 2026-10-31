@@ -46,6 +46,11 @@ def main(pdf, out):
             if nxt2 == 'Test yourself': heads.append(dict(ex='test', page=pi, y=w['y0']))
             if nxt2 == 'Challenge exercise': heads.append(dict(ex='challenge', page=pi, y=w['y0']))
             if nxt2 == 'CHAPTER SUMMARY': heads.append(dict(ex=None, page=pi, y=w['y0']))
+    for kind in ('test', 'challenge'):   # the real ones are at the end of the chapter; earlier mentions are in the intro or contents
+        ks = [h for h in heads if h['ex'] == kind]
+        if len(ks) > 1:
+            last = max(ks, key=lambda h: (h['page'], h['y']))
+            heads = [h for h in heads if h['ex'] != kind or h is last]
     heads.sort(key=lambda h: (h['page'], h['y']))
     seen = set(); heads = [h for h in heads if not ((h['ex'], h['page']) in seen or seen.add((h['ex'], h['page'])))]
     items = []
@@ -89,7 +94,7 @@ def main(pdf, out):
                     if y - last > GAP and not (nxt and nxt['page'] == pi): break
                     last = max(last, max(w['y1'] for w in body if round(w['y0']) == y))
                 if nxt and nxt['page'] == pi: last = end
-                spans.append((pi, y0, min(last + 6, end), q['x'] - 8))
+                spans.append((pi, y0, min(last + 6, end) if end != BOTTOM else last + 6, q['x'] - 8))   # a line starting just above the footer still ends below it
                 if nxt and nxt['page'] == pi + 1 and nxt['y'] - TOP > 40 and last >= BOTTOM - GAP:
                     pi += 1; y0 = TOP
                     if nxt['page'] == pi and nxt['y'] - 5 - y0 < 12: break
@@ -108,11 +113,13 @@ def main(pdf, out):
     for it in items:
         pieces = []
         for (pi, y0, y1, x0) in it['spans']:
+            if y1 - y0 < 6: continue   # an empty or back-to-front span (two numbers read out of order): nothing to cut
             im = page_img(pi); W, H = im.size
             xr = max([w['x1'] for w in pages[pi]['words'] if y0 <= w['y0'] < y1 and w['x0'] >= x0 and w['y0'] < BOTTOM] or [W / S * 0.86])
-            c = im.crop((int(x0 * S), int(y0 * S), min(int(W * 0.86), int((xr + 10) * S)), int(y1 * S)))   # stop at the text, not the box's border
+            right = max(int(x0 * S) + 40, min(int(W * 0.86), int((xr + 10) * S)))
+            c = im.crop((int(x0 * S), int(y0 * S), right, int(y1 * S)))   # stop at the text, not the box's border
             a = np.asarray(c).astype(int); sat = (a.max(axis=2) - a.min(axis=2) > 70) & (a.min(axis=2) < 210)
-            rows = np.where(sat.sum(axis=1) > 0.55 * c.size[0])[0]; rows = rows[rows > 30]
+            rows = np.where(sat.sum(axis=1) > max(0.55 * c.size[0], 500))[0]   # a coloured rule runs most of the page; the coloured number badge doesn't; rows = rows[rows > 30]
             if len(rows): c = c.crop((0, 0, c.size[0], int(rows[0]) - 2))
             g = np.asarray(c.convert('L')); ys, xs = np.where(g < 200)
             if not len(ys): continue

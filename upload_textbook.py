@@ -5,7 +5,8 @@ Reads textbook/<slug>/manifest.json (cut_textbook.py) and textbook/<slug>/ans-*.
 import json, os, sys, requests
 from upload import to_webp, put_object, URL, KEY, H, die
 HERE = os.path.dirname(os.path.abspath(__file__))
-CHAPTERS = {'margaret-ch01': dict(title='Sequences and Series', subject='Book', topic='Sequences and Series', induction='1.10')}
+TITLES = ['Sequences and Series', 'Vectors', 'Trigonometric Functions', 'Derivatives and Primitives', 'Graphical Applications of Differentiation', 'Integration', 'Further Integration', 'Applications of Calculus', 'Applications of Vectors', 'Discrete Probability Distributions', 'Annuities and Loans', 'Differential Equations', 'Continuous Probability Distributions', 'Binomial Distributions']
+CHAPTERS = {f'margaret-ch{i:02d}': dict(title=t, subject='Book', topic=t, induction='1.10' if i == 1 else None) for i, t in enumerate(TITLES, 1)}
 
 def ok(r, what):
     if r.status_code >= 300: die(f'{what}: {r.status_code} {r.text[:300]}')
@@ -18,8 +19,9 @@ for slug in sys.argv[1:]:
     pid = ok(requests.post(f'{URL}/rest/v1/papers?on_conflict=slug', headers={**H, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=representation'},
                            data=json.dumps(paper), timeout=60), 'paper').json()[0]['id']
     answers = {}
+    need = {'ex' + q['exercise'] if q['exercise'][0].isdigit() else q['exercise'] for q in man}
     for f in sorted(os.listdir(folder)):
-        if f.startswith('ans-') and f.endswith('.png'):
+        if f.startswith('ans-') and f.endswith('.png') and f[4:-4] in need:   # skip the next chapter's answers that share a page
             path = f'{slug}/{f[:-4]}.webp'; put_object(path, to_webp(os.path.join(folder, f), 82)); answers[f[4:-4]] = path
     rows = []
     for i, q in enumerate(man):

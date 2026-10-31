@@ -868,34 +868,59 @@
   let prMine = {};   // topic -> { score, out_of } for this subject, so each topic shows how you're going
   const prLevel = (m) => !m || !m.out_of ? 'new' : m.score / m.out_of < 0.5 ? 'low' : m.score / m.out_of < 0.75 ? 'mid' : 'high';
   // ---------- the Margaret textbook: chapters cut into exercise questions, only for admins, auto-marked against the book's answers ----------
-  let tbRows = null, tbPick = new Set(), tbEx = null;
+  let tbRows = null, tbPick = new Set(), tbEx = null, tbCh = null;
+  const BOOK_CH = ['Sequences and Series', 'Vectors', 'Trigonometric Functions', 'Derivatives and Primitives', 'Graphical Applications of Differentiation', 'Integration',
+    'Further Integration', 'Applications of Calculus', 'Applications of Vectors', 'Discrete Probability Distributions', 'Annuities and Loans', 'Differential Equations',
+    'Continuous Probability Distributions', 'Binomial Distributions'];
+  const bookCh = (q) => Number((/^margaret-ch(\d+)\//.exec(q.id || '') || [])[1] || 0);
   const bookEx = (q) => { const m = /(?:ex([\d.]+)|(test|challenge))-q(\d+)$/.exec(q.qid || ''); return !m ? '' : m[1] ? `Exercise ${m[1]}` : m[2] === 'test' ? 'Test yourself' : 'Challenge'; };
   const bookQ = (q) => Number((/-q(\d+)$/.exec(q.qid || '') || [])[1] || 0);
   const bookLabel = (q) => `${bookEx(q)} Q${bookQ(q)}`;
+  async function loadBook() {
+    const rows = [];
+    for (let from = 0; ; from += 1000) {   // the server hands back at most 1000 rows at a time
+      const { data, error } = await sb.from('questions').select(QCOLS).like('id', 'margaret-%').order('id').range(from, from + 999);
+      if (error) throw error;
+      rows.push(...(data || []));
+      if (!data || data.length < 1000) break;
+    }
+    return rows.sort((a, b) => bookCh(a) - bookCh(b) || a.number - b.number);
+  }
   async function drawTextbook() {
     const card = $('tb-card'); if (!card) return;
     card.hidden = !adminOn() || state.preview; if (card.hidden) return;
-    if (!tbRows) { const { data } = await sb.from('questions').select(QCOLS).like('id', 'margaret-%').limit(3000); tbRows = (data || []).sort((a, b) => a.number - b.number); }
+    if (!tbRows) tbRows = await loadBook();
     if (!tbRows.length) { card.hidden = true; return; }
-    const groups = {}; tbRows.forEach(q => { (groups[bookEx(q)] = groups[bookEx(q)] || []).push(q); });
+    const chapters = {}; tbRows.forEach(q => { (chapters[bookCh(q)] = chapters[bookCh(q)] || []).push(q); });
     const body = $('tb-body'); body.innerHTML = '';
-    Object.entries(groups).forEach(([ex, qs]) => {
-      const open = tbEx === ex, row = mk('div', 'tb-ex' + (open ? ' open' : ''));
-      const head = mk('button', 'tb-ex-h', `<b>${esc(ex)}</b><span>${qs.length}</span>`); head.type = 'button';
-      head.onclick = () => { tbEx = open ? null : ex; tbPick = new Set(); drawTextbook(); };
-      row.appendChild(head);
-      if (open) {
-        const go = mk('button', 'primary tb-go', 'Start all'); go.type = 'button';
-        const grid = mk('div', 'tb-grid');
-        qs.forEach(q => {
-          const b = mk('button', 'tb-q', String(bookQ(q))); b.type = 'button';
-          b.onclick = () => { tbPick.has(q.id) ? tbPick.delete(q.id) : tbPick.add(q.id); b.classList.toggle('on', tbPick.has(q.id)); go.textContent = tbPick.size ? `Start ${tbPick.size}` : 'Start all'; };
-          grid.appendChild(b);
+    Object.entries(chapters).forEach(([ch, cqs]) => {
+      ch = Number(ch);
+      const chOpen = tbCh === ch, crow = mk('div', 'tb-ch' + (chOpen ? ' open' : ''));
+      const chHead = mk('button', 'tb-ex-h', `<b>${ch}. ${esc(BOOK_CH[ch - 1] || 'Chapter ' + ch)}</b><span>${cqs.length}</span>`); chHead.type = 'button';
+      chHead.onclick = () => { tbCh = chOpen ? null : ch; tbEx = null; tbPick = new Set(); drawTextbook(); };
+      crow.appendChild(chHead);
+      if (chOpen) {
+        const groups = {}; cqs.forEach(q => { (groups[bookEx(q)] = groups[bookEx(q)] || []).push(q); });
+        Object.entries(groups).forEach(([ex, qs]) => {
+          const open = tbEx === ex, row = mk('div', 'tb-ex' + (open ? ' open' : ''));
+          const head = mk('button', 'tb-ex-h', `<b>${esc(ex)}</b><span>${qs.length}</span>`); head.type = 'button';
+          head.onclick = () => { tbEx = open ? null : ex; tbPick = new Set(); drawTextbook(); };
+          row.appendChild(head);
+          if (open) {
+            const go = mk('button', 'primary tb-go', 'Start all'); go.type = 'button';
+            const grid = mk('div', 'tb-grid');
+            qs.forEach(q => {
+              const b = mk('button', 'tb-q', String(bookQ(q))); b.type = 'button';
+              b.onclick = () => { tbPick.has(q.id) ? tbPick.delete(q.id) : tbPick.add(q.id); b.classList.toggle('on', tbPick.has(q.id)); go.textContent = tbPick.size ? `Start ${tbPick.size}` : 'Start all'; };
+              grid.appendChild(b);
+            });
+            go.onclick = () => busy(async () => { const pick = tbPick.size ? qs.filter(q => tbPick.has(q.id)) : qs; await startSet(pick.map(q => ({ ...q }))); });
+            row.append(grid, go);
+          }
+          crow.appendChild(row);
         });
-        go.onclick = () => busy(async () => { const pick = tbPick.size ? qs.filter(q => tbPick.has(q.id)) : qs; await startSet(pick.map(q => ({ ...q }))); });
-        row.append(grid, go);
       }
-      body.appendChild(row);
+      body.appendChild(crow);
     });
   }
   async function renderBuild() {
