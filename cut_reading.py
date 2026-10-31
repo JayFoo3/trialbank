@@ -267,7 +267,7 @@ def region(pages, start, end, hi_page):
                 if re.match(r'^question\s+\d+\s*\(?\s*continu', l['text'].strip(), re.I) and l['y0'] < y0 + 40:
                     y0 = max(y0, l['y1'] + 2)
         for l in pages[p]['lines']:
-            if y0 < l['y0'] < y1 and re.search(r'continues on next page', l['text'], re.I):
+            if y0 < l['y0'] < y1 and re.search(r'continues (on|over)', l['text'], re.I):
                 y1 = l['y0'] - PAD_TOP
         # trim at "End of Question / Section / paper" lines
         for l in pages[p]['lines']:
