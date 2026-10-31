@@ -1117,7 +1117,7 @@
     if (o.diff !== 'all') q = q.eq('papers.difficulty', o.diff);
     const { data, error } = await q;
     if (error) throw error;
-    if (!data.length) throw new Error(o.type === 'quick' ? 'No quick questions on those topics yet. So far there are quick questions for Sequences and Series (Maths Advanced), and Induction, Binomial Expansion, Perms and Combs, Polynomials, Roots and Inverse Trig (Extension 1).' : 'No questions match that. Widen the filters.');
+    if (!data.length) throw new Error(o.type === 'quick' ? 'No quick questions on those topics yet. Pick other topics, or switch to trial questions.' : 'No questions match that. Widen the filters.');
 
     await loadStepBlock(); const tooHard = blockedQs();
     let pool = data.filter(x => !tooHard.has(x.id) && !x.syllabus_note && hasKey(x));
