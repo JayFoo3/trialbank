@@ -12,9 +12,12 @@ TOPIC = {'wf': 'Working with Functions', 'gt': 'Graphing Techniques', 'tm': 'Tri
          'id': 'Introduction to Differentiation', 'dc': 'Differential Calculus', 'el': 'Exponential and Logarithmic Functions', 'ad': 'Applications of Differentiation',
          'ic': 'Integral Calculus', 'fm': 'Financial Mathematics', 'pr': 'Probability', 'dp': 'Discrete Probability Distributions',
          'ds': 'Descriptive Statistics and Bivariate Data', 'nd': 'The Normal Distribution',
-         'ss': 'Sequences and Series', 've': 'Vectors', 'pj': 'Projectiles', 'tid': 'Identities', 'te': 'Trig. Eqns', 'in': 'Integration', 'vo': 'Volumes',
+         'ss': 'Sequences and Series', 'pm': 'Projectile Motion', 'cm': 'Circular Motion', 'mg': 'Motion in Gravitational Fields', 'cf': 'Charged Particles, Conductors and Fields',
+         'me': 'The Motor Effect', 'ei': 'Electromagnetic Induction', 'am': 'Applications of the Motor Effect', 'es': 'Electromagnetic Spectrum', 'lw': 'Light: Wave Model',
+         'lq': 'Light: Quantum Model', 'sr': 'Light and Special Relativity', 'oe': 'Origins of the Elements', 'at': 'Structure of the Atom',
+         'qa': 'Quantum Mechanical Nature of the Atom', 'pn': 'Properties of the Nucleus', 'da': 'Deep Inside the Atom', 've': 'Vectors', 'pj': 'Projectiles', 'tid': 'Identities', 'te': 'Trig. Eqns', 'in': 'Integration', 'vo': 'Volumes',
          'de': "DE's", 'eg': 'Exp. G + D', 'rr': 'Related Rates', 'pa': 'Parametrics', 'if': 'Inverse Fns', 'iq': 'Inequalities', 'bd': 'Bern./Binom Dist.', 'pi': 'Proof Induction', 'be': 'Binom. Exp.', 'pc': 'Perms/Combs', 'rf': 'Rem/Fact Th.', 'sp': 'Sum/Prod. Roots', 'it': 'Inverse Trig Fns'}
-SUBJ = {'quick-adv': 'Adv', 'quick-ext1': 'Ext1'}
+SUBJ = {'quick-adv': 'Adv', 'quick-ext1': 'Ext1', 'quick-physics': 'Physics'}
 topic_of = lambda step: TOPIC[step.rstrip('0123456789')]   # tid1 -> Identities, ve3 -> Vectors
 LEVEL = {'ss1': 1, 'ss2': 1, 'ss5': 1, 'ss3': 2, 'ss6': 2, 'ss4': 3, 'ss7': 3, 'ss8': 3,
          'be1': 1, 'pc1': 1, 'rf2': 1, 'sp1': 1, 'sp2': 1, 'it1': 1, 'it2': 1, 'pi3': 3, 'be3': 3, 'be4': 3, 'pc5': 3, 'sp4': 3, 'rf1': 3}
