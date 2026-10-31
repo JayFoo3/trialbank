@@ -46,6 +46,7 @@ def main(pdf, out):
             if nxt2 == 'Test yourself': heads.append(dict(ex='test', page=pi, y=w['y0']))
             if nxt2 == 'Challenge exercise': heads.append(dict(ex='challenge', page=pi, y=w['y0']))
             if nxt2 == 'CHAPTER SUMMARY': heads.append(dict(ex=None, page=pi, y=w['y0']))
+            if nxt2 == 'PRACTICE SET' and pi == 0: heads.append(dict(ex='practice', page=pi, y=w['y0']))   # a practice set is one long exercise
     for kind in ('test', 'challenge'):   # the real ones are at the end of the chapter; earlier mentions are in the intro or contents
         ks = [h for h in heads if h['ex'] == kind]
         if len(ks) > 1:

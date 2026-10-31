@@ -7,6 +7,8 @@ from upload import to_webp, put_object, URL, KEY, H, die
 HERE = os.path.dirname(os.path.abspath(__file__))
 TITLES = ['Sequences and Series', 'Vectors', 'Trigonometric Functions', 'Derivatives and Primitives', 'Graphical Applications of Differentiation', 'Integration', 'Further Integration', 'Applications of Calculus', 'Applications of Vectors', 'Discrete Probability Distributions', 'Annuities and Loans', 'Differential Equations', 'Continuous Probability Distributions', 'Binomial Distributions']
 CHAPTERS = {f'margaret-ch{i:02d}': dict(title=t, subject='Book', topic=t, induction='1.10' if i == 1 else None) for i, t in enumerate(TITLES, 1)}
+for i in range(1, 5):   # the four practice sets, mixed topics, numbered on after the chapters
+    CHAPTERS[f'margaret-ch{14 + i:02d}'] = dict(title=f'Practice Set {i}', subject='Book', topic='Practice Set', induction=None)
 
 def ok(r, what):
     if r.status_code >= 300: die(f'{what}: {r.status_code} {r.text[:300]}')

@@ -21,7 +21,7 @@ for pi, pg in enumerate(pages):
     for i, w in enumerate(ws):
         two = ' '.join(x['t'] for x in ws[i:i + 2])
         m = re.fullmatch(r'Exercise (\d+\.\d+)', two)
-        key = 'ex' + m.group(1) if m else ('test' if two == 'Test yourself' else 'challenge' if two == 'Challenge exercise' else None)
+        key = 'ex' + m.group(1) if m else ('test' if two == 'Test yourself' else 'challenge' if two == 'Challenge exercise' else 'practice' if two == 'Practice set' else None)
         if key: heads.append(dict(key=key, page=pi, col=int(w['x0'] > pg['W'] * 0.45), y=w['y0'] - 4))
 heads.sort(key=lambda h: (h['page'], h['col'], h['y']))
 TOP, FOOT = 40, 40

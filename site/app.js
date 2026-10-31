@@ -871,9 +871,9 @@
   let tbRows = null, tbPick = new Set(), tbEx = null, tbCh = null;
   const BOOK_CH = ['Sequences and Series', 'Vectors', 'Trigonometric Functions', 'Derivatives and Primitives', 'Graphical Applications of Differentiation', 'Integration',
     'Further Integration', 'Applications of Calculus', 'Applications of Vectors', 'Discrete Probability Distributions', 'Annuities and Loans', 'Differential Equations',
-    'Continuous Probability Distributions', 'Binomial Distributions'];
+    'Continuous Probability Distributions', 'Binomial Distributions', 'Practice Set 1', 'Practice Set 2', 'Practice Set 3', 'Practice Set 4'];
   const bookCh = (q) => Number((/^margaret-ch(\d+)\//.exec(q.id || '') || [])[1] || 0);
-  const bookEx = (q) => { const m = /(?:ex([\d.]+)|(test|challenge))-q(\d+)$/.exec(q.qid || ''); return !m ? '' : m[1] ? `Exercise ${m[1]}` : m[2] === 'test' ? 'Test yourself' : 'Challenge'; };
+  const bookEx = (q) => { const m = /(?:ex([\d.]+)|(test|challenge|practice))-q(\d+)$/.exec(q.qid || ''); return !m ? '' : m[1] ? `Exercise ${m[1]}` : m[2] === 'test' ? 'Test yourself' : m[2] === 'practice' ? 'All questions' : 'Challenge'; };
   const bookQ = (q) => Number((/-q(\d+)$/.exec(q.qid || '') || [])[1] || 0);
   const bookLabel = (q) => `${bookEx(q)} Q${bookQ(q)}`;
   async function loadBook() {
