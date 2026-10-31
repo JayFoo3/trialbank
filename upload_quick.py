@@ -36,7 +36,12 @@ for slug in sys.argv[1:]:
     for i in range(0, len(rows), 100):
         ok(requests.post(f'{URL}/rest/v1/questions?on_conflict=id', headers={**H, 'Prefer': 'resolution=merge-duplicates'}, json=rows[i:i + 100], timeout=120), 'questions')
     keep = {x['id'] for x in rows}   # remove questions dropped from the file (looked up first: a long id list won't fit in a URL)
-    old = [q['id'] for q in ok(requests.get(f'{URL}/rest/v1/questions?paper_id=eq.{pid}&select=id&limit=10000', headers=H, timeout=60), 'list').json() if q['id'] not in keep]
+    have, off = [], 0
+    while True:   # the server hands back 1000 rows at a time
+        page = ok(requests.get(f'{URL}/rest/v1/questions?paper_id=eq.{pid}&select=id&order=id&offset={off}&limit=1000', headers=H, timeout=60), 'list').json()
+        have += [q['id'] for q in page]; off += 1000
+        if len(page) < 1000: break
+    old = [x for x in have if x not in keep]
     for i in range(0, len(old), 50):
         ids = ','.join(f'"{x}"' for x in old[i:i + 50])
         ok(requests.delete(f'{URL}/rest/v1/questions?id=in.({ids})', headers=H, timeout=60), 'remove old questions')
