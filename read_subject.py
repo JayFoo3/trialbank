@@ -3,7 +3,7 @@
 
 Run from Terminal:  cd ~/Documents/question-bank && caffeinate -i python3 read_subject.py --subject Eng --max 15
 Subjects: Adv (Maths Advanced), Std2 (Maths Standard 2), Eng (Engineering Studies), SE (Software Engineering),
-Econ (Economics), Bio (Biology).
+Econ (Economics), Bio (Biology), Chem (Chemistry).
 Run it again any time: it carries on where it stopped.
 
 It uses Albert's reader (~/Documents/thsc-index/reader) but never changes or pushes his repo:
@@ -46,6 +46,8 @@ SUBJECTS = {
                  word="economics", first=2015, folder="Economics", sol_only=False),
     "Bio": dict(pages=["Biology/trialpapers.html", "Biology/trialpapers_biology.html", "Bio/trialpapers.html"],
                 word="biology", first=2019, folder="Biology", sol_only=False),
+    "Chem": dict(pages=["Chemistry/trialpapers.html", "Chemistry/trialpapers_chemistry.html", "Chem/trialpapers.html"],
+                 word="chemistry", first=2019, folder="Chemistry", sol_only=False),
 }
 NAMED = re.compile(r"^(.*?)\s+((?:19|20)\d\d)\b")
 

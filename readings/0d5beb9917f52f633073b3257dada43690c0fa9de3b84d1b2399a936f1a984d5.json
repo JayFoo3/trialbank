@@ -1,0 +1,438 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 52,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 14,
+        "lastPage": 16,
+        "marks": 9,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 4
+          },
+          {
+            "label": "d",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 17,
+        "marks": 3,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 19,
+        "marks": 5,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 21,
+        "marks": 9,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 6
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 1
+          }
+        ]
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 22,
+        "marks": 7,
+        "number": 25,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 1
+          },
+          {
+            "label": "a(ii)",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 23,
+        "marks": 4,
+        "number": 26,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 24,
+        "lastPage": 25,
+        "marks": 9,
+        "number": 27,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 26,
+        "lastPage": 26,
+        "marks": 3,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 27,
+        "lastPage": 27,
+        "marks": 8,
+        "number": 29,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 4
+          },
+          {
+            "label": "b",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 28,
+        "lastPage": 28,
+        "marks": 7,
+        "number": 30,
+        "parts": []
+      },
+      {
+        "firstPage": 29,
+        "lastPage": 29,
+        "marks": 5,
+        "number": 31,
+        "parts": []
+      },
+      {
+        "firstPage": 30,
+        "lastPage": 32,
+        "marks": 11,
+        "number": 32,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 8
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 20,
+        "lastPage": 13,
+        "multipleChoice": true,
+        "name": "Part A"
+      },
+      {
+        "first": 21,
+        "firstPage": 14,
+        "last": 32,
+        "lastPage": 34,
+        "multipleChoice": false,
+        "name": "Part B"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:38:59Z",
+  "reader": "friend",
+  "sha256": "0d5beb9917f52f633073b3257dada43690c0fa9de3b84d1b2399a936f1a984d5",
+  "solutions": {
+    "answerKey": [
+      {
+        "answer": "A",
+        "number": 1
+      },
+      {
+        "answer": "C",
+        "number": 2
+      },
+      {
+        "answer": "C",
+        "number": 3
+      },
+      {
+        "answer": "B",
+        "number": 4
+      },
+      {
+        "answer": "D",
+        "number": 5
+      },
+      {
+        "answer": "C",
+        "number": 6
+      },
+      {
+        "answer": "D",
+        "number": 7
+      },
+      {
+        "answer": "D",
+        "number": 8
+      },
+      {
+        "answer": "B",
+        "number": 9
+      },
+      {
+        "answer": "A",
+        "number": 10
+      },
+      {
+        "answer": "C",
+        "number": 11
+      },
+      {
+        "answer": "D",
+        "number": 12
+      },
+      {
+        "answer": "B",
+        "number": 13
+      },
+      {
+        "answer": "D",
+        "number": 14
+      },
+      {
+        "answer": "A",
+        "number": 15
+      },
+      {
+        "answer": "A",
+        "number": 16
+      },
+      {
+        "answer": "B",
+        "number": 17
+      },
+      {
+        "answer": "D",
+        "number": 18
+      },
+      {
+        "answer": "D",
+        "number": 19
+      },
+      {
+        "answer": "A",
+        "number": 20
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 38,
+        "lastPage": 39,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 39,
+        "lastPage": 39,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 40,
+        "lastPage": 40,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 41,
+        "lastPage": 42,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 42,
+        "lastPage": 43,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 43,
+        "lastPage": 43,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 44,
+        "lastPage": 45,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 45,
+        "lastPage": 45,
+        "marks": 0,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 46,
+        "lastPage": 47,
+        "marks": 0,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 47,
+        "lastPage": 48,
+        "marks": 0,
+        "number": 30,
+        "parts": []
+      },
+      {
+        "firstPage": 48,
+        "lastPage": 49,
+        "marks": 0,
+        "number": 31,
+        "parts": []
+      },
+      {
+        "firstPage": 49,
+        "lastPage": 51,
+        "marks": 0,
+        "number": 32,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 38,
+  "source": {
+    "number": 1378,
+    "school": "Pymble",
+    "subject": "Bio",
+    "title": "Pymble 2020 w. sol",
+    "year": 2020
+  },
+  "topics": {
+    "1": "Causes of Infectious Disease",
+    "10": "Epidemiology",
+    "11": "Technologies and Disorders",
+    "12": "DNA and Polypeptide Synthesis",
+    "13": "Inheritance Patterns in a Population",
+    "14": "Mutation",
+    "15": "Mutation",
+    "16": "Reproduction",
+    "17": "DNA and Polypeptide Synthesis",
+    "18": "DNA and Polypeptide Synthesis",
+    "19": "Causes of Infectious Disease",
+    "2": "Causes of Infectious Disease",
+    "20": "Reproduction",
+    "21a": "Responses to Pathogens",
+    "21b": "Responses to Pathogens",
+    "21c": "Immunity",
+    "21d": "Prevention, Treatment and Control",
+    "22": "Prevention, Treatment and Control",
+    "23a": "Epidemiology",
+    "23b": "Prevention, Treatment and Control",
+    "24a": "Epidemiology",
+    "24b": "Prevention",
+    "24c": "Epidemiology",
+    "25ai": "Epidemiology",
+    "25aii": "Epidemiology",
+    "25b": "Causes and Effects",
+    "26a": "Cell Replication",
+    "26b": "Cell Replication",
+    "27a": "Genetic Variation",
+    "27b": "Genetic Variation",
+    "27c": "Genetic Variation",
+    "27d": "Inheritance Patterns in a Population",
+    "28": "Genetic Variation",
+    "29a": "DNA and Polypeptide Synthesis",
+    "29b": "Cell Replication",
+    "3": "Causes of Infectious Disease",
+    "30": "Genetic Variation",
+    "31": "Causes and Effects",
+    "32a": "Prevention",
+    "32b": "Causes of Infectious Disease",
+    "4": "Causes of Infectious Disease",
+    "5": "Prevention, Treatment and Control",
+    "6": "Homeostasis",
+    "7": "Homeostasis",
+    "8": "Epidemiology",
+    "9": "Causes and Effects"
+  }
+}

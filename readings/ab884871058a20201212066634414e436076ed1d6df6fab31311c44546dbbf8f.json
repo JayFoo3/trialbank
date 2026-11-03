@@ -1,0 +1,332 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 28,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 9,
+        "lastPage": 9,
+        "marks": 5,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 10,
+        "lastPage": 10,
+        "marks": 3,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 1
+          }
+        ]
+      },
+      {
+        "firstPage": 11,
+        "lastPage": 11,
+        "marks": 4,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 12,
+        "lastPage": 12,
+        "marks": 6,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 4
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 13,
+        "marks": 2,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 14,
+        "marks": 5,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 15,
+        "marks": 5,
+        "number": 27,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 16,
+        "marks": 5,
+        "number": 28,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 17,
+        "marks": 3,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 17,
+        "marks": 3,
+        "number": 30,
+        "parts": []
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 18,
+        "marks": 6,
+        "number": 31,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 20,
+        "marks": 9,
+        "number": 32,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 2
+          },
+          {
+            "label": "e",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 22,
+        "marks": 8,
+        "number": 33,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 24,
+        "marks": 3,
+        "number": 34,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 25,
+        "lastPage": 25,
+        "marks": 4,
+        "number": 35,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 26,
+        "lastPage": 26,
+        "marks": 4,
+        "number": 36,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 27,
+        "lastPage": 27,
+        "marks": 5,
+        "number": 37,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 20,
+        "lastPage": 8,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 9,
+        "last": 37,
+        "lastPage": 27,
+        "multipleChoice": false,
+        "name": "Part B"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:45:03Z",
+  "reader": "friend",
+  "sha256": "ab884871058a20201212066634414e436076ed1d6df6fab31311c44546dbbf8f",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 1378,
+    "school": "Caringbah",
+    "subject": "Bio",
+    "title": "Caringbah 2021",
+    "year": 2021
+  },
+  "topics": {
+    "1": "Reproduction",
+    "10": "Immunity",
+    "11": "Causes and Effects",
+    "12": "Mutation",
+    "13": "Biotechnology",
+    "14": "Causes of Infectious Disease",
+    "15": "Causes of Infectious Disease",
+    "16": "Causes of Infectious Disease",
+    "17": "Homeostasis",
+    "18": "Homeostasis",
+    "19": "Epidemiology",
+    "2": "DNA and Polypeptide Synthesis",
+    "20": "Inheritance Patterns in a Population",
+    "21a": "Genetic Variation",
+    "21b": "Reproduction",
+    "22a": "DNA and Polypeptide Synthesis",
+    "22b": "DNA and Polypeptide Synthesis",
+    "23": "DNA and Polypeptide Synthesis",
+    "24a": "Cell Replication",
+    "24b": "Mutation",
+    "25": "Inheritance Patterns in a Population",
+    "26": "Reproduction",
+    "27a": "Biotechnology",
+    "27b": "Biotechnology",
+    "28a": "Causes of Infectious Disease",
+    "28b": "Causes of Infectious Disease",
+    "29": "Prevention, Treatment and Control",
+    "3": "Responses to Pathogens",
+    "30": "Causes and Effects",
+    "31a": "Prevention, Treatment and Control",
+    "31b": "Prevention, Treatment and Control",
+    "31c": "Responses to Pathogens",
+    "32a": "Causes and Effects",
+    "32b": "Responses to Pathogens",
+    "32c": "Mutation",
+    "32d": "Genetic Technologies",
+    "32e": "Immunity",
+    "33a": "Causes of Infectious Disease",
+    "33b": "Biotechnology",
+    "34a": "Causes and Effects",
+    "34b": "Epidemiology",
+    "35a": "Technologies and Disorders",
+    "35b": "Technologies and Disorders",
+    "36a": "Homeostasis",
+    "36b": "Homeostasis",
+    "37": "Genetic Technologies",
+    "4": "Inheritance Patterns in a Population",
+    "5": "Cell Replication",
+    "6": "Biotechnology",
+    "7": "Genetic Technologies",
+    "8": "Technologies and Disorders",
+    "9": "Mutation"
+  }
+}

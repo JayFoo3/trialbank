@@ -1,0 +1,293 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 36,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 12,
+        "lastPage": 13,
+        "marks": 7,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 14,
+        "marks": 3,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 15,
+        "marks": 3,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 16,
+        "marks": 7,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 17,
+        "marks": 3,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 19,
+        "marks": 4,
+        "number": 26,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 22,
+        "marks": 8,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 23,
+        "marks": 5,
+        "number": 28,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 24,
+        "lastPage": 25,
+        "marks": 10,
+        "number": 29,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 26,
+        "lastPage": 27,
+        "marks": 0,
+        "number": 30,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 28,
+        "lastPage": 29,
+        "marks": 7,
+        "number": 31,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 1
+          },
+          {
+            "label": "d",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 29,
+        "lastPage": 29,
+        "marks": 3,
+        "number": 32,
+        "parts": []
+      },
+      {
+        "firstPage": 30,
+        "lastPage": 31,
+        "marks": 7,
+        "number": 33,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 32,
+        "lastPage": 32,
+        "marks": 4,
+        "number": 34,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 20,
+        "lastPage": 11,
+        "multipleChoice": true,
+        "name": "Part A"
+      },
+      {
+        "first": 21,
+        "firstPage": 12,
+        "last": 34,
+        "lastPage": 32,
+        "multipleChoice": false,
+        "name": "Part B"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:45:24Z",
+  "reader": "friend",
+  "sha256": "bd4793cfe33a1c2e926258d17f347f732b6ab0b67b364c9f1f31cdc54982836f",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 1378,
+    "school": "Penrith",
+    "subject": "Bio",
+    "title": "Penrith 2020",
+    "year": 2020
+  },
+  "topics": {
+    "1": "Reproduction",
+    "10": "Mutation",
+    "11": "Responses to Pathogens",
+    "12": "Responses to Pathogens",
+    "13": "Causes of Infectious Disease",
+    "14": "Causes of Infectious Disease",
+    "15": "Prevention, Treatment and Control",
+    "16": "Homeostasis",
+    "17": "Causes and Effects",
+    "18": "Homeostasis",
+    "19": "Homeostasis",
+    "2": "Inheritance Patterns in a Population",
+    "20": "Epidemiology",
+    "21a": "Reproduction",
+    "21b": "Reproduction",
+    "21c": "Reproduction",
+    "22": "Inheritance Patterns in a Population",
+    "23": "Genetic Technologies",
+    "24a": "DNA and Polypeptide Synthesis",
+    "24b": "DNA and Polypeptide Synthesis",
+    "24c": "DNA and Polypeptide Synthesis",
+    "25": "Mutation",
+    "26a": "Mutation",
+    "26b": "Mutation",
+    "27": "Genetic Variation",
+    "28a": "Biotechnology",
+    "28b": "Biotechnology",
+    "29a": "Immunity",
+    "29b": "Immunity",
+    "29c": "Prevention, Treatment and Control",
+    "3": "Inheritance Patterns in a Population",
+    "30a": "Epidemiology",
+    "30b": "Prevention, Treatment and Control",
+    "30c": "Causes of Infectious Disease",
+    "31a": "Homeostasis",
+    "31b": "Homeostasis",
+    "31c": "Homeostasis",
+    "31d": "Homeostasis",
+    "32": "Homeostasis",
+    "33a": "Responses to Pathogens",
+    "33b": "Immunity",
+    "33c": "Immunity",
+    "34": "Causes and Effects",
+    "4": "Cell Replication",
+    "5": "Cell Replication",
+    "6": "Mutation",
+    "7": "Reproduction",
+    "8": "DNA and Polypeptide Synthesis",
+    "9": "Mutation"
+  }
+}

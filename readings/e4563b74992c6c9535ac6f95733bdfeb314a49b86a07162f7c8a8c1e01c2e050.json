@@ -1,0 +1,344 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 38,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 9,
+        "lastPage": 10,
+        "marks": 10,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 11,
+        "lastPage": 12,
+        "marks": 10,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 14,
+        "marks": 10,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 16,
+        "marks": 10,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 3
+          },
+          {
+            "label": "a(ii)",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 20,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 22,
+        "marks": 20,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 23,
+        "marks": 20,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 23,
+        "marks": 20,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 20,
+        "lastPage": 7,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 8,
+        "last": 24,
+        "lastPage": 19,
+        "multipleChoice": false,
+        "name": "Section II"
+      },
+      {
+        "first": 25,
+        "firstPage": 20,
+        "last": 26,
+        "lastPage": 22,
+        "multipleChoice": false,
+        "name": "Section III"
+      },
+      {
+        "first": 27,
+        "firstPage": 23,
+        "last": 28,
+        "lastPage": 23,
+        "multipleChoice": false,
+        "name": "Section IV"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:49:33Z",
+  "reader": "friend",
+  "sha256": "e4563b74992c6c9535ac6f95733bdfeb314a49b86a07162f7c8a8c1e01c2e050",
+  "solutions": {
+    "answerKey": [
+      {
+        "answer": "C",
+        "number": 1
+      },
+      {
+        "answer": "A",
+        "number": 2
+      },
+      {
+        "answer": "D",
+        "number": 3
+      },
+      {
+        "answer": "D",
+        "number": 4
+      },
+      {
+        "answer": "B",
+        "number": 5
+      },
+      {
+        "answer": "C",
+        "number": 6
+      },
+      {
+        "answer": "B",
+        "number": 7
+      },
+      {
+        "answer": "A",
+        "number": 8
+      },
+      {
+        "answer": "B",
+        "number": 9
+      },
+      {
+        "answer": "B",
+        "number": 10
+      },
+      {
+        "answer": "A",
+        "number": 11
+      },
+      {
+        "answer": "D",
+        "number": 12
+      },
+      {
+        "answer": "B",
+        "number": 13
+      },
+      {
+        "answer": "D",
+        "number": 14
+      },
+      {
+        "answer": "D",
+        "number": 15
+      },
+      {
+        "answer": "C",
+        "number": 16
+      },
+      {
+        "answer": "B",
+        "number": 17
+      },
+      {
+        "answer": "A",
+        "number": 18
+      },
+      {
+        "answer": "A",
+        "number": 19
+      },
+      {
+        "answer": "C",
+        "number": 20
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 25,
+        "lastPage": 26,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 26,
+        "lastPage": 27,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 28,
+        "lastPage": 29,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 30,
+        "lastPage": 30,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 31,
+        "lastPage": 32,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 33,
+        "lastPage": 33,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 34,
+        "lastPage": 34,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 35,
+        "lastPage": 35,
+        "marks": 0,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 24,
+  "source": {
+    "number": 0,
+    "school": "HSC",
+    "subject": "Econ",
+    "title": "HSC 2022 w. sol",
+    "year": 2022
+  },
+  "topics": {
+    "1": "Globalisation",
+    "10": "Microeconomic Policy",
+    "11": "Balance of Payments",
+    "12": "Distribution of Income and Wealth",
+    "13": "Labour Market Policy",
+    "14": "Economic Growth",
+    "15": "Unemployment",
+    "16": "Economic Growth",
+    "17": "Economic Growth",
+    "18": "Terms of Trade and Foreign Debt",
+    "19": "Protection and Free Trade",
+    "2": "Unemployment",
+    "20": "Protection and Free Trade",
+    "21a": "Fiscal Policy",
+    "21b": "Fiscal Policy",
+    "21c": "Fiscal Policy",
+    "22a": "Microeconomic Policy",
+    "22b": "Environmental Sustainability",
+    "22c": "Environmental Sustainability",
+    "23a": "Exchange Rates",
+    "23b": "Exchange Rates",
+    "23c": "Globalisation",
+    "24ai": "Trade and Financial Flows",
+    "24aii": "Trade and Financial Flows",
+    "24b": "Protection and Free Trade",
+    "25": "Exchange Rates",
+    "26": "Labour Market Policy",
+    "27": "Inflation",
+    "28": "Economic Development",
+    "3": "Globalisation",
+    "4": "Unemployment",
+    "5": "Exchange Rates",
+    "6": "Environmental Sustainability",
+    "7": "Balance of Payments",
+    "8": "Economic Growth",
+    "9": "Labour Market Policy"
+  }
+}

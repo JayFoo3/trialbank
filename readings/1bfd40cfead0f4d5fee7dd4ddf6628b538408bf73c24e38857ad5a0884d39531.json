@@ -1,0 +1,359 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 42,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 8,
+        "lastPage": 9,
+        "marks": 10,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 10,
+        "lastPage": 11,
+        "marks": 10,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 12,
+        "lastPage": 13,
+        "marks": 10,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 15,
+        "marks": 10,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 16,
+        "marks": 20,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 17,
+        "marks": 20,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 18,
+        "marks": 20,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 18,
+        "marks": 20,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 20,
+        "lastPage": 6,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 8,
+        "last": 24,
+        "lastPage": 15,
+        "multipleChoice": false,
+        "name": "Section II"
+      },
+      {
+        "first": 25,
+        "firstPage": 16,
+        "last": 26,
+        "lastPage": 17,
+        "multipleChoice": false,
+        "name": "Section III"
+      },
+      {
+        "first": 27,
+        "firstPage": 18,
+        "last": 28,
+        "lastPage": 18,
+        "multipleChoice": false,
+        "name": "Section IV"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:09:46Z",
+  "reader": "friend",
+  "sha256": "1bfd40cfead0f4d5fee7dd4ddf6628b538408bf73c24e38857ad5a0884d39531",
+  "solutions": {
+    "answerKey": [
+      {
+        "answer": "D",
+        "number": 1
+      },
+      {
+        "answer": "B",
+        "number": 2
+      },
+      {
+        "answer": "D",
+        "number": 3
+      },
+      {
+        "answer": "A",
+        "number": 4
+      },
+      {
+        "answer": "C",
+        "number": 5
+      },
+      {
+        "answer": "A",
+        "number": 6
+      },
+      {
+        "answer": "C",
+        "number": 7
+      },
+      {
+        "answer": "B",
+        "number": 8
+      },
+      {
+        "answer": "D",
+        "number": 9
+      },
+      {
+        "answer": "A",
+        "number": 10
+      },
+      {
+        "answer": "C",
+        "number": 11
+      },
+      {
+        "answer": "C",
+        "number": 12
+      },
+      {
+        "answer": "A",
+        "number": 13
+      },
+      {
+        "answer": "A",
+        "number": 14
+      },
+      {
+        "answer": "D",
+        "number": 15
+      },
+      {
+        "answer": "D",
+        "number": 16
+      },
+      {
+        "answer": "C",
+        "number": 17
+      },
+      {
+        "answer": "D",
+        "number": 18
+      },
+      {
+        "answer": "C",
+        "number": 19
+      },
+      {
+        "answer": "C",
+        "number": 20
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 22,
+        "lastPage": 24,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 25,
+        "lastPage": 26,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 27,
+        "lastPage": 29,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 30,
+        "lastPage": 32,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 33,
+        "lastPage": 34,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 35,
+        "lastPage": 36,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 37,
+        "lastPage": 39,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 40,
+        "lastPage": 41,
+        "marks": 0,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 21,
+  "source": {
+    "number": 2478,
+    "school": "James Ruse",
+    "subject": "Econ",
+    "title": "James Ruse 2021 w. sol",
+    "year": 2021
+  },
+  "topics": {
+    "1": "Protection and Free Trade",
+    "10": "Microeconomic Policy",
+    "11": "Balance of Payments",
+    "12": "Economic Growth",
+    "13": "Inflation",
+    "14": "Limitations of Policy",
+    "15": "Economic Development",
+    "16": "Economic Development",
+    "17": "Protection and Free Trade",
+    "18": "Limitations of Policy",
+    "19": "Balance of Payments",
+    "2": "Unemployment",
+    "20": "Globalisation",
+    "21a": "Protection and Free Trade",
+    "21b": "Protection and Free Trade",
+    "21c": "Protection and Free Trade",
+    "21d": "Protection and Free Trade",
+    "22a": "Unemployment",
+    "22b": "Unemployment",
+    "22c": "Unemployment",
+    "23a": "Economic Development",
+    "23b": "Globalisation",
+    "23c": "Economic Development",
+    "23d": "Economic Development",
+    "24a": "Economic Growth",
+    "24b": "Economic Growth",
+    "24c": "Economic Growth",
+    "24d": "Economic Growth",
+    "25": "Protection and Free Trade",
+    "26": "Economic Growth",
+    "27": "Monetary Policy",
+    "28": "Balance of Payments",
+    "3": "Microeconomic Policy",
+    "4": "Fiscal Policy",
+    "5": "Economic Growth",
+    "6": "Balance of Payments",
+    "7": "Trade and Financial Flows",
+    "8": "Fiscal Policy",
+    "9": "Balance of Payments"
+  }
+}

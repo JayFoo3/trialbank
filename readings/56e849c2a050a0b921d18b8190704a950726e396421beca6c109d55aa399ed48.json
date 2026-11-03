@@ -1,0 +1,206 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 21,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 9,
+        "lastPage": 10,
+        "marks": 10,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 11,
+        "lastPage": 12,
+        "marks": 10,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 14,
+        "marks": 10,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 16,
+        "marks": 10,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 18,
+        "marks": 20,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 19,
+        "marks": 20,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 20,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 20,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 20,
+        "lastPage": 8,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 9,
+        "last": 24,
+        "lastPage": 16,
+        "multipleChoice": false,
+        "name": "Section II"
+      },
+      {
+        "first": 25,
+        "firstPage": 17,
+        "last": 26,
+        "lastPage": 19,
+        "multipleChoice": false,
+        "name": "Section III"
+      },
+      {
+        "first": 27,
+        "firstPage": 20,
+        "last": 28,
+        "lastPage": 20,
+        "multipleChoice": false,
+        "name": "Section IV"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:24:08Z",
+  "reader": "friend",
+  "sha256": "56e849c2a050a0b921d18b8190704a950726e396421beca6c109d55aa399ed48",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2478,
+    "school": "Knox",
+    "subject": "Econ",
+    "title": "Knox 2023",
+    "year": 2023
+  },
+  "topics": {
+    "1": "Globalisation",
+    "10": "Exchange Rates",
+    "11": "Monetary Policy",
+    "12": "Inflation",
+    "13": "Inflation",
+    "14": "Unemployment",
+    "15": "Distribution of Income and Wealth",
+    "16": "Terms of Trade and Foreign Debt",
+    "17": "Terms of Trade and Foreign Debt",
+    "18": "Protection and Free Trade",
+    "19": "Economic Growth",
+    "2": "Protection and Free Trade",
+    "20": "Inflation",
+    "21a": "Labour Market Policy",
+    "21b": "Labour Market Policy",
+    "21c": "Inflation",
+    "22a": "Economic Development",
+    "22b": "Economic Development",
+    "22c": "Economic Development",
+    "23a": "Economic Growth",
+    "23b": "Distribution of Income and Wealth",
+    "23c": "Microeconomic Policy",
+    "24a": "Distribution of Income and Wealth",
+    "24b": "Unemployment",
+    "24c": "Unemployment",
+    "25": "Inflation",
+    "26": "Environmental Sustainability",
+    "27": "Exchange Rates",
+    "28": "Protection and Free Trade",
+    "3": "Distribution of Income and Wealth",
+    "4": "Balance of Payments",
+    "5": "Microeconomic Policy",
+    "6": "Limitations of Policy",
+    "7": "Fiscal Policy",
+    "8": "Environmental Sustainability",
+    "9": "Balance of Payments"
+  }
+}

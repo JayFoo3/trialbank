@@ -1,0 +1,249 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 36,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 16,
+        "lastPage": 16,
+        "marks": 4,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 17,
+        "marks": 3,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 18,
+        "marks": 7,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 20,
+        "marks": 8,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 3,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 24,
+        "marks": 15,
+        "number": 26,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 4
+          },
+          {
+            "label": "b",
+            "marks": 5
+          },
+          {
+            "label": "c",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 25,
+        "lastPage": 25,
+        "marks": 4,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 26,
+        "lastPage": 27,
+        "marks": 4,
+        "number": 28,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 28,
+        "lastPage": 28,
+        "marks": 8,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 29,
+        "lastPage": 30,
+        "marks": 11,
+        "number": 30,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 2
+          },
+          {
+            "label": "e",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 31,
+        "lastPage": 33,
+        "marks": 13,
+        "number": 31,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 7
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 4,
+        "last": 20,
+        "lastPage": 13,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 15,
+        "last": 31,
+        "lastPage": 33,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:47:08Z",
+  "reader": "friend",
+  "sha256": "e8dd4e9c110e3e63fba2a2dc447fa3c91803e2900f81bf20472eda70c613e3d5",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 1378,
+    "school": "Barker",
+    "subject": "Bio",
+    "title": "Barker 2021",
+    "year": 2021
+  },
+  "topics": {
+    "1": "Prevention, Treatment and Control",
+    "10": "Cell Replication",
+    "11": "DNA and Polypeptide Synthesis",
+    "12": "Prevention, Treatment and Control",
+    "13": "Causes of Infectious Disease",
+    "14": "Causes of Infectious Disease",
+    "15": "Responses to Pathogens",
+    "16": "Causes of Infectious Disease",
+    "17": "Genetic Variation",
+    "18": "Reproduction",
+    "19": "Reproduction",
+    "2": "DNA and Polypeptide Synthesis",
+    "20": "Prevention, Treatment and Control",
+    "21": "Inheritance Patterns in a Population",
+    "22a": "DNA and Polypeptide Synthesis",
+    "22b": "DNA and Polypeptide Synthesis",
+    "23a": "Responses to Pathogens",
+    "23b": "Responses to Pathogens",
+    "24a": "Immunity",
+    "24b": "Immunity",
+    "25": "Responses to Pathogens",
+    "26a": "Causes of Infectious Disease",
+    "26b": "Prevention, Treatment and Control",
+    "26c": "Prevention, Treatment and Control",
+    "27": "Inheritance Patterns in a Population",
+    "28a": "Reproduction",
+    "28b": "Reproduction",
+    "29": "Biotechnology",
+    "3": "Genetic Variation",
+    "30a": "Causes of Infectious Disease",
+    "30b": "Prevention, Treatment and Control",
+    "30c": "DNA and Polypeptide Synthesis",
+    "30d": "DNA and Polypeptide Synthesis",
+    "30e": "Mutation",
+    "31a": "Reproduction",
+    "31b": "Reproduction",
+    "31c": "Reproduction",
+    "4": "Causes of Infectious Disease",
+    "5": "Biotechnology",
+    "6": "Inheritance Patterns in a Population",
+    "7": "Prevention, Treatment and Control",
+    "8": "Inheritance Patterns in a Population",
+    "9": "Genetic Variation"
+  }
+}

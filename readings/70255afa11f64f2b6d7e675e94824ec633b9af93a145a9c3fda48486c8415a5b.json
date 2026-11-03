@@ -1,0 +1,428 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 50,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 11,
+        "lastPage": 12,
+        "marks": 12,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 1
+          },
+          {
+            "label": "d",
+            "marks": 1
+          },
+          {
+            "label": "e",
+            "marks": 2
+          },
+          {
+            "label": "f",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 13,
+        "marks": 7,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 14,
+        "marks": 5,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 16,
+        "marks": 15,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 3
+          },
+          {
+            "label": "e",
+            "marks": 2
+          },
+          {
+            "label": "f",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 18,
+        "marks": 6,
+        "number": 25,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 19,
+        "marks": 3,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 5,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 22,
+        "marks": 8,
+        "number": 28,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 24,
+        "marks": 7,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 25,
+        "lastPage": 26,
+        "marks": 12,
+        "number": 30,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 20,
+        "lastPage": 8,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 10,
+        "last": 30,
+        "lastPage": 26,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T02:56:46Z",
+  "reader": "friend",
+  "sha256": "70255afa11f64f2b6d7e675e94824ec633b9af93a145a9c3fda48486c8415a5b",
+  "solutions": {
+    "answerKey": [
+      {
+        "answer": "D",
+        "number": 1
+      },
+      {
+        "answer": "D",
+        "number": 2
+      },
+      {
+        "answer": "C",
+        "number": 3
+      },
+      {
+        "answer": "D",
+        "number": 4
+      },
+      {
+        "answer": "B",
+        "number": 5
+      },
+      {
+        "answer": "A",
+        "number": 6
+      },
+      {
+        "answer": "B",
+        "number": 7
+      },
+      {
+        "answer": "B",
+        "number": 8
+      },
+      {
+        "answer": "A",
+        "number": 9
+      },
+      {
+        "answer": "A",
+        "number": 10
+      },
+      {
+        "answer": "C",
+        "number": 11
+      },
+      {
+        "answer": "D",
+        "number": 12
+      },
+      {
+        "answer": "B",
+        "number": 13
+      },
+      {
+        "answer": "B",
+        "number": 14
+      },
+      {
+        "answer": "B",
+        "number": 15
+      },
+      {
+        "answer": "C",
+        "number": 16
+      },
+      {
+        "answer": "A",
+        "number": 17
+      },
+      {
+        "answer": "D",
+        "number": 18
+      },
+      {
+        "answer": "B",
+        "number": 19
+      },
+      {
+        "answer": "D",
+        "number": 20
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 30,
+        "lastPage": 32,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 32,
+        "lastPage": 33,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 34,
+        "lastPage": 34,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 35,
+        "lastPage": 37,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 38,
+        "lastPage": 39,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 39,
+        "lastPage": 40,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 41,
+        "lastPage": 42,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 42,
+        "lastPage": 44,
+        "marks": 0,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 45,
+        "lastPage": 47,
+        "marks": 0,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 47,
+        "lastPage": 49,
+        "marks": 0,
+        "number": 30,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 29,
+  "source": {
+    "number": 1828,
+    "school": "Girraween",
+    "subject": "Chem",
+    "title": "Girraween 2022 w. sol",
+    "year": 2022
+  },
+  "topics": {
+    "1": "Hydrocarbons",
+    "10": "Properties of Acids and Bases",
+    "11": "Properties of Acids and Bases",
+    "12": "Quantitative Analysis",
+    "13": "Using Br\u00f8nsted\u2013Lowry Theory",
+    "14": "Products of Reactions Involving Hydrocarbons",
+    "15": "Solution Equilibria",
+    "16": "Nomenclature",
+    "17": "Factors that Affect Equilibrium",
+    "18": "Static and Dynamic Equilibrium",
+    "19": "Quantitative Analysis",
+    "2": "Factors that Affect Equilibrium",
+    "20": "Quantitative Analysis",
+    "21a": "Calculating the Equilibrium Constant (Keq)",
+    "21b": "Calculating the Equilibrium Constant (Keq)",
+    "21c": "Calculating the Equilibrium Constant (Keq)",
+    "21d": "Calculating the Equilibrium Constant (Keq)",
+    "21e": "Factors that Affect Equilibrium",
+    "21f": "Factors that Affect Equilibrium",
+    "22a": "Properties of Acids and Bases",
+    "22b": "Solution Equilibria",
+    "22c": "Solution Equilibria",
+    "23a": "Quantitative Analysis",
+    "23b": "Quantitative Analysis",
+    "24a": "Alcohols",
+    "24b": "Products of Reactions Involving Hydrocarbons",
+    "24c": "Alcohols",
+    "24d": "Alcohols",
+    "24e": "Alcohols",
+    "24f": "Alcohols",
+    "25a": "Quantitative Analysis",
+    "25b": "Quantitative Analysis",
+    "26": "Analysis of Inorganic Substances",
+    "27": "Hydrocarbons",
+    "28a": "Properties of Acids and Bases",
+    "28b": "Properties of Acids and Bases",
+    "28c": "Quantitative Analysis",
+    "29": "Analysis of Organic Substances",
+    "3": "Nomenclature",
+    "30a": "Using Br\u00f8nsted\u2013Lowry Theory",
+    "30b": "Using Br\u00f8nsted\u2013Lowry Theory",
+    "30c": "Using Br\u00f8nsted\u2013Lowry Theory",
+    "30d": "Using Br\u00f8nsted\u2013Lowry Theory",
+    "4": "Solution Equilibria",
+    "5": "Using Br\u00f8nsted\u2013Lowry Theory",
+    "6": "Properties of Acids and Bases",
+    "7": "Products of Reactions Involving Hydrocarbons",
+    "8": "Properties of Acids and Bases",
+    "9": "Analysis of Inorganic Substances"
+  }
+}

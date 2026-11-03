@@ -1,0 +1,231 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 19,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 9,
+        "lastPage": 10,
+        "marks": 10,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 1
+          },
+          {
+            "label": "d",
+            "marks": 1
+          },
+          {
+            "label": "e",
+            "marks": 2
+          },
+          {
+            "label": "f",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 10,
+        "lastPage": 12,
+        "marks": 10,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 12,
+        "lastPage": 13,
+        "marks": 10,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 4
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 14,
+        "marks": 10,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 15,
+        "marks": 20,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 16,
+        "marks": 20,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 17,
+        "marks": 20,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 17,
+        "marks": 20,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 20,
+        "lastPage": 8,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 9,
+        "last": 24,
+        "lastPage": 14,
+        "multipleChoice": false,
+        "name": "Section II"
+      },
+      {
+        "first": 25,
+        "firstPage": 15,
+        "last": 26,
+        "lastPage": 16,
+        "multipleChoice": false,
+        "name": "Section III"
+      },
+      {
+        "first": 27,
+        "firstPage": 17,
+        "last": 28,
+        "lastPage": 17,
+        "multipleChoice": false,
+        "name": "Section IV"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:23:52Z",
+  "reader": "friend",
+  "sha256": "a7b8bdb6d849ec5bb2daad17d19b3ef82011770a9503eb2c18591ddaac9cae8d",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2478,
+    "school": "Sydney Grammar",
+    "subject": "Econ",
+    "title": "Sydney Grammar 2016",
+    "year": 2016
+  },
+  "topics": {
+    "1": "Protection and Free Trade",
+    "10": "Distribution of Income and Wealth",
+    "11": "Fiscal Policy",
+    "12": "Protection and Free Trade",
+    "13": "Unemployment",
+    "14": "Terms of Trade and Foreign Debt",
+    "15": "Environmental Sustainability",
+    "16": "Inflation",
+    "17": "Economic Growth",
+    "18": "Unemployment",
+    "19": "Fiscal Policy",
+    "2": "Protection and Free Trade",
+    "20": "Economic Growth",
+    "21a": "Protection and Free Trade",
+    "21b": "Protection and Free Trade",
+    "21c": "Protection and Free Trade",
+    "21d": "Protection and Free Trade",
+    "21e": "Protection and Free Trade",
+    "21f": "Protection and Free Trade",
+    "22a": "Microeconomic Policy",
+    "22b": "Microeconomic Policy",
+    "22c": "Microeconomic Policy",
+    "22d": "Microeconomic Policy",
+    "23a": "Distribution of Income and Wealth",
+    "23b": "Distribution of Income and Wealth",
+    "23c": "Distribution of Income and Wealth",
+    "23d": "Distribution of Income and Wealth",
+    "24a": "Environmental Sustainability",
+    "24b": "Environmental Sustainability",
+    "24c": "Environmental Sustainability",
+    "25": "Balance of Payments",
+    "26": "Exchange Rates",
+    "27": "Inflation",
+    "28": "Unemployment",
+    "3": "Fiscal Policy",
+    "4": "Economic Growth",
+    "5": "Terms of Trade and Foreign Debt",
+    "6": "Balance of Payments",
+    "7": "Limitations of Policy",
+    "8": "Economic Growth",
+    "9": "Exchange Rates"
+  }
+}

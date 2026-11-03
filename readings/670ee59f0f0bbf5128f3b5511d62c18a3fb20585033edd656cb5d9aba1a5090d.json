@@ -1,0 +1,296 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 26,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 8,
+        "lastPage": 8,
+        "marks": 5,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 9,
+        "lastPage": 9,
+        "marks": 3,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 9,
+        "lastPage": 9,
+        "marks": 7,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 4
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 10,
+        "lastPage": 10,
+        "marks": 8,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 11,
+        "lastPage": 11,
+        "marks": 4,
+        "number": 25,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 12,
+        "lastPage": 13,
+        "marks": 7,
+        "number": 26,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 13,
+        "marks": 5,
+        "number": 27,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 13,
+        "marks": 4,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 18,
+        "marks": 5,
+        "number": 29,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 19,
+        "marks": 4,
+        "number": 30,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 1
+          }
+        ]
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 5,
+        "number": 31,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 8,
+        "number": 32,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 22,
+        "marks": 5,
+        "number": 33,
+        "parts": []
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 23,
+        "marks": 3,
+        "number": 34,
+        "parts": []
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 25,
+        "marks": 7,
+        "number": 35,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 20,
+        "lastPage": 7,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 8,
+        "last": 35,
+        "lastPage": 25,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:48:20Z",
+  "reader": "friend",
+  "sha256": "670ee59f0f0bbf5128f3b5511d62c18a3fb20585033edd656cb5d9aba1a5090d",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 1378,
+    "school": "Hornsby Girls",
+    "subject": "Bio",
+    "title": "Hornsby Girls 2019",
+    "year": 2019
+  },
+  "topics": {
+    "1": "Reproduction",
+    "10": "Responses to Pathogens",
+    "11": "Epidemiology",
+    "12": "Prevention",
+    "13": "Inheritance Patterns in a Population",
+    "14": "DNA and Polypeptide Synthesis",
+    "15": "Inheritance Patterns in a Population",
+    "16": "Responses to Pathogens",
+    "17": "Responses to Pathogens",
+    "18": "Reproduction",
+    "19": "Causes of Infectious Disease",
+    "2": "Prevention, Treatment and Control",
+    "20": "Causes of Infectious Disease",
+    "21a": "DNA and Polypeptide Synthesis",
+    "21b": "DNA and Polypeptide Synthesis",
+    "22": "Causes of Infectious Disease",
+    "23a": "Homeostasis",
+    "23b": "Homeostasis",
+    "24a": "Inheritance Patterns in a Population",
+    "24b": "Inheritance Patterns in a Population",
+    "24c": "Inheritance Patterns in a Population",
+    "25a": "Genetic Variation",
+    "25b": "Genetic Variation",
+    "26a": "Prevention, Treatment and Control",
+    "26b": "Prevention, Treatment and Control",
+    "26c": "Prevention, Treatment and Control",
+    "27a": "Technologies and Disorders",
+    "27b": "Technologies and Disorders",
+    "28": "Technologies and Disorders",
+    "29a": "Causes of Infectious Disease",
+    "29b": "Causes of Infectious Disease",
+    "29c": "Causes of Infectious Disease",
+    "3": "Mutation",
+    "30a": "Mutation",
+    "30b": "Mutation",
+    "31": "Prevention, Treatment and Control",
+    "32a": "Inheritance Patterns in a Population",
+    "32b": "Inheritance Patterns in a Population",
+    "32c": "Inheritance Patterns in a Population",
+    "33": "Epidemiology",
+    "34": "Genetic Technologies",
+    "35": "Technologies and Disorders",
+    "4": "DNA and Polypeptide Synthesis",
+    "5": "Responses to Pathogens",
+    "6": "Responses to Pathogens",
+    "7": "Cell Replication",
+    "8": "Responses to Pathogens",
+    "9": "DNA and Polypeptide Synthesis"
+  }
+}

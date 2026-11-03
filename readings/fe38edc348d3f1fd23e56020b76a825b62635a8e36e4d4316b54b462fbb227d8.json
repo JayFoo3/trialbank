@@ -1,0 +1,255 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 33,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 14,
+        "lastPage": 14,
+        "marks": 4,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 14,
+        "marks": 2,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 15,
+        "marks": 4,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 16,
+        "marks": 4,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 18,
+        "marks": 8,
+        "number": 25,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 4
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 19,
+        "marks": 5,
+        "number": 26,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 4,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 4,
+        "number": 28,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 1
+          },
+          {
+            "label": "a(ii)",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 23,
+        "marks": 5,
+        "number": 29,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 25,
+        "lastPage": 25,
+        "marks": 7,
+        "number": 31,
+        "parts": []
+      },
+      {
+        "firstPage": 26,
+        "lastPage": 27,
+        "marks": 7,
+        "number": 32,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b(i)",
+            "marks": 1
+          },
+          {
+            "label": "b(ii)",
+            "marks": 1
+          },
+          {
+            "label": "b(iii)",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 28,
+        "lastPage": 31,
+        "marks": 16,
+        "number": 33,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 4
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 32,
+        "lastPage": 32,
+        "marks": 8,
+        "number": 34,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 20,
+        "lastPage": 12,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 14,
+        "last": 34,
+        "lastPage": 32,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:47:27Z",
+  "reader": "friend",
+  "sha256": "fe38edc348d3f1fd23e56020b76a825b62635a8e36e4d4316b54b462fbb227d8",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 1378,
+    "school": "Normanhurst Boys",
+    "subject": "Bio",
+    "title": "Normanhurst Boys 2021",
+    "year": 2021
+  },
+  "topics": {
+    "1": "Causes of Infectious Disease",
+    "10": "Reproduction",
+    "11": "Reproduction",
+    "12": "Cell Replication",
+    "13": "Mutation",
+    "14": "Epidemiology",
+    "15": "Mutation",
+    "16": "Homeostasis",
+    "17": "Immunity",
+    "18": "Epidemiology",
+    "19": "Homeostasis",
+    "2": "Homeostasis",
+    "20": "Homeostasis",
+    "21": "Reproduction",
+    "22": "Responses to Pathogens",
+    "23": "Causes and Effects",
+    "24": "Technologies and Disorders",
+    "25a": "Homeostasis",
+    "25b": "Homeostasis",
+    "25c": "Homeostasis",
+    "26a": "Mutation",
+    "26b": "Mutation",
+    "27": "Inheritance Patterns in a Population",
+    "28ai": "Prevention, Treatment and Control",
+    "28aii": "Prevention, Treatment and Control",
+    "29a": "Causes and Effects",
+    "29b": "Causes and Effects",
+    "3": "Reproduction",
+    "31": "Genetic Variation",
+    "32a": "Causes of Infectious Disease",
+    "32bi": "Causes of Infectious Disease",
+    "32bii": "Prevention, Treatment and Control",
+    "32biii": "Prevention, Treatment and Control",
+    "33a": "Mutation",
+    "33b": "Inheritance Patterns in a Population",
+    "33c": "Causes of Infectious Disease",
+    "33d": "Epidemiology",
+    "34": "Prevention, Treatment and Control",
+    "4": "Homeostasis",
+    "5": "Cell Replication",
+    "6": "Prevention, Treatment and Control",
+    "7": "DNA and Polypeptide Synthesis",
+    "8": "Causes of Infectious Disease",
+    "9": "Epidemiology"
+  }
+}

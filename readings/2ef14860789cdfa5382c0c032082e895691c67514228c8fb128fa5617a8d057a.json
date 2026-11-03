@@ -1,0 +1,286 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 44,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 14,
+        "lastPage": 15,
+        "marks": 5,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 16,
+        "marks": 6,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 18,
+        "marks": 5,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b(i)",
+            "marks": 1
+          },
+          {
+            "label": "b(ii)",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 19,
+        "marks": 4,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 1
+          }
+        ]
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 21,
+        "marks": 8,
+        "number": 25,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 24,
+        "marks": 12,
+        "number": 26,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 2
+          },
+          {
+            "label": "e",
+            "marks": 2
+          },
+          {
+            "label": "f",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 26,
+        "lastPage": 26,
+        "marks": 2,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 27,
+        "lastPage": 29,
+        "marks": 11,
+        "number": 28,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 4
+          },
+          {
+            "label": "d",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 30,
+        "lastPage": 31,
+        "marks": 8,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 32,
+        "lastPage": 38,
+        "marks": 19,
+        "number": 30,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 8
+          },
+          {
+            "label": "d",
+            "marks": 5
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 20,
+        "lastPage": 12,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 14,
+        "last": 30,
+        "lastPage": 38,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:43:29Z",
+  "reader": "friend",
+  "sha256": "2ef14860789cdfa5382c0c032082e895691c67514228c8fb128fa5617a8d057a",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 1378,
+    "school": "Sydney Grammar",
+    "subject": "Bio",
+    "title": "Sydney Grammar 2021",
+    "year": 2021
+  },
+  "topics": {
+    "1": "Reproduction",
+    "10": "Epidemiology",
+    "11": "Epidemiology",
+    "12": "Responses to Pathogens",
+    "13": "Homeostasis",
+    "14": "Epidemiology",
+    "15": "Immunity",
+    "16": "Mutation",
+    "17": "DNA and Polypeptide Synthesis",
+    "18": "Homeostasis",
+    "19": "Homeostasis",
+    "2": "DNA and Polypeptide Synthesis",
+    "20": "Inheritance Patterns in a Population",
+    "21a": "Reproduction",
+    "21b": "Reproduction",
+    "22a": "DNA and Polypeptide Synthesis",
+    "22b": "DNA and Polypeptide Synthesis",
+    "22c": "Mutation",
+    "23a": "Inheritance Patterns in a Population",
+    "23bi": "Inheritance Patterns in a Population",
+    "23bii": "Inheritance Patterns in a Population",
+    "24a": "Genetic Variation",
+    "24b": "Inheritance Patterns in a Population",
+    "24c": "Inheritance Patterns in a Population",
+    "25a": "Homeostasis",
+    "25b": "Homeostasis",
+    "25c": "Homeostasis",
+    "26a": "Epidemiology",
+    "26b": "Epidemiology",
+    "26c": "Epidemiology",
+    "26d": "Epidemiology",
+    "26e": "Epidemiology",
+    "26f": "Prevention",
+    "27": "Responses to Pathogens",
+    "28a": "Causes of Infectious Disease",
+    "28b": "Causes of Infectious Disease",
+    "28c": "Responses to Pathogens",
+    "28d": "Prevention, Treatment and Control",
+    "29": "Prevention, Treatment and Control",
+    "3": "Genetic Variation",
+    "30a": "Responses to Pathogens",
+    "30b": "Causes of Infectious Disease",
+    "30c": "Biotechnology",
+    "30d": "Inheritance Patterns in a Population",
+    "4": "Reproduction",
+    "5": "Biotechnology",
+    "6": "Prevention, Treatment and Control",
+    "7": "Causes of Infectious Disease",
+    "8": "Epidemiology",
+    "9": "Epidemiology"
+  }
+}

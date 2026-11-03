@@ -32,7 +32,7 @@
   // raw exam % at the bottom of each band (estimates). Extension: E4, E3, E2 in the B6, B5, B4 slots.
   const RAW = {
     Adv: [79, 63, 45, 28, 15], Ext1: [70, 50, 22], Ext2: [65, 47, 30], Std2: [89, 74, 53, 35, 20],
-    Physics: [81, 70, 55, 40, 25], Bio: [87, 78, 62, 45, 28], Econ: [88, 78, 62, 45, 28], Eng: [84, 72, 57, 42, 28], SE: [84, 72, 57, 42, 28],
+    Physics: [81, 70, 55, 40, 25], Chem: [82, 70, 55, 40, 25], Bio: [87, 78, 62, 45, 28], Econ: [88, 78, 62, 45, 28], Eng: [84, 72, 57, 42, 28], SE: [84, 72, 57, 42, 28],
   };
   const EXT = (s) => s === 'Ext1' || s === 'Ext2';
 

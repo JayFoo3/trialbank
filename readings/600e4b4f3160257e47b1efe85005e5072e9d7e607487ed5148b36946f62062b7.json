@@ -1,0 +1,218 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 22,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 1,
+        "lastPage": 2,
+        "marks": 10,
+        "number": 1,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 3,
+        "lastPage": 4,
+        "marks": 10,
+        "number": 2,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 5,
+        "lastPage": 6,
+        "marks": 10,
+        "number": 3,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 7,
+        "lastPage": 8,
+        "marks": 10,
+        "number": 4,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 9,
+        "lastPage": 9,
+        "marks": 5,
+        "number": 5,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 10,
+        "lastPage": 10,
+        "marks": 20,
+        "number": 6,
+        "parts": []
+      },
+      {
+        "firstPage": 10,
+        "lastPage": 10,
+        "marks": 20,
+        "number": 7,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 5,
+        "lastPage": 9,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 6,
+        "firstPage": 10,
+        "last": 7,
+        "lastPage": 10,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:19:15Z",
+  "reader": "friend",
+  "sha256": "600e4b4f3160257e47b1efe85005e5072e9d7e607487ed5148b36946f62062b7",
+  "solutions": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 11,
+        "lastPage": 13,
+        "marks": 0,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 16,
+        "marks": 0,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 18,
+        "marks": 0,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 20,
+        "marks": 0,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 0,
+        "number": 5,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 11,
+  "source": {
+    "number": 2478,
+    "school": "Riverview",
+    "subject": "Econ",
+    "title": "Riverview 2021 w. sol",
+    "year": 2021
+  },
+  "topics": {
+    "1a": "Terms of Trade and Foreign Debt",
+    "1b": "Terms of Trade and Foreign Debt",
+    "1c": "Balance of Payments",
+    "1d": "Terms of Trade and Foreign Debt",
+    "2a": "Economic Growth",
+    "2b": "Economic Growth",
+    "2c": "Monetary Policy",
+    "2d": "Monetary Policy",
+    "3a": "Protection and Free Trade",
+    "3b": "Economic Development",
+    "3c": "Environmental Sustainability",
+    "4a": "Distribution of Income and Wealth",
+    "4b": "Unemployment",
+    "4c": "Unemployment",
+    "4d": "Unemployment",
+    "5a": "Microeconomic Policy",
+    "6": "Labour Market Policy",
+    "7": "Fiscal Policy"
+  }
+}

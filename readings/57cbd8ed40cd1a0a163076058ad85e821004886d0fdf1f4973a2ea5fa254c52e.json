@@ -1,0 +1,206 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 23,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 11,
+        "lastPage": 12,
+        "marks": 10,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 14,
+        "marks": 10,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 4
+          },
+          {
+            "label": "b",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 16,
+        "marks": 10,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 18,
+        "marks": 10,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 20,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 20,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 22,
+        "marks": 20,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 22,
+        "marks": 20,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 20,
+        "lastPage": 9,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 11,
+        "last": 24,
+        "lastPage": 18,
+        "multipleChoice": false,
+        "name": "Section II"
+      },
+      {
+        "first": 25,
+        "firstPage": 19,
+        "last": 26,
+        "lastPage": 21,
+        "multipleChoice": false,
+        "name": "Section III"
+      },
+      {
+        "first": 27,
+        "firstPage": 22,
+        "last": 28,
+        "lastPage": 22,
+        "multipleChoice": false,
+        "name": "Section IV"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:23:28Z",
+  "reader": "friend",
+  "sha256": "57cbd8ed40cd1a0a163076058ad85e821004886d0fdf1f4973a2ea5fa254c52e",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2478,
+    "school": "Sydney Grammar",
+    "subject": "Econ",
+    "title": "Sydney Grammar 2025",
+    "year": 2025
+  },
+  "topics": {
+    "1": "Globalisation",
+    "10": "Balance of Payments",
+    "11": "Distribution of Income and Wealth",
+    "12": "Fiscal Policy",
+    "13": "Exchange Rates",
+    "14": "Economic Growth",
+    "15": "Labour Market Policy",
+    "16": "Balance of Payments",
+    "17": "Terms of Trade and Foreign Debt",
+    "18": "Inflation",
+    "19": "Economic Growth",
+    "2": "Economic Development",
+    "20": "Protection and Free Trade",
+    "21a": "Exchange Rates",
+    "21b": "Exchange Rates",
+    "21c": "Exchange Rates",
+    "22a": "Economic Development",
+    "22b": "Economic Development",
+    "23a": "Distribution of Income and Wealth",
+    "23b": "Distribution of Income and Wealth",
+    "23c": "Distribution of Income and Wealth",
+    "24a": "Fiscal Policy",
+    "24b": "Fiscal Policy",
+    "24c": "External Stability",
+    "24d": "Fiscal Policy",
+    "25": "Balance of Payments",
+    "26": "Protection and Free Trade",
+    "27": "Inflation",
+    "28": "Environmental Sustainability",
+    "3": "Fiscal Policy",
+    "4": "Protection and Free Trade",
+    "5": "Terms of Trade and Foreign Debt",
+    "6": "Exchange Rates",
+    "7": "Globalisation",
+    "8": "Unemployment",
+    "9": "Microeconomic Policy"
+  }
+}

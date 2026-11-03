@@ -1,0 +1,408 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 49,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 14,
+        "lastPage": 14,
+        "marks": 5,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 15,
+        "marks": 7,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 16,
+        "marks": 4,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 17,
+        "marks": 4,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 18,
+        "marks": 4,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 18,
+        "marks": 3,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 19,
+        "marks": 8,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 6,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 23,
+        "marks": 7,
+        "number": 29,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 24,
+        "lastPage": 26,
+        "marks": 12,
+        "number": 30,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 5
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 27,
+        "lastPage": 27,
+        "marks": 2,
+        "number": 31,
+        "parts": []
+      },
+      {
+        "firstPage": 28,
+        "lastPage": 31,
+        "marks": 18,
+        "number": 32,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 3
+          },
+          {
+            "label": "e",
+            "marks": 5
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 20,
+        "lastPage": 13,
+        "multipleChoice": true,
+        "name": "Part A"
+      },
+      {
+        "first": 21,
+        "firstPage": 14,
+        "last": 32,
+        "lastPage": 31,
+        "multipleChoice": false,
+        "name": "Part B"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:29:43Z",
+  "reader": "friend",
+  "sha256": "780cd6e967990bc87c51920bfe5edb10c59d5c1c90f0c6649c86d3407cb2771e",
+  "solutions": {
+    "answerKey": [
+      {
+        "answer": "B",
+        "number": 1
+      },
+      {
+        "answer": "A",
+        "number": 2
+      },
+      {
+        "answer": "C",
+        "number": 3
+      },
+      {
+        "answer": "C",
+        "number": 4
+      },
+      {
+        "answer": "B",
+        "number": 5
+      },
+      {
+        "answer": "B",
+        "number": 6
+      },
+      {
+        "answer": "C",
+        "number": 7
+      },
+      {
+        "answer": "A",
+        "number": 8
+      },
+      {
+        "answer": "C",
+        "number": 9
+      },
+      {
+        "answer": "A",
+        "number": 10
+      },
+      {
+        "answer": "C",
+        "number": 11
+      },
+      {
+        "answer": "A",
+        "number": 12
+      },
+      {
+        "answer": "D",
+        "number": 13
+      },
+      {
+        "answer": "C",
+        "number": 14
+      },
+      {
+        "answer": "D",
+        "number": 15
+      },
+      {
+        "answer": "D",
+        "number": 16
+      },
+      {
+        "answer": "C",
+        "number": 17
+      },
+      {
+        "answer": "B",
+        "number": 18
+      },
+      {
+        "answer": "B",
+        "number": 19
+      },
+      {
+        "answer": "C",
+        "number": 20
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 33,
+        "lastPage": 33,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 33,
+        "lastPage": 34,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 34,
+        "lastPage": 35,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 35,
+        "lastPage": 35,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 36,
+        "lastPage": 36,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 36,
+        "lastPage": 36,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 37,
+        "lastPage": 38,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 39,
+        "lastPage": 39,
+        "marks": 0,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 40,
+        "lastPage": 41,
+        "marks": 0,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 41,
+        "lastPage": 43,
+        "marks": 0,
+        "number": 30,
+        "parts": []
+      },
+      {
+        "firstPage": 44,
+        "lastPage": 44,
+        "marks": 0,
+        "number": 31,
+        "parts": []
+      },
+      {
+        "firstPage": 44,
+        "lastPage": 48,
+        "marks": 0,
+        "number": 32,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 33,
+  "source": {
+    "number": 1378,
+    "school": "Penrith",
+    "subject": "Bio",
+    "title": "Penrith 2021 w. sol",
+    "year": 2021
+  },
+  "topics": {
+    "1": "Reproduction",
+    "10": "Mutation",
+    "11": "Homeostasis",
+    "12": "Homeostasis",
+    "13": "Homeostasis",
+    "14": "Epidemiology",
+    "15": "Homeostasis",
+    "16": "Causes of Infectious Disease",
+    "17": "Causes of Infectious Disease",
+    "18": "Epidemiology",
+    "19": "Prevention, Treatment and Control",
+    "2": "DNA and Polypeptide Synthesis",
+    "20": "Prevention, Treatment and Control",
+    "21": "Reproduction",
+    "22a": "Reproduction",
+    "22b": "Reproduction",
+    "23a": "Cell Replication",
+    "23b": "Cell Replication",
+    "24a": "Inheritance Patterns in a Population",
+    "24b": "Inheritance Patterns in a Population",
+    "25": "Mutation",
+    "26": "Inheritance Patterns in a Population",
+    "27": "Biotechnology",
+    "28": "Genetic Technologies",
+    "29a": "Prevention",
+    "29b": "Prevention",
+    "3": "Cell Replication",
+    "30a": "Homeostasis",
+    "30b": "Homeostasis",
+    "30c": "Homeostasis",
+    "31": "Responses to Pathogens",
+    "32a": "Responses to Pathogens",
+    "32b": "Immunity",
+    "32c": "Immunity",
+    "32d": "Prevention, Treatment and Control",
+    "32e": "Responses to Pathogens",
+    "4": "Inheritance Patterns in a Population",
+    "5": "DNA and Polypeptide Synthesis",
+    "6": "Mutation",
+    "7": "Reproduction",
+    "8": "Genetic Technologies",
+    "9": "Biotechnology"
+  }
+}

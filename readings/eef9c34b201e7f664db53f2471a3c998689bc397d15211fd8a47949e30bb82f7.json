@@ -1,0 +1,256 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 47,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 11,
+        "lastPage": 11,
+        "marks": 20,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 12,
+        "lastPage": 12,
+        "marks": 20,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 13,
+        "marks": 20,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 13,
+        "lastPage": 13,
+        "marks": 20,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 20,
+        "lastPage": 9,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 25,
+        "firstPage": 10,
+        "last": 26,
+        "lastPage": 12,
+        "multipleChoice": false,
+        "name": "Section III"
+      },
+      {
+        "first": 27,
+        "firstPage": 13,
+        "last": 28,
+        "lastPage": 13,
+        "multipleChoice": false,
+        "name": "Section IV"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:15:28Z",
+  "reader": "friend",
+  "sha256": "eef9c34b201e7f664db53f2471a3c998689bc397d15211fd8a47949e30bb82f7",
+  "solutions": {
+    "answerKey": [
+      {
+        "answer": "A",
+        "number": 1
+      },
+      {
+        "answer": "D",
+        "number": 2
+      },
+      {
+        "answer": "B",
+        "number": 3
+      },
+      {
+        "answer": "A",
+        "number": 4
+      },
+      {
+        "answer": "A",
+        "number": 5
+      },
+      {
+        "answer": "D",
+        "number": 6
+      },
+      {
+        "answer": "C",
+        "number": 7
+      },
+      {
+        "answer": "B",
+        "number": 8
+      },
+      {
+        "answer": "A",
+        "number": 9
+      },
+      {
+        "answer": "B",
+        "number": 10
+      },
+      {
+        "answer": "D",
+        "number": 11
+      },
+      {
+        "answer": "C",
+        "number": 12
+      },
+      {
+        "answer": "C",
+        "number": 13
+      },
+      {
+        "answer": "D",
+        "number": 14
+      },
+      {
+        "answer": "D",
+        "number": 15
+      },
+      {
+        "answer": "B",
+        "number": 16
+      },
+      {
+        "answer": "A",
+        "number": 17
+      },
+      {
+        "answer": "C",
+        "number": 18
+      },
+      {
+        "answer": "B",
+        "number": 19
+      },
+      {
+        "answer": "D",
+        "number": 20
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 16,
+        "lastPage": 20,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 26,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 27,
+        "lastPage": 32,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 33,
+        "lastPage": 37,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 38,
+        "lastPage": 39,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 40,
+        "lastPage": 41,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 42,
+        "lastPage": 43,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 44,
+        "lastPage": 46,
+        "marks": 0,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 14,
+  "source": {
+    "number": 2478,
+    "school": "Knox",
+    "subject": "Econ",
+    "title": "Knox 2024 w. sol",
+    "year": 2024
+  },
+  "topics": {
+    "1": "Globalisation",
+    "10": "Exchange Rates",
+    "11": "Terms of Trade and Foreign Debt",
+    "12": "Unemployment",
+    "13": "Fiscal Policy",
+    "14": "Economic Growth",
+    "15": "Monetary Policy",
+    "16": "Environmental Sustainability",
+    "17": "Economic Growth",
+    "18": "Exchange Rates",
+    "19": "Protection and Free Trade",
+    "2": "Globalisation",
+    "20": "Protection and Free Trade",
+    "21a": "Balance of Payments",
+    "21b": "External Stability",
+    "21c": "Exchange Rates",
+    "22a": "Globalisation",
+    "22b": "Economic Development",
+    "22c": "Trade and Financial Flows",
+    "23a": "Microeconomic Policy",
+    "23b": "Microeconomic Policy",
+    "23c": "Environmental Sustainability",
+    "24a": "Inflation",
+    "24b": "Inflation",
+    "24c": "Inflation",
+    "25": "Labour Market Policy",
+    "26": "Fiscal Policy",
+    "27": "Protection and Free Trade",
+    "28": "Globalisation",
+    "3": "Limitations of Policy",
+    "4": "Economic Growth",
+    "5": "Balance of Payments",
+    "6": "Balance of Payments",
+    "7": "Terms of Trade and Foreign Debt",
+    "8": "Distribution of Income and Wealth",
+    "9": "Unemployment"
+  }
+}

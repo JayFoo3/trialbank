@@ -138,6 +138,7 @@
         try { localStorage.setItem('tb_subject', key); } catch {}
         const h = (location.hash || '#home').slice(1).split('/')[0];
         if (h === 'paper' || h === 'set' || h === 'summary') location.hash = h === 'paper' ? '#papers' : '#practise'; else route();
+        subjectHello(key);
       };
       menu.appendChild(it);
     });
@@ -282,7 +283,13 @@
     if (/Database error saving new user/i.test(msg)) return 'Sign-up was refused. Check your email and invite code, or ask Jayden.';
     return msg;
   }
-  $('signout').onclick = async () => { clearDeviceData(); await sb.auth.signOut(); };
+  // sign out always works: don't wait forever on the server or a stuck auth lock (another open tab), then clear this device's session
+  $('signout').onclick = async () => {
+    clearDeviceData();
+    try { await Promise.race([sb.auth.signOut(), new Promise(r => setTimeout(r, 3000))]); } catch {}
+    try { Object.keys(localStorage).filter(k => /^sb-.*-auth-token/.test(k)).forEach(k => localStorage.removeItem(k)); } catch {}
+    location.replace(location.pathname + '#home'); location.reload();
+  };
   $('calc-btn').onclick = () => window.Calc && Calc.toggle();
   document.querySelectorAll('[data-calc]').forEach(b => { b.onclick = () => window.Calc && Calc.toggle(); });   // inside questions and exams, where the top bar is hidden
   // ---------- NESA formula / reference sheet, beside the calculator ----------
@@ -479,6 +486,12 @@
       ['Electromagnetism', ['Charged Particles, Conductors and Fields', 'The Motor Effect', 'Electromagnetic Induction', 'Applications of the Motor Effect']],
       ['The Nature of Light', ['Electromagnetic Spectrum', 'Light: Wave Model', 'Light: Quantum Model', 'Light and Special Relativity']],
       ['From the Universe to the Atom', ['Origins of the Elements', 'Structure of the Atom', 'Quantum Mechanical Nature of the Atom', 'Properties of the Nucleus', 'Deep Inside the Atom']],
+    ],
+    Chem: [
+      ['Equilibrium and Acid Reactions', ['Static and Dynamic Equilibrium', 'Factors that Affect Equilibrium', 'Calculating the Equilibrium Constant (Keq)', 'Solution Equilibria']],
+      ['Acid/Base Reactions', ['Properties of Acids and Bases', 'Using Brønsted–Lowry Theory', 'Quantitative Analysis']],
+      ['Organic Chemistry', ['Nomenclature', 'Hydrocarbons', 'Products of Reactions Involving Hydrocarbons', 'Alcohols', 'Reactions of Organic Acids and Bases', 'Polymers']],
+      ['Applying Chemical Ideas', ['Analysis of Inorganic Substances', 'Analysis of Organic Substances', 'Chemical Synthesis and Design']],
     ],
   };
   // syllabus steps inside a topic, in teaching order. Questions get tagged with the steps they need (Admin > Syllabus steps),
@@ -4617,6 +4630,38 @@
   const panel = ({ kicker = '', big = '', sub = '', mood = 'cheer', art = '', cls = '' }) =>
     `<div class="tbp-big"><small>${kicker}</small><b class="${cls}">${big}</b><span>${sub}</span></div>` +
     (art || `<div class="tbp-mascot">${Mascot(mood)}</div>`);
+  // switching subject: a little "Welcome to <subject>" card with that subject's own animation (a flask that bubbles over
+  // for Chemistry, an atom for Physics...). It sits on top for about two seconds and taps away; no sound.
+  const SH_KIND = { Ext1: 'maths', Ext2: 'maths', Adv: 'maths', Std2: 'maths', Physics: 'phys', Chem: 'chem', Bio: 'bio', Econ: 'econ', Eng: 'eng', SE: 'se' };
+  const SH_ART = {
+    chem: `<svg viewBox="0 0 120 120"><g class="sh-puff">${[0, 1, 2, 3, 4, 5, 6].map(i => `<circle style="--a:${i * 51 - 153}deg;--d:${i % 2 ? 26 : 34}px" cx="60" cy="22" r="${7 + (i % 3) * 2}"/>`).join('')}</g>
+      <g class="sh-flask"><clipPath id="sh-clip"><path d="M53 46 31 88a9 9 0 0 0 8 13h42a9 9 0 0 0 8-13L67 46z"/></clipPath>
+      <g clip-path="url(#sh-clip)"><path class="sh-liquid" d="M0 72q15-7 30 0t30 0 30 0 30 0 30 0V130H0z"/>
+      <circle class="sh-bub" style="--t:0s" cx="52" cy="96" r="3.5"/><circle class="sh-bub" style="--t:.35s" cx="64" cy="98" r="2.5"/><circle class="sh-bub" style="--t:.7s" cx="70" cy="94" r="3"/></g>
+      <path class="sh-glass" d="M49 18h22M53 18v28L31 88a9 9 0 0 0 8 13h42a9 9 0 0 0 8-13L67 46V18"/></g>
+      <g class="sh-spark"><path d="M24 30l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/><path d="M95 38l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></g></svg>`,
+    phys: `<svg viewBox="0 0 120 120"><g class="sh-atom">${[0, 60, 120].map((r, i) => `<g transform="rotate(${r} 60 60)"><g class="sh-orbit" style="--t:${i * -.4}s"><ellipse cx="60" cy="60" rx="44" ry="15"/><circle cx="104" cy="60" r="5.5"/></g></g>`).join('')}
+      <circle class="sh-nucleus" cx="60" cy="60" r="9"/></g></svg>`,
+    maths: `<svg viewBox="0 0 120 120"><path class="sh-axis" d="M14 64h92M20 98V22"/><path class="sh-wave" d="M20 64c10-34 20-34 30 0s20 34 30 0 20-34 26-16"/>
+      <text class="sh-sym" style="--t:.5s" x="74" y="34">π</text><text class="sh-sym" style="--t:.75s" x="30" y="40">Σ</text><text class="sh-sym" style="--t:1s" x="84" y="100">√</text></svg>`,
+    bio: `<svg viewBox="0 0 120 120"><g class="sh-dna">${Array.from({ length: 8 }, (_, i) => `<g transform="translate(0 ${18 + i * 12})"><g class="sh-rung" style="--t:${i * -.14}s"><line x1="36" y1="0" x2="84" y2="0"/><circle cx="36" cy="0" r="5"/><circle cx="84" cy="0" r="5"/></g></g>`).join('')}</g></svg>`,
+    econ: `<svg viewBox="0 0 120 120"><path class="sh-axis" d="M18 100h88"/>${[[24, 34], [44, 50], [64, 42], [84, 66]].map(([x, h], i) => `<rect class="sh-bar" style="--t:${i * .12}s" x="${x}" y="${100 - h}" width="14" height="${h}" rx="3"/>`).join('')}
+      <path class="sh-trend" d="M22 70 46 54 66 62 98 26"/><path class="sh-tip" d="M86 26h12v12"/></svg>`,
+    eng: `<svg viewBox="0 0 120 120"><g class="sh-gear g1"><circle cx="46" cy="52" r="24"/><circle class="hole" cx="46" cy="52" r="8"/></g><g class="sh-gear g2"><circle cx="82" cy="84" r="16"/><circle class="hole" cx="82" cy="84" r="5"/></g></svg>`,
+    se: `<svg viewBox="0 0 120 120"><text class="sh-code l" x="14" y="74">&lt;</text><text class="sh-code s" x="46" y="74">/</text><text class="sh-code r" x="74" y="74">&gt;</text><rect class="sh-cursor" x="58" y="84" width="16" height="5" rx="2"/></svg>`,
+  };
+  function subjectHello(key) {
+    const name = C.subjects[key]; if (!name) return;
+    document.querySelectorAll('.sh-pop').forEach(p => p.remove());
+    const kind = SH_KIND[key] || 'maths';
+    const m = mk('div', `sh-pop sh-${kind}`, `<div class="sh-card"><div class="sh-art" aria-hidden="true">${SH_ART[kind] || ''}</div><div class="sh-text"><small>Welcome to</small><b>${esc(name)}</b></div></div>`);
+    m.setAttribute('role', 'status');
+    let gone = false;
+    const close = () => { if (gone) return; gone = true; m.classList.add('out'); setTimeout(() => m.remove(), 260); };
+    m.onclick = close;
+    document.body.appendChild(m);
+    setTimeout(close, 2300);
+  }
   function celebrate({ kind = 'level', panel: top = '', title, body = '', extra = '', primary = 'Nice', secondary = null }) {
     const m = mk('div', 'modal cele');
     m.innerHTML = `<div class="modal-card tbp tbp-${kind}" role="dialog" aria-modal="true" aria-labelledby="cele-t">

@@ -1,0 +1,282 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 25,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 3,
+        "number": 1,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 3,
+        "lastPage": 3,
+        "marks": 3,
+        "number": 2,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 4,
+        "lastPage": 4,
+        "marks": 4,
+        "number": 3,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 5,
+        "lastPage": 5,
+        "marks": 3,
+        "number": 4,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 6,
+        "lastPage": 6,
+        "marks": 4,
+        "number": 5,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 7,
+        "lastPage": 7,
+        "marks": 2,
+        "number": 6,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          }
+        ]
+      },
+      {
+        "firstPage": 8,
+        "lastPage": 8,
+        "marks": 6,
+        "number": 7,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 9,
+        "lastPage": 9,
+        "marks": 5,
+        "number": 8,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 11,
+        "lastPage": 11,
+        "marks": 20,
+        "number": 9,
+        "parts": []
+      },
+      {
+        "firstPage": 11,
+        "lastPage": 11,
+        "marks": 20,
+        "number": 10,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 8,
+        "lastPage": 9,
+        "multipleChoice": false,
+        "name": "Section 1"
+      },
+      {
+        "first": 9,
+        "firstPage": 10,
+        "last": 10,
+        "lastPage": 11,
+        "multipleChoice": false,
+        "name": "Section 2"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:18:41Z",
+  "reader": "friend",
+  "sha256": "42972edccb51b6d8f9712ba4a1f7a19b126bf22303f01dac23a32903726a3604",
+  "solutions": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 13,
+        "lastPage": 13,
+        "marks": 0,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 14,
+        "marks": 0,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 15,
+        "marks": 0,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 16,
+        "marks": 0,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 17,
+        "lastPage": 17,
+        "marks": 0,
+        "number": 5,
+        "parts": []
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 18,
+        "marks": 0,
+        "number": 6,
+        "parts": []
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 19,
+        "marks": 0,
+        "number": 7,
+        "parts": []
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 0,
+        "number": 8,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 22,
+        "marks": 0,
+        "number": 9,
+        "parts": []
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 24,
+        "marks": 0,
+        "number": 10,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 12,
+  "source": {
+    "number": 2478,
+    "school": "Fort St",
+    "subject": "Econ",
+    "title": "Fort St 2021 w. sol",
+    "year": 2021
+  },
+  "topics": {
+    "10": "Fiscal Policy",
+    "1a": "Terms of Trade and Foreign Debt",
+    "1b": "Terms of Trade and Foreign Debt",
+    "2a": "Exchange Rates",
+    "2b": "Exchange Rates",
+    "3a": "Fiscal Policy",
+    "3b": "Fiscal Policy",
+    "4a": "Economic Development",
+    "4b": "Economic Development",
+    "5a": "Economic Growth",
+    "5b": "Labour Market Policy",
+    "6a": "Balance of Payments",
+    "6b": "Balance of Payments",
+    "7a": "Globalisation",
+    "7b": "Protection and Free Trade",
+    "8a": "Economic Growth",
+    "8b": "Unemployment",
+    "8c": "Inflation",
+    "9": "Limitations of Policy"
+  }
+}

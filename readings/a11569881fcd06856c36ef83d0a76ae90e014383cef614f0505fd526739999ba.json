@@ -1,0 +1,373 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 52,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 5,
+        "lastPage": 5,
+        "marks": 16,
+        "number": 11,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 1
+          },
+          {
+            "label": "a(ii)",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 3
+          },
+          {
+            "label": "e",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 6,
+        "lastPage": 7,
+        "marks": 14,
+        "number": 12,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 2
+          },
+          {
+            "label": "a(ii)",
+            "marks": 2
+          },
+          {
+            "label": "a(iii)",
+            "marks": 2
+          },
+          {
+            "label": "b(i)",
+            "marks": 3
+          },
+          {
+            "label": "b(ii)",
+            "marks": 3
+          },
+          {
+            "label": "b(iii)",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 8,
+        "lastPage": 8,
+        "marks": 15,
+        "number": 13,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c(i)",
+            "marks": 2
+          },
+          {
+            "label": "c(ii)",
+            "marks": 1
+          },
+          {
+            "label": "d(i)",
+            "marks": 1
+          },
+          {
+            "label": "d(ii)",
+            "marks": 3
+          },
+          {
+            "label": "d(iii)",
+            "marks": 2
+          }
+        ]
+      },
+      {
+        "firstPage": 9,
+        "lastPage": 9,
+        "marks": 16,
+        "number": 14,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 2
+          },
+          {
+            "label": "a(ii)",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 4
+          },
+          {
+            "label": "d",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 10,
+        "lastPage": 11,
+        "marks": 13,
+        "number": 15,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 2
+          },
+          {
+            "label": "a(ii)",
+            "marks": 1
+          },
+          {
+            "label": "a(iii)",
+            "marks": 3
+          },
+          {
+            "label": "b(i)",
+            "marks": 2
+          },
+          {
+            "label": "b(ii)",
+            "marks": 1
+          },
+          {
+            "label": "b(iii)",
+            "marks": 3
+          },
+          {
+            "label": "b(iv)",
+            "marks": 1
+          }
+        ]
+      },
+      {
+        "firstPage": 12,
+        "lastPage": 13,
+        "marks": 16,
+        "number": 16,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 2
+          },
+          {
+            "label": "a(ii)",
+            "marks": 3
+          },
+          {
+            "label": "b(i)",
+            "marks": 3
+          },
+          {
+            "label": "b(ii)",
+            "marks": 3
+          },
+          {
+            "label": "b(iii)",
+            "marks": 3
+          },
+          {
+            "label": "b(iv)",
+            "marks": 2
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 10,
+        "lastPage": 4,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 11,
+        "firstPage": 5,
+        "last": 16,
+        "lastPage": 13,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T10:43:49Z",
+  "reader": "friend",
+  "sha256": "a11569881fcd06856c36ef83d0a76ae90e014383cef614f0505fd526739999ba",
+  "solutions": {
+    "answerKey": [
+      {
+        "answer": "B",
+        "number": 1
+      },
+      {
+        "answer": "B",
+        "number": 2
+      },
+      {
+        "answer": "C",
+        "number": 3
+      },
+      {
+        "answer": "A",
+        "number": 4
+      },
+      {
+        "answer": "D",
+        "number": 5
+      },
+      {
+        "answer": "A",
+        "number": 6
+      },
+      {
+        "answer": "D",
+        "number": 7
+      },
+      {
+        "answer": "B",
+        "number": 8
+      },
+      {
+        "answer": "C",
+        "number": 9
+      },
+      {
+        "answer": "B",
+        "number": 10
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 21,
+        "lastPage": 24,
+        "marks": 0,
+        "number": 11,
+        "parts": []
+      },
+      {
+        "firstPage": 25,
+        "lastPage": 29,
+        "marks": 0,
+        "number": 12,
+        "parts": []
+      },
+      {
+        "firstPage": 30,
+        "lastPage": 34,
+        "marks": 0,
+        "number": 13,
+        "parts": []
+      },
+      {
+        "firstPage": 35,
+        "lastPage": 39,
+        "marks": 0,
+        "number": 14,
+        "parts": []
+      },
+      {
+        "firstPage": 40,
+        "lastPage": 43,
+        "marks": 0,
+        "number": 15,
+        "parts": []
+      },
+      {
+        "firstPage": 44,
+        "lastPage": 49,
+        "marks": 0,
+        "number": 16,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 20,
+  "source": {
+    "number": 0,
+    "school": "HSC",
+    "subject": "Ext2",
+    "title": "HSC 2020 w. sol",
+    "year": 2020
+  },
+  "topics": {
+    "1": "3D Vectors",
+    "10": "Substitution",
+    "11ai": "Argand Diag",
+    "11aii": "Argand Diag",
+    "11b": "Parts",
+    "11c": "Resisted Motion",
+    "11d": "3D Vectors",
+    "11e": "Solving Equations",
+    "12ai": "Non Resisted Motion",
+    "12aii": "Non Resisted Motion",
+    "12aiii": "Non Resisted Motion",
+    "12bi": "Projectiles",
+    "12bii": "Projectiles",
+    "12biii": "Projectiles",
+    "13a": "SHM",
+    "13b": "Equations of lines",
+    "13ci": "Inequalities",
+    "13cii": "Inequalities",
+    "13di": "Euler's",
+    "13dii": "Euler's",
+    "13diii": "Euler's",
+    "14ai": "Geometric Implications",
+    "14aii": "Geometric Implications",
+    "14b": "Resisted Motion",
+    "14c": "Induction",
+    "14d": "Contradiction",
+    "15ai": "Contradiction",
+    "15aii": "Contradiction",
+    "15aiii": "Contradiction",
+    "15bi": "3D Vectors",
+    "15bii": "3D Vectors",
+    "15biii": "3D Vectors",
+    "15biv": "3D Vectors",
+    "16ai": "Resisted Motion",
+    "16aii": "Resisted Motion",
+    "16bi": "Reduction",
+    "16bii": "Reduction",
+    "16biii": "Substitution",
+    "16biv": "Inequalities",
+    "2": "Solving Equations",
+    "3": "Equations of lines",
+    "4": "Argand Diag",
+    "5": "SHM",
+    "6": "Quadratic Denom.",
+    "7": "Contradiction",
+    "8": "Contradiction",
+    "9": "Geometric Implications"
+  }
+}

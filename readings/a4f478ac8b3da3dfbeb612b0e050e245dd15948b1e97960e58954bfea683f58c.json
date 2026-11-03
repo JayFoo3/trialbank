@@ -1,0 +1,251 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 34,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 13,
+        "lastPage": 13,
+        "marks": 3,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 14,
+        "marks": 3,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 14,
+        "marks": 3,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 15,
+        "lastPage": 17,
+        "marks": 8,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 20,
+        "marks": 14,
+        "number": 25,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 1
+          },
+          {
+            "label": "e",
+            "marks": 2
+          },
+          {
+            "label": "f",
+            "marks": 4
+          },
+          {
+            "label": "g",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 22,
+        "marks": 12,
+        "number": 26,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 24,
+        "marks": 9,
+        "number": 27,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 4
+          },
+          {
+            "label": "b",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 25,
+        "lastPage": 25,
+        "marks": 4,
+        "number": 28,
+        "parts": []
+      },
+      {
+        "firstPage": 26,
+        "lastPage": 26,
+        "marks": 7,
+        "number": 29,
+        "parts": []
+      },
+      {
+        "firstPage": 27,
+        "lastPage": 29,
+        "marks": 17,
+        "number": 30,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 4
+          },
+          {
+            "label": "e",
+            "marks": 4
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 20,
+        "lastPage": 10,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 12,
+        "last": 30,
+        "lastPage": 33,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:47:52Z",
+  "reader": "friend",
+  "sha256": "a4f478ac8b3da3dfbeb612b0e050e245dd15948b1e97960e58954bfea683f58c",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 1378,
+    "school": "Sydney Girls",
+    "subject": "Bio",
+    "title": "Sydney Girls 2020",
+    "year": 2020
+  },
+  "topics": {
+    "1": "Responses to Pathogens",
+    "10": "Biotechnology",
+    "11": "Responses to Pathogens",
+    "12": "Biotechnology",
+    "13": "Genetic Technologies",
+    "14": "Inheritance Patterns in a Population",
+    "15": "Inheritance Patterns in a Population",
+    "16": "Prevention, Treatment and Control",
+    "17": "Responses to Pathogens",
+    "18": "Homeostasis",
+    "19": "Homeostasis",
+    "2": "Immunity",
+    "20": "Cell Replication",
+    "21": "Homeostasis",
+    "22": "Mutation",
+    "23": "DNA and Polypeptide Synthesis",
+    "24a": "Cell Replication",
+    "24b": "Genetic Variation",
+    "24c": "Mutation",
+    "25a": "Responses to Pathogens",
+    "25b": "Immunity",
+    "25c": "Immunity",
+    "25d": "Immunity",
+    "25e": "Responses to Pathogens",
+    "25f": "Prevention, Treatment and Control",
+    "25g": "Prevention, Treatment and Control",
+    "26a": "Prevention, Treatment and Control",
+    "26b": "Prevention, Treatment and Control",
+    "26c": "Prevention, Treatment and Control",
+    "26d": "Prevention, Treatment and Control",
+    "27a": "Epidemiology",
+    "27b": "Epidemiology",
+    "28": "Homeostasis",
+    "29": "Biotechnology",
+    "3": "Inheritance Patterns in a Population",
+    "30a": "Inheritance Patterns in a Population",
+    "30b": "Inheritance Patterns in a Population",
+    "30c": "Genetic Variation",
+    "30d": "Inheritance Patterns in a Population",
+    "30e": "Genetic Technologies",
+    "4": "Cell Replication",
+    "5": "Mutation",
+    "6": "Responses to Pathogens",
+    "7": "Inheritance Patterns in a Population",
+    "8": "Inheritance Patterns in a Population",
+    "9": "Biotechnology"
+  }
+}

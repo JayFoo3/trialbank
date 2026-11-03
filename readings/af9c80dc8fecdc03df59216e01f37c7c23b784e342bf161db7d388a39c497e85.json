@@ -1,0 +1,226 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 23,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 10,
+        "lastPage": 11,
+        "marks": 10,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 12,
+        "lastPage": 13,
+        "marks": 10,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 15,
+        "marks": 10,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 17,
+        "marks": 10,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 18,
+        "marks": 20,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 19,
+        "marks": 20,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 20,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 20,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 20,
+        "lastPage": 8,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 10,
+        "last": 24,
+        "lastPage": 17,
+        "multipleChoice": false,
+        "name": "Section II"
+      },
+      {
+        "first": 25,
+        "firstPage": 18,
+        "last": 26,
+        "lastPage": 19,
+        "multipleChoice": false,
+        "name": "Section III"
+      },
+      {
+        "first": 27,
+        "firstPage": 20,
+        "last": 28,
+        "lastPage": 20,
+        "multipleChoice": false,
+        "name": "Section IV"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:25:31Z",
+  "reader": "friend",
+  "sha256": "af9c80dc8fecdc03df59216e01f37c7c23b784e342bf161db7d388a39c497e85",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2478,
+    "school": "Pymble",
+    "subject": "Econ",
+    "title": "Pymble 2021",
+    "year": 2021
+  },
+  "topics": {
+    "1": "Distribution of Income and Wealth",
+    "10": "Microeconomic Policy",
+    "11": "Exchange Rates",
+    "12": "Terms of Trade and Foreign Debt",
+    "13": "Fiscal Policy",
+    "14": "Microeconomic Policy",
+    "15": "Balance of Payments",
+    "16": "Globalisation",
+    "17": "Economic Development",
+    "18": "Exchange Rates",
+    "19": "Monetary Policy",
+    "2": "Protection and Free Trade",
+    "20": "Microeconomic Policy",
+    "21a": "Protection and Free Trade",
+    "21b": "Globalisation",
+    "21c": "Globalisation",
+    "21d": "Economic Development",
+    "22a": "Inflation",
+    "22b": "Inflation",
+    "22c": "Inflation",
+    "22d": "Inflation",
+    "23a": "Protection and Free Trade",
+    "23b": "Protection and Free Trade",
+    "23c": "Protection and Free Trade",
+    "23d": "Protection and Free Trade",
+    "24a": "Monetary Policy",
+    "24b": "Monetary Policy",
+    "24c": "Monetary Policy",
+    "24d": "Monetary Policy",
+    "25": "Balance of Payments",
+    "26": "Exchange Rates",
+    "27": "Fiscal Policy",
+    "28": "Environmental Sustainability",
+    "3": "Terms of Trade and Foreign Debt",
+    "4": "Distribution of Income and Wealth",
+    "5": "Fiscal Policy",
+    "6": "Unemployment",
+    "7": "Economic Growth",
+    "8": "Balance of Payments",
+    "9": "Microeconomic Policy"
+  }
+}

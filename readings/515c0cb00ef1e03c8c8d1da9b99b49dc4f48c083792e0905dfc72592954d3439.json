@@ -1,0 +1,206 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 23,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 8,
+        "lastPage": 9,
+        "marks": 10,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 10,
+        "lastPage": 11,
+        "marks": 10,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 5
+          }
+        ]
+      },
+      {
+        "firstPage": 12,
+        "lastPage": 13,
+        "marks": 10,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 15,
+        "marks": 10,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 20,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 20,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 22,
+        "marks": 20,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 22,
+        "marks": 20,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 20,
+        "lastPage": 6,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 7,
+        "last": 24,
+        "lastPage": 18,
+        "multipleChoice": false,
+        "name": "Section II"
+      },
+      {
+        "first": 25,
+        "firstPage": 19,
+        "last": 26,
+        "lastPage": 21,
+        "multipleChoice": false,
+        "name": "Section III"
+      },
+      {
+        "first": 27,
+        "firstPage": 22,
+        "last": 28,
+        "lastPage": 22,
+        "multipleChoice": false,
+        "name": "Section IV"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:25:11Z",
+  "reader": "friend",
+  "sha256": "515c0cb00ef1e03c8c8d1da9b99b49dc4f48c083792e0905dfc72592954d3439",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2478,
+    "school": "Normanhurst Boys",
+    "subject": "Econ",
+    "title": "Normanhurst Boys 2021",
+    "year": 2021
+  },
+  "topics": {
+    "1": "Globalisation",
+    "10": "Unemployment",
+    "11": "Unemployment",
+    "12": "Limitations of Policy",
+    "13": "Microeconomic Policy",
+    "14": "Balance of Payments",
+    "15": "Exchange Rates",
+    "16": "Economic Growth",
+    "17": "Protection and Free Trade",
+    "18": "Economic Growth",
+    "19": "Balance of Payments",
+    "2": "Monetary Policy",
+    "20": "Protection and Free Trade",
+    "21a": "Globalisation",
+    "21b": "Protection and Free Trade",
+    "21c": "Economic Development",
+    "22a": "Fiscal Policy",
+    "22b": "Fiscal Policy",
+    "22c": "Fiscal Policy",
+    "23a": "Unemployment",
+    "23b": "Unemployment",
+    "23c": "Labour Market Policy",
+    "24a": "Environmental Sustainability",
+    "24b": "Environmental Sustainability",
+    "24c": "Environmental Sustainability",
+    "25": "Fiscal Policy",
+    "26": "Globalisation",
+    "27": "Microeconomic Policy",
+    "28": "Distribution of Income and Wealth",
+    "3": "Exchange Rates",
+    "4": "Fiscal Policy",
+    "5": "Economic Growth",
+    "6": "Fiscal Policy",
+    "7": "Labour Market Policy",
+    "8": "Balance of Payments",
+    "9": "Distribution of Income and Wealth"
+  }
+}

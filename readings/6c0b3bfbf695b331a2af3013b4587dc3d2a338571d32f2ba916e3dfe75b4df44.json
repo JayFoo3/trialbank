@@ -1,0 +1,226 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 22,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 9,
+        "lastPage": 11,
+        "marks": 10,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 12,
+        "lastPage": 13,
+        "marks": 10,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 2
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 14,
+        "lastPage": 15,
+        "marks": 10,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 18,
+        "marks": 10,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 1
+          },
+          {
+            "label": "b",
+            "marks": 1
+          },
+          {
+            "label": "c",
+            "marks": 4
+          },
+          {
+            "label": "d",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 19,
+        "lastPage": 19,
+        "marks": 20,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 20,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 20,
+        "number": 27,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 20,
+        "number": 28,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 20,
+        "lastPage": 8,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 9,
+        "last": 24,
+        "lastPage": 18,
+        "multipleChoice": false,
+        "name": "Section II"
+      },
+      {
+        "first": 25,
+        "firstPage": 19,
+        "last": 26,
+        "lastPage": 20,
+        "multipleChoice": false,
+        "name": "Section III"
+      },
+      {
+        "first": 27,
+        "firstPage": 21,
+        "last": 28,
+        "lastPage": 21,
+        "multipleChoice": false,
+        "name": "Section IV"
+      }
+    ]
+  },
+  "readAt": "2026-10-19T08:24:54Z",
+  "reader": "friend",
+  "sha256": "6c0b3bfbf695b331a2af3013b4587dc3d2a338571d32f2ba916e3dfe75b4df44",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2478,
+    "school": "Cranbrook",
+    "subject": "Econ",
+    "title": "Cranbrook 2021",
+    "year": 2021
+  },
+  "topics": {
+    "1": "Economic Development",
+    "10": "Economic Growth",
+    "11": "Economic Growth",
+    "12": "Exchange Rates",
+    "13": "Balance of Payments",
+    "14": "Microeconomic Policy",
+    "15": "Fiscal Policy",
+    "16": "Labour Market Policy",
+    "17": "Trade and Financial Flows",
+    "18": "Globalisation",
+    "19": "Protection and Free Trade",
+    "2": "Monetary Policy",
+    "20": "Labour Market Policy",
+    "21a": "Exchange Rates",
+    "21b": "Exchange Rates",
+    "21c": "Exchange Rates",
+    "21d": "Exchange Rates",
+    "22a": "Labour Market Policy",
+    "22b": "Labour Market Policy",
+    "22c": "Labour Market Policy",
+    "22d": "Labour Market Policy",
+    "23a": "Protection and Free Trade",
+    "23b": "Protection and Free Trade",
+    "23c": "Economic Development",
+    "23d": "Globalisation",
+    "24a": "Protection and Free Trade",
+    "24b": "Protection and Free Trade",
+    "24c": "Protection and Free Trade",
+    "24d": "Protection and Free Trade",
+    "25": "Microeconomic Policy",
+    "26": "Fiscal Policy",
+    "27": "Balance of Payments",
+    "28": "Environmental Sustainability",
+    "3": "Unemployment",
+    "4": "Monetary Policy",
+    "5": "Balance of Payments",
+    "6": "Distribution of Income and Wealth",
+    "7": "Unemployment",
+    "8": "Fiscal Policy",
+    "9": "Terms of Trade and Foreign Debt"
+  }
+}

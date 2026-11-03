@@ -1,0 +1,378 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 58,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 12,
+        "lastPage": 14,
+        "marks": 12,
+        "number": 21,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 3
+          },
+          {
+            "label": "a(ii)",
+            "marks": 3
+          },
+          {
+            "label": "a(iii)",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 16,
+        "lastPage": 17,
+        "marks": 12,
+        "number": 22,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 18,
+        "lastPage": 20,
+        "marks": 12,
+        "number": 23,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b(i)",
+            "marks": 3
+          },
+          {
+            "label": "b(ii)",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 24,
+        "marks": 11,
+        "number": 24,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 26,
+        "lastPage": 28,
+        "marks": 12,
+        "number": 25,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 3
+          },
+          {
+            "label": "a(ii)",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 3
+          }
+        ]
+      },
+      {
+        "firstPage": 30,
+        "lastPage": 33,
+        "marks": 12,
+        "number": 26,
+        "parts": [
+          {
+            "label": "a(i)",
+            "marks": 4
+          },
+          {
+            "label": "a(ii)",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 2
+          },
+          {
+            "label": "c",
+            "marks": 4
+          }
+        ]
+      },
+      {
+        "firstPage": 34,
+        "lastPage": 36,
+        "marks": 9,
+        "number": 27,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 7
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 20,
+        "lastPage": 9,
+        "multipleChoice": true,
+        "name": "Section I"
+      },
+      {
+        "first": 21,
+        "firstPage": 12,
+        "last": 27,
+        "lastPage": 36,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-10-18T07:28:25Z",
+  "reader": "friend",
+  "sha256": "d731f01d70c5a0ecc0d1cc7d412ef66d461fe3fff06bfc35a26a064e8447b133",
+  "solutions": {
+    "answerKey": [
+      {
+        "answer": "C",
+        "number": 1
+      },
+      {
+        "answer": "A",
+        "number": 2
+      },
+      {
+        "answer": "B",
+        "number": 3
+      },
+      {
+        "answer": "B",
+        "number": 4
+      },
+      {
+        "answer": "C",
+        "number": 5
+      },
+      {
+        "answer": "B",
+        "number": 6
+      },
+      {
+        "answer": "A",
+        "number": 7
+      },
+      {
+        "answer": "C",
+        "number": 8
+      },
+      {
+        "answer": "C",
+        "number": 9
+      },
+      {
+        "answer": "D",
+        "number": 10
+      },
+      {
+        "answer": "C",
+        "number": 11
+      },
+      {
+        "answer": "A",
+        "number": 12
+      },
+      {
+        "answer": "B",
+        "number": 13
+      },
+      {
+        "answer": "A",
+        "number": 14
+      },
+      {
+        "answer": "B",
+        "number": 15
+      },
+      {
+        "answer": "D",
+        "number": 16
+      },
+      {
+        "answer": "D",
+        "number": 17
+      },
+      {
+        "answer": "A",
+        "number": 18
+      },
+      {
+        "answer": "A",
+        "number": 19
+      },
+      {
+        "answer": "B",
+        "number": 20
+      }
+    ],
+    "questions": [
+      {
+        "firstPage": 41,
+        "lastPage": 42,
+        "marks": 0,
+        "number": 21,
+        "parts": []
+      },
+      {
+        "firstPage": 43,
+        "lastPage": 44,
+        "marks": 0,
+        "number": 22,
+        "parts": []
+      },
+      {
+        "firstPage": 45,
+        "lastPage": 46,
+        "marks": 0,
+        "number": 23,
+        "parts": []
+      },
+      {
+        "firstPage": 47,
+        "lastPage": 48,
+        "marks": 0,
+        "number": 24,
+        "parts": []
+      },
+      {
+        "firstPage": 49,
+        "lastPage": 51,
+        "marks": 0,
+        "number": 25,
+        "parts": []
+      },
+      {
+        "firstPage": 52,
+        "lastPage": 54,
+        "marks": 0,
+        "number": 26,
+        "parts": []
+      },
+      {
+        "firstPage": 54,
+        "lastPage": 55,
+        "marks": 0,
+        "number": 27,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 40,
+  "source": {
+    "number": 0,
+    "school": "HSC",
+    "subject": "Eng",
+    "title": "HSC 2016 w. sol",
+    "year": 2016
+  },
+  "topics": {
+    "1": "Engineering Fundamentals",
+    "10": "Engineering Fundamentals",
+    "11": "Aeronautical Engineering",
+    "12": "Engineering Fundamentals",
+    "13": "Telecommunications Engineering",
+    "14": "Engineering Fundamentals",
+    "15": "Telecommunications Engineering",
+    "16": "Civil Structures",
+    "17": "Civil Structures",
+    "18": "Engineering Fundamentals",
+    "19": "Engineering Fundamentals",
+    "2": "Civil Structures",
+    "20": "Civil Structures",
+    "21ai": "Civil Structures",
+    "21aii": "Civil Structures",
+    "21aiii": "Engineering Fundamentals",
+    "21b": "Engineered Products",
+    "22a": "Telecommunications Engineering",
+    "22b": "Telecommunications Engineering",
+    "22c": "Engineering Fundamentals",
+    "23a": "Civil Structures",
+    "23bi": "Civil Structures",
+    "23bii": "Civil Structures",
+    "23c": "Personal and Public Transport",
+    "24a": "Personal and Public Transport",
+    "24b": "Personal and Public Transport",
+    "24c": "Personal and Public Transport",
+    "24d": "Personal and Public Transport",
+    "25ai": "Aeronautical Engineering",
+    "25aii": "Aeronautical Engineering",
+    "25b": "Aeronautical Engineering",
+    "25c": "Aeronautical Engineering",
+    "26ai": "Civil Structures",
+    "26aii": "Civil Structures",
+    "26b": "Civil Structures",
+    "26c": "Civil Structures",
+    "27a": "Personal and Public Transport",
+    "27b": "Personal and Public Transport",
+    "3": "Engineering Fundamentals",
+    "4": "Telecommunications Engineering",
+    "5": "Aeronautical Engineering",
+    "6": "Engineering Fundamentals",
+    "7": "Aeronautical Engineering",
+    "8": "Engineering Fundamentals",
+    "9": "Telecommunications Engineering"
+  }
+}
