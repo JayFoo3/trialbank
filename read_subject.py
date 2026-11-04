@@ -3,7 +3,7 @@
 
 Run from Terminal:  cd ~/Documents/question-bank && caffeinate -i python3 read_subject.py --subject Eng --max 15
 Subjects: Adv (Maths Advanced), Std2 (Maths Standard 2), Eng (Engineering Studies), SE (Software Engineering),
-Econ (Economics), Bio (Biology), Chem (Chemistry).
+Econ (Economics), Bio (Biology), Chem (Chemistry), EngAdv (English Advanced).
 Run it again any time: it carries on where it stopped.
 
 It uses Albert's reader (~/Documents/thsc-index/reader) but never changes or pushes his repo:
@@ -48,6 +48,11 @@ SUBJECTS = {
                 word="biology", first=2019, folder="Biology", sol_only=False),
     "Chem": dict(pages=["Chemistry/trialpapers.html", "Chemistry/trialpapers_chemistry.html", "Chem/trialpapers.html"],
                  word="chemistry", first=2019, folder="Chemistry", sol_only=False),
+    # English Advanced: Paper 1 (Common Module) and Paper 2 (Modules A, B, C) are often separate links on THSC
+    # English Advanced: Paper 1 (Common Module, shared with Standard) and Paper 2 (Modules A, B, C) are separate pages and
+    # separate PDFs ("Abbotsleigh 2024 P1", "Abbotsleigh 2024 P2 (Adv.)"). Both pages are used; a trial is two readings.
+    "EngAdv": dict(pages=["English/trialpapers_paper1.html", "English/trialpapers_paper2_advanced.html"], merge=True, per_trial=2,
+                   word="paper", first=2019, folder="English Advanced", sol_only=False),
 }
 NAMED = re.compile(r"^(.*?)\s+((?:19|20)\d\d)\b")
 
@@ -68,7 +73,7 @@ def entries(html, subject, sol_only):
 
 def find_page(session, key):
     cfg = SUBJECTS[key]
-    tried = []
+    tried, merged = [], []
     for name in cfg["pages"]:
         url = YR12 + name
         tried.append(url)
@@ -79,15 +84,21 @@ def find_page(session, key):
         if page.status_code != 200 or cfg["word"] not in page.text.lower():
             continue
         found = entries(page.text, key, cfg["sol_only"])
+        if found and cfg.get("merge"):
+            merged += found
+            continue
         if found:
             return url, found
+    if merged:
+        return YR12 + cfg["pages"][0], merged
     return None, tried
 
 
 def pdf_name(entry):
     label = "HSC" if entry["school"] == "HSC" else LABEL[tier(entry["school"])]
     sol = " (w. sol)" if entry["title"].endswith("w. sol") else ""
-    return f"[{label}] {entry['school']} {entry['year']}{sol}.pdf"
+    part = re.search(r"\b(?:paper\s*|P)([12])\b", entry["title"], re.I)   # English splits a trial into Paper 1 and Paper 2
+    return f"[{label}] {entry['school']} {entry['year']}{f' P{part.group(1)}' if part else ''}{sol}.pdf"
 
 
 def readings_for(key):
@@ -106,6 +117,7 @@ def main(argv=None):
     parser.add_argument("--max", type=int, default=0, help="read at most this many papers this time")
     parser.add_argument("--target", type=int, default=0, help="stop once the subject has this many readings")
     parser.add_argument("--list", action="store_true", help="only show which papers there are")
+    parser.add_argument("--pair", action="store_true", help="English: read just the Paper 2s of trials whose Paper 1 is already read")
     parser.add_argument("--redo-unsolved", action="store_true", help="read again, once, the papers whose reading found no solutions")
     args = parser.parse_args(argv)
     key, cfg = args.subject, SUBJECTS[args.subject]
@@ -140,12 +152,23 @@ def main(argv=None):
         done -= retry
         rp.log(f"{len(papers)} papers to read again for their solutions")
 
+    if args.pair:   # finish whole trials: the P2 that goes with each P1 already read
+        p1 = {(e["school"], e["year"]) for e in papers if (e["number"], e["title"]) in done and re.search(r"\bP1\b", e["title"])}
+        papers = [e for e in papers if re.search(r"\bP2\b", e["title"]) and (e["school"], e["year"]) in p1]
+        args.target = 0
+        rp.log(f"{len(papers)} Paper 2s to go with the Paper 1s already read")
     rp.git = lambda *a, **k: ""  # readings stay in Trialbank: nothing is committed to Albert's repo
     kept = {}
     download = thsc.download
 
     def download_and_keep(number, title, s):
-        kept["pdf"] = download(number, title, s)
+        try:
+            kept["pdf"] = download(number, title, s)
+        except thsc.ThscError:
+            if not title.endswith(" (Adv.)"):
+                raise
+            # THSC stores English Paper 2s under "... P2 Adv", though the page shows "... P2 (Adv.)"
+            kept["pdf"] = download(number, title[:-len(" (Adv.)")] + " Adv", s)
         return kept["pdf"]
 
     thsc.download = download_and_keep
@@ -159,7 +182,7 @@ def main(argv=None):
                 continue
             if args.max and read >= args.max:
                 break
-            if args.target and have + read >= args.target:
+            if args.target and have + read >= args.target * cfg.get("per_trial", 1):   # English: --target counts whole trials (P1 + P2)
                 rp.log(f"{key} has {have + read} papers: target reached")
                 break
             tmp.mkdir(parents=True, exist_ok=True)

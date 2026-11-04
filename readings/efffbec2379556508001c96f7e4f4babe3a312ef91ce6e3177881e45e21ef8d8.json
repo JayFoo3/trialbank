@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 15,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 1,
+        "lastPage": 1,
+        "marks": 3,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 4,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 3,
+        "lastPage": 3,
+        "marks": 4,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 4,
+        "lastPage": 4,
+        "marks": 4,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 5,
+        "lastPage": 6,
+        "marks": 5,
+        "number": 5,
+        "parts": []
+      },
+      {
+        "firstPage": 7,
+        "lastPage": 7,
+        "marks": 20,
+        "number": 6,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 5,
+        "lastPage": 6,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 6,
+        "firstPage": 7,
+        "last": 6,
+        "lastPage": 7,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:37:06Z",
+  "reader": "friend",
+  "sha256": "efffbec2379556508001c96f7e4f4babe3a312ef91ce6e3177881e45e21ef8d8",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2718,
+    "school": "Caringbah",
+    "subject": "EngAdv",
+    "title": "Caringbah 2024 P1",
+    "year": 2024
+  },
+  "topics": {
+    "1": "Common Module: Unseen Texts",
+    "2": "Common Module: Unseen Texts",
+    "3": "Common Module: Unseen Texts",
+    "4": "Common Module: Unseen Texts",
+    "5": "Common Module: Unseen Texts",
+    "6": "Common Module: Extended Response"
+  }
+}

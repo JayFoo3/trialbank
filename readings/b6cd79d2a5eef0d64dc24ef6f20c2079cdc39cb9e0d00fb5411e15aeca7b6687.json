@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 20,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 1,
+        "lastPage": 2,
+        "marks": 3,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 3,
+        "lastPage": 3,
+        "marks": 3,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 4,
+        "lastPage": 5,
+        "marks": 4,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 6,
+        "lastPage": 7,
+        "marks": 4,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 8,
+        "lastPage": 9,
+        "marks": 6,
+        "number": 5,
+        "parts": []
+      },
+      {
+        "firstPage": 10,
+        "lastPage": 10,
+        "marks": 20,
+        "number": 6,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 5,
+        "lastPage": 9,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 6,
+        "firstPage": 10,
+        "last": 6,
+        "lastPage": 10,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:37:01Z",
+  "reader": "friend",
+  "sha256": "b6cd79d2a5eef0d64dc24ef6f20c2079cdc39cb9e0d00fb5411e15aeca7b6687",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2718,
+    "school": "Sydney Grammar",
+    "subject": "EngAdv",
+    "title": "Sydney Grammar 2024 P1",
+    "year": 2024
+  },
+  "topics": {
+    "1": "Common Module: Unseen Texts",
+    "2": "Common Module: Unseen Texts",
+    "3": "Common Module: Unseen Texts",
+    "4": "Common Module: Unseen Texts",
+    "5": "Common Module: Unseen Texts",
+    "6": "Common Module: Extended Response"
+  }
+}

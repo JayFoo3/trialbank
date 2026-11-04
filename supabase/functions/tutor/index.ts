@@ -9,7 +9,7 @@ const PRICE = { in: 2, out: 10, cw: 2.5, cr: 0.1 };   // USD per million tokens 
 const MODES = ['quiz', 'teach', 'stuck', 'check', 'coach'] as const;
 const KINDS = ['concept', 'method', 'algebra', 'careless'];
 const SUBJECTS: Record<string, string> = { Adv: 'Mathematics Advanced', Ext1: 'Mathematics Extension 1', Ext2: 'Mathematics Extension 2', Std2: 'Mathematics Standard 2', Physics: 'Physics',
-  Eng: 'Engineering Studies', SE: 'Software Engineering', Bio: 'Biology', Chem: 'Chemistry', Econ: 'Economics' };
+  Eng: 'Engineering Studies', SE: 'Software Engineering', Bio: 'Biology', Chem: 'Chemistry', Econ: 'Economics', EngAdv: 'English Advanced' };
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

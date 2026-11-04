@@ -481,6 +481,9 @@ def main():
     slug = slugify(f"{subject}-{meta['school']}-{meta['year']}")
     if meta['school'] == 'HSC':            # an official HSC paper: same slug as hsc.py, so its questions join that paper
         slug = f"hsc-{subject.lower()}-{meta['year']}"
+    part = re.search(r'\b20\d\d P([12])\b', name)   # English Paper 1 / Paper 2 of the same trial: keep them apart
+    if part:
+        slug += f"-p{part.group(1)}"
     outdir = os.path.join(a.out, slug)
     os.makedirs(outdir, exist_ok=True)
 

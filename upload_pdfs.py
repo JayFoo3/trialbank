@@ -8,6 +8,7 @@ import argparse, shutil, time, glob, hashlib, json, os, subprocess, sys, tempfil
 import requests
 import b2
 
+import keys  # noqa: F401  (loads ~/.trialbank_keys)
 URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
 KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 H = {'apikey': KEY, 'Authorization': f'Bearer {KEY}'}

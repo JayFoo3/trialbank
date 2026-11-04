@@ -70,7 +70,7 @@ const TOOL = {
 
 // a paper that isn't in Trialbank: the student uploads the paper, their working and (if they have them) the solutions
 const SUBJECTS: Record<string, string> = { Adv: 'Mathematics Advanced', Ext1: 'Mathematics Extension 1', Ext2: 'Mathematics Extension 2', Std2: 'Mathematics Standard 2',
-  Physics: 'Physics', Eng: 'Engineering Studies', SE: 'Software Engineering', Bio: 'Biology', Chem: 'Chemistry', Econ: 'Economics' };
+  Physics: 'Physics', Eng: 'Engineering Studies', SE: 'Software Engineering', Bio: 'Biology', Chem: 'Chemistry', Econ: 'Economics', EngAdv: 'English Advanced' };
 const CUSTOM = (subject: string) => `You are an experienced NSW HSC marker for ${subject}.
 You are given, in order: the pages of an exam paper (the questions), the school's solutions / marking guidelines if the student has them,
 and photos or scans of ONE student's handwritten responses. Often the student instead uploads one annotated paper: the printed questions with their working and multiple choice answers written on the same pages. Then read the questions and the responses from those pages together.

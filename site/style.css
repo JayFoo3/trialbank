@@ -3121,3 +3121,142 @@ body.focus .top { position: static; }
 @keyframes sh-blink { 50% { opacity: 1; } }
 @media (max-width: 420px) { .sh-card { grid-template-columns: 92px 1fr; } .sh-art { width: 92px; height: 92px; } .sh-text b { font-size: 1.5rem; } }
 @media (prefers-reduced-motion: reduce) { .sh-pop, .sh-card, .sh-pop *, .sh-pop svg * { animation: none !important; } .sh-wave, .sh-trend, .sh-tip { stroke-dashoffset: 0; } .sh-sym, .sh-code { opacity: 1; } .sh-puff, .sh-spark, .sh-bub, .sh-cursor { display: none; } }
+
+/* ======================= Duel mode: the whole site goes dark, red and orange =======================
+   Same chunky Trialbank (thick borders, buttons that press down, cartoon flames), just a battle mood.
+   Turned on by duelMode() in app.js on the 1v1 screens and inside a battle. */
+:root[data-duel] {
+  --bg: #1b0f0c; --paper: #29150f; --soft: #331b14; --hover: #3d2017;
+  --ink: #fff2e8; --on-ink: #1b0f0c; --muted: #d0a28f;
+  --rule: #4c271c; --rule-strong: #6e3726;
+  --biro: #ff6a1f; --biro-dark: #b8420a; --biro-soft: #43200f;
+  --marker: #ff3b3b; --hl: #5c2b0f; --hl-edge: #a8521c;
+  --good-soft: #173823; --bad: #ff4646; --bad-dark: #a9232a; --bad-soft: #4a1717;
+  --shadow: rgba(0,0,0,.5);
+  --top-bg: color-mix(in srgb, var(--bg) 90%, transparent);
+  --duel-me: #ff8a1f; --duel-me-dark: #b9520a; --duel-them: #ff3d4f; --duel-them-dark: #a8172a; --duel-gold: #ffd23f;
+  color-scheme: dark;
+}
+:root[data-duel] body { background: radial-gradient(120% 55% at 50% 108%, rgba(255, 92, 20, .30), transparent 62%), var(--bg); background-attachment: fixed; }
+:root[data-duel] body::before { content: ""; position: fixed; inset: auto 0 0 0; height: 40vh; pointer-events: none; z-index: -1;
+  background: radial-gradient(60% 100% at 50% 100%, rgba(255, 60, 30, .22), transparent 70%); animation: duel-breathe 3.2s ease-in-out infinite; }
+@keyframes duel-breathe { 50% { opacity: .45; } }
+:root.duel-fade body, :root.duel-fade body * { transition: background-color .6s, border-color .6s, color .6s, box-shadow .6s !important; }
+/* questions stay on light paper so the scanned images read properly */
+:root[data-duel] .card.question, :root[data-duel] .card.scroll { background: #fbf2e9; border-color: #fbf2e9; box-shadow: 0 4px 0 #0c0604; color: #1f2329; }
+:root[data-duel] .card.question .muted, :root[data-duel] .card.scroll .muted { color: #6b707a; }
+:root[data-duel] .primary, :root[data-duel] .primary:hover { color: #fff; }
+
+/* cartoon flames (same drawing as the streak flame) */
+svg.cf { display: block; overflow: visible; }
+svg.cf .fl { transform-origin: 16px 37px; animation: flicker 1.1s ease-in-out infinite; }
+.fire.band { position: absolute; left: 0; right: 0; bottom: -6px; height: 64px; pointer-events: none; z-index: 0; filter: none; mix-blend-mode: normal; }
+.fire.band svg.cf { position: absolute; bottom: 0; left: var(--x); width: calc(44px * var(--s)); height: calc(52px * var(--s)); margin-left: calc(-22px * var(--s)); }
+.fire.band svg.cf .fl { animation: cf-dance 1.4s ease-in-out var(--d) infinite; }
+@keyframes cf-dance { 0%, 100% { transform: scale(1, 1) skewX(0); } 35% { transform: scale(.94, 1.12) skewX(-4deg); } 70% { transform: scale(1.05, .93) skewX(3deg); } }
+svg.cf.icon { width: 20px; height: 24px; margin-right: 8px; flex: none; }
+svg.cf.icon .fo { fill: #ffd23f; } svg.cf.icon .fi { fill: #fff3c4; }
+.duel-btn { display: inline-flex; align-items: center; justify-content: center; }
+
+/* embers become chunky round sparks, no glow blur */
+.embers b { width: 6px; height: 6px; background: var(--duel-gold, #ffd23f); box-shadow: none; animation: ember var(--t) linear var(--d) infinite; }
+.embers b:nth-child(2n) { background: #ff8a1f; width: 5px; height: 5px; }
+.embers b:nth-child(3n) { background: #ff3d4f; width: 4px; height: 4px; }
+
+/* the flaming button: a proper Trialbank press-down button */
+.duel-btn, .duel-btn:hover, .duel-btn:focus { background: var(--duel-me, #ff7a1a); color: #fff; border: 2px solid var(--duel-me-dark, #b9520a); border-radius: 16px;
+  box-shadow: 0 5px 0 var(--duel-me-dark, #b9520a); filter: none; }
+.duel-btn:hover:not(:disabled) { filter: brightness(1.06); transform: none; }
+.duel-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--duel-me-dark, #b9520a); }
+.duel-btn.big { animation: duel-btn-glow 1.4s ease-in-out infinite; }
+@keyframes duel-btn-glow { 50% { box-shadow: 0 5px 0 var(--duel-me-dark, #b9520a), 0 0 0 7px rgba(255, 138, 31, .22); } }
+.duel-btn .fire { display: none; }
+
+/* the arena: a big chunky card in the battle colours instead of a glossy gradient */
+.duel-arena { background: var(--paper); border: 3px solid var(--rule-strong); box-shadow: 0 7px 0 #0c0604; color: var(--ink); }
+.duel-arena.win { background: radial-gradient(90% 70% at 50% 0%, rgba(255, 210, 63, .22), transparent 65%), var(--paper); }
+.duel-arena.lose { background: radial-gradient(90% 70% at 50% 0%, rgba(255, 61, 79, .14), transparent 65%), var(--paper); }
+.duel-glow { display: none; }
+.duel-kicker { color: var(--duel-gold); }
+.duel-p { background: var(--soft); border: 2px solid var(--rule-strong); box-shadow: 0 4px 0 var(--rule); backdrop-filter: none; }
+.dp-av { background: var(--duel-me); box-shadow: 0 4px 0 var(--duel-me-dark); }
+.them .dp-av { background: var(--duel-them); box-shadow: 0 4px 0 var(--duel-them-dark); }
+.dp-sub, .dr-meta, .dr-q span { color: var(--muted); }
+.duel-x, .di-vs, .sp-vs { color: var(--duel-gold); text-shadow: 0 5px 0 #b34d00; }
+.duel-arena.win .duel-kicker { color: var(--duel-gold); text-shadow: 0 5px 0 #b34d00; }
+.duel-arena.lose .duel-kicker { color: var(--duel-them); text-shadow: 0 5px 0 #5c0d17; }
+.duel-arena.win .me .dp-av, .duel-arena.lose .them .dp-av { box-shadow: 0 4px 0 #b38600, 0 0 0 5px var(--duel-gold); }
+.duel-arena .duel-actions .secondary, .duel-arena.lobby .duel-actions .secondary { background: var(--soft); color: var(--ink); border: 2px solid var(--rule-strong); box-shadow: 0 4px 0 var(--rule); }
+.duel-arena .duel-actions .link, .duel-meta { color: var(--muted) !important; }
+.duel-meta b { color: var(--ink); }
+.dr-grid { background: var(--soft); border: 2px solid var(--rule); }
+.dr-rec { color: var(--ink); }
+.duel-arena .fire.band { height: 70px; }
+.duel-arena.win .fire.band { height: 100px; }
+.duel-arena.lose .fire.band { filter: grayscale(1) brightness(.6); opacity: .5; }
+
+/* the battle bar above each question */
+.duel-strip { background: var(--paper); border: 2px solid var(--rule-strong); box-shadow: 0 4px 0 #0c0604; color: var(--ink); }
+.ds-av { background: var(--duel-me); box-shadow: 0 2px 0 var(--duel-me-dark); }
+.them .ds-av { background: var(--duel-them); box-shadow: 0 2px 0 var(--duel-them-dark); }
+.ds-clock { background: var(--soft); border: 2px solid var(--rule); }
+.ds-tug { background: var(--duel-them); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); height: 12px; }
+.ds-blue { background: var(--duel-me); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
+.ds-spark { width: 28px; height: 34px; margin: -26px 0 0 -14px; filter: none; transform: scale(var(--heat, 1)); transform-origin: 50% 100%; transition: left .8s cubic-bezier(.3,1.5,.5,1), transform .3s; }
+.ds-spark svg.cf { width: 100%; height: 100%; }
+.pip { background: var(--rule-strong); }
+.pip.s { box-shadow: inset 0 0 0 2px var(--muted); }
+.duel-strip.lead .me .ds-score, .duel-strip.trail .them .ds-score { color: var(--duel-gold); text-shadow: none; }
+
+/* the challenge popup, the 3-2-1 splash and the penalty, in the same colours */
+.di-card { background: #29150f; border: 3px solid #6e3726; box-shadow: 0 8px 0 #0c0604; }
+.di-top small { color: #ffd23f; }
+.di-av { background: #ff3d4f; box-shadow: 0 4px 0 #a8172a; }
+.di-card > .fire.band { height: 70px; }
+.duel-splash.in { background: rgba(27, 15, 12, .94); }
+.duel-splash.go { background: radial-gradient(circle, rgba(255, 138, 31, .35), rgba(27, 15, 12, .94) 60%); }
+.sp-bar.l { background: #ff8a1f; box-shadow: inset 0 -10px 0 #b9520a; }
+.sp-bar.r { background: #ff3d4f; box-shadow: inset 0 -10px 0 #a8172a; }
+.sp-count { text-shadow: 0 8px 0 #b34d00; }
+.duel-splash.go .sp-count { color: #ffd23f; text-shadow: 0 8px 0 #b34d00; }
+.sp-flash { color: #ffd23f; text-shadow: 0 6px 0 #b34d00; }
+.duel-splash .fire.band { height: 110px; }
+.duel-splash.go .fire.band { height: 160px; }
+.duel-pen { background: #ff3d4f; border: 2px solid #a8172a; box-shadow: 0 5px 0 #a8172a; }
+.duel-go:not(:disabled) { background: var(--duel-me, #ff7a1a); border-color: var(--duel-me-dark, #b9520a); box-shadow: 0 4px 0 var(--duel-me-dark, #b9520a); }
+.fc-t.on, .fc-t.on:hover { background: #ff7a1a; border-color: #b9520a; color: #fff; box-shadow: 0 3px 0 #b9520a; }
+@media (prefers-reduced-motion: reduce) { svg.cf .fl, .fire.band svg.cf .fl, :root[data-duel] body::before, .duel-btn.big { animation: none !important; } }
+.ds-spark svg.cf, .ds-spark svg.cf.mini { width: 28px; height: 34px; animation: none; fill: initial; filter: none; }
+.duel-arena { padding-bottom: 84px; }
+.ds-spark { top: -27px; margin: 0 0 0 -14px; }
+svg.cf { margin: 0; padding: 0; border: 0; box-shadow: none; background: none; border-radius: 0; }
+svg.cf.icon { margin-right: 8px; }
+
+/* predicted band: what it's based on */
+.pred-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 16px; padding-top: 14px; border-top: 2px solid var(--rule); }
+.pred-opts .seg button.on { background: var(--biro); color: #fff; }
+
+/* no flames: a slow heat glow along the bottom, rising sparks, and a glowing knob where the tug-of-war meets */
+.heat { position: absolute; left: -10%; right: -10%; bottom: -40px; height: 140px; pointer-events: none; z-index: 0;
+  background: radial-gradient(50% 100% at 50% 100%, rgba(255, 106, 31, .45), rgba(255, 61, 79, .18) 55%, transparent 75%); animation: heat-pulse 2.8s ease-in-out infinite; }
+@keyframes heat-pulse { 50% { opacity: .55; transform: scaleY(.9); } }
+.duel-splash .heat { height: 45vh; }
+.duel-splash.go .heat { height: 70vh; }
+.duel-arena.lose .heat { filter: grayscale(1); opacity: .35; }
+.ds-knob { position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--duel-gold, #ffd23f);
+  border: 3px solid #fff3c4; box-shadow: 0 0 0 4px rgba(255, 210, 63, .25); animation: knob-pulse 1.2s ease-in-out infinite; }
+@keyframes knob-pulse { 50% { box-shadow: 0 0 0 8px rgba(255, 210, 63, .12); } }
+.ds-spark { width: 20px; height: 20px; top: -4px; margin: 0 0 0 -10px; }
+@media (prefers-reduced-motion: reduce) { .heat, .ds-knob { animation: none; } }
+.duel-arena > .heat { position: absolute !important; z-index: 0 !important; }
+.duel-arena { padding-bottom: 40px; min-height: 0; }
+
+/* English: a book whose right page turns, lines writing themselves in */
+.sh-lit .sh-card { --c: #c2255c; --cd: #8f1a44; }
+.sh-book { fill: rgba(255,255,255,.95); }
+.sh-spine { stroke: var(--c); stroke-width: 3; fill: none; }
+.sh-page { fill: #fff; stroke: var(--c); stroke-width: 2; transform-origin: 60px 60px; animation: sh-turn 1.6s .2s ease-in-out infinite; }
+@keyframes sh-turn { 0%, 20% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 80%, 100% { transform: scaleX(1); } }
+.sh-line { stroke: var(--c); stroke-width: 3.5; stroke-linecap: round; fill: none; stroke-dasharray: 22; stroke-dashoffset: 22; animation: sh-write .5s var(--t) ease-out forwards; }
+@keyframes sh-write { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .sh-page, .sh-line { animation: none; stroke-dashoffset: 0; } }

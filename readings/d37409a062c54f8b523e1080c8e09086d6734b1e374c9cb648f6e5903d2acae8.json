@@ -1,0 +1,137 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 27,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 3,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 3,
+        "lastPage": 3,
+        "marks": 3,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 4,
+        "lastPage": 4,
+        "marks": 4,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 5,
+        "lastPage": 5,
+        "marks": 4,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 6,
+        "lastPage": 7,
+        "marks": 6,
+        "number": 5,
+        "parts": []
+      },
+      {
+        "firstPage": 8,
+        "lastPage": 12,
+        "marks": 20,
+        "number": 6,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 5,
+        "lastPage": 7,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 6,
+        "firstPage": 8,
+        "last": 6,
+        "lastPage": 12,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:38:10Z",
+  "reader": "friend",
+  "sha256": "d37409a062c54f8b523e1080c8e09086d6734b1e374c9cb648f6e5903d2acae8",
+  "solutions": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 0,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 0,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 22,
+        "marks": 0,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 22,
+        "marks": 0,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 23,
+        "marks": 0,
+        "number": 5,
+        "parts": []
+      },
+      {
+        "firstPage": 24,
+        "lastPage": 24,
+        "marks": 0,
+        "number": 6,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 21,
+  "source": {
+    "number": 2718,
+    "school": "North Sydney Girls",
+    "subject": "EngAdv",
+    "title": "North Sydney Girls 2022 P1",
+    "year": 2022
+  },
+  "topics": {
+    "1": "Common Module: Unseen Texts",
+    "2": "Common Module: Unseen Texts",
+    "3": "Common Module: Unseen Texts",
+    "4": "Common Module: Unseen Texts",
+    "5": "Common Module: Unseen Texts",
+    "6": "Common Module: Extended Response"
+  }
+}

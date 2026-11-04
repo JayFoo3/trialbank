@@ -1,0 +1,86 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 24,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 2,
+        "lastPage": 3,
+        "marks": 5,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 4,
+        "lastPage": 5,
+        "marks": 5,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 6,
+        "lastPage": 6,
+        "marks": 4,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 7,
+        "lastPage": 8,
+        "marks": 6,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 9,
+        "lastPage": 12,
+        "marks": 20,
+        "number": 5,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 4,
+        "lastPage": 8,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 5,
+        "firstPage": 9,
+        "last": 5,
+        "lastPage": 12,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:35:50Z",
+  "reader": "friend",
+  "sha256": "c01cde9d5525b85ce565a48154d24c92771a825cc9c0088444b669b640526377",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2718,
+    "school": "James Ruse",
+    "subject": "EngAdv",
+    "title": "James Ruse 2026 P1",
+    "year": 2026
+  },
+  "topics": {
+    "1": "Common Module: Unseen Texts",
+    "2": "Common Module: Unseen Texts",
+    "3": "Common Module: Unseen Texts",
+    "4": "Common Module: Unseen Texts",
+    "5": "Common Module: Extended Response"
+  }
+}

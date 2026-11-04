@@ -1,0 +1,82 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 11,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 1,
+        "lastPage": 1,
+        "marks": 20,
+        "number": 1,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 3
+          },
+          {
+            "label": "b",
+            "marks": 4
+          },
+          {
+            "label": "c",
+            "marks": 5
+          },
+          {
+            "label": "d",
+            "marks": 8
+          }
+        ]
+      },
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 20,
+        "number": 2,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 0,
+        "firstPage": 1,
+        "last": 0,
+        "lastPage": 1,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 0,
+        "firstPage": 2,
+        "last": 0,
+        "lastPage": 2,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:39:03Z",
+  "reader": "friend",
+  "sha256": "909e5f109d89d9956dbbeafc800817bc0470cb7a3c8337f3abcf64ca1430b6d2",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2718,
+    "school": "Sydney Grammar",
+    "subject": "EngAdv",
+    "title": "Sydney Grammar 2020 P1",
+    "year": 2020
+  },
+  "topics": {
+    "1a": "Common Module: Unseen Texts",
+    "1b": "Common Module: Unseen Texts",
+    "1c": "Common Module: Unseen Texts",
+    "1d": "Common Module: Unseen Texts",
+    "2": "Common Module: Extended Response"
+  }
+}

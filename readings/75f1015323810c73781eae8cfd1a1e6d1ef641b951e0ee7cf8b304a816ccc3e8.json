@@ -1,0 +1,87 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 8,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 1,
+        "lastPage": 6,
+        "marks": 20,
+        "number": 1,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 4
+          },
+          {
+            "label": "d",
+            "marks": 4
+          },
+          {
+            "label": "e",
+            "marks": 7
+          }
+        ]
+      },
+      {
+        "firstPage": 7,
+        "lastPage": 7,
+        "marks": 20,
+        "number": 2,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 1,
+        "lastPage": 6,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 2,
+        "firstPage": 7,
+        "last": 2,
+        "lastPage": 7,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:39:21Z",
+  "reader": "friend",
+  "sha256": "75f1015323810c73781eae8cfd1a1e6d1ef641b951e0ee7cf8b304a816ccc3e8",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2718,
+    "school": "North Sydney Boys",
+    "subject": "EngAdv",
+    "title": "North Sydney Boys 2019 P1",
+    "year": 2019
+  },
+  "topics": {
+    "1a": "Common Module: Unseen Texts",
+    "1b": "Common Module: Unseen Texts",
+    "1c": "Common Module: Unseen Texts",
+    "1d": "Common Module: Unseen Texts",
+    "1e": "Common Module: Unseen Texts",
+    "2": "Common Module: Extended Response"
+  }
+}

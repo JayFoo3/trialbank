@@ -1,0 +1,87 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 9,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 7,
+        "lastPage": 7,
+        "marks": 20,
+        "number": 1,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 3
+          },
+          {
+            "label": "c",
+            "marks": 4
+          },
+          {
+            "label": "d",
+            "marks": 5
+          },
+          {
+            "label": "e",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 8,
+        "lastPage": 8,
+        "marks": 20,
+        "number": 2,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 0,
+        "firstPage": 7,
+        "last": 0,
+        "lastPage": 7,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 0,
+        "firstPage": 8,
+        "last": 0,
+        "lastPage": 8,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:38:32Z",
+  "reader": "friend",
+  "sha256": "d8281069371d93f556387e3255d66c3137c18381aaf8d5ad9436b5ba5c985606",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2718,
+    "school": "Sydney Grammar",
+    "subject": "EngAdv",
+    "title": "Sydney Grammar 2021 P1",
+    "year": 2021
+  },
+  "topics": {
+    "1a": "Common Module: Unseen Texts",
+    "1b": "Common Module: Unseen Texts",
+    "1c": "Common Module: Unseen Texts",
+    "1d": "Common Module: Unseen Texts",
+    "1e": "Common Module: Unseen Texts",
+    "2": "Common Module: Extended Response"
+  }
+}

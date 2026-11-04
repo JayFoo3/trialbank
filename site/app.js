@@ -57,12 +57,20 @@
       t.finished.finally(() => { delete document.documentElement.dataset.vt; });
     } catch { showNow(name); delete document.documentElement.dataset.vt; }
   }
+  // battles turn the whole site dark, red and orange: same chunky Trialbank, different mood. Fades in and out.
+  function duelMode(on) {
+    const r = document.documentElement;
+    if (on === r.hasAttribute('data-duel')) return;
+    r.classList.add('duel-fade'); clearTimeout(duelMode.t); duelMode.t = setTimeout(() => r.classList.remove('duel-fade'), 700);
+    r.toggleAttribute('data-duel', on);
+  }
   function showNow(name) {
     $('preview-bar').hidden = !(state.preview && state.user); drawBars();
     views.forEach(v => $('view-' + v).hidden = v !== name);
     $('nav').hidden = !state.user; $('top-right').hidden = !state.user;
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === NAV[name]));
     document.body.classList.toggle('focus', name === 'set' || (name === 'examrun' && state.exam && state.exam.phase !== 'marking'));
+    duelMode(name === 'duel' || (name === 'set' && !!state.set?.duel));
     $('account-menu').hidden = true;
     window.scrollTo(0, 0);
   }
@@ -486,6 +494,9 @@
       ['Electromagnetism', ['Charged Particles, Conductors and Fields', 'The Motor Effect', 'Electromagnetic Induction', 'Applications of the Motor Effect']],
       ['The Nature of Light', ['Electromagnetic Spectrum', 'Light: Wave Model', 'Light: Quantum Model', 'Light and Special Relativity']],
       ['From the Universe to the Atom', ['Origins of the Elements', 'Structure of the Atom', 'Quantum Mechanical Nature of the Atom', 'Properties of the Nucleus', 'Deep Inside the Atom']],
+    ],
+    EngAdv: [
+      ['Paper 1: Texts and Human Experiences', ['Common Module: Unseen Texts', 'Common Module: Extended Response']],
     ],
     Chem: [
       ['Equilibrium and Acid Reactions', ['Static and Dynamic Equilibrium', 'Factors that Affect Equilibrium', 'Calculating the Equilibrium Constant (Keq)', 'Solution Equilibria']],
@@ -1585,7 +1596,8 @@
     hscPredictions().then(p => {   // predicted band, linking to the full HSC estimate
       const x = p[state.subject], t = $('hsc-teaser'); if (!t) return;
       const need = x && !x.ready ? Math.max(0, Math.ceil(x.need)) : 40, got = 40 - need;
-      t.innerHTML = x?.ready ? `<p class="pg-k">Predicted HSC band</p><div class="pg-bandv">${x.band}</div><span class="small muted">About ${x.raw}% raw · from ${x.marks} marks</span><span class="pg-more">HSC estimate and ATAR →</span>`
+      if (x && !x.ready && x.timed) { t.innerHTML = `<p class="pg-k">Predicted HSC band</p><div class="pg-bandv muted">No timed papers</div><span class="small muted">Last 4 weeks · timed papers only</span><span class="pg-more">HSC estimate and ATAR →</span>`; return; }
+      t.innerHTML = x?.ready ? `<p class="pg-k">Predicted HSC band</p><div class="pg-bandv">${x.band}</div><span class="small muted">About ${x.raw}% raw · from ${x.timed ? `${x.papers} timed paper${x.papers === 1 ? '' : 's'}` : `${x.marks} marks`}</span><span class="pg-more">HSC estimate and ATAR →</span>`
         : `<p class="pg-k">Predicted HSC band</p><div class="pg-bandv muted">${need} marks to go</div><span class="pg-unlock"><i style="width:${Math.round(100 * got / 40)}%"></i></span><span class="small muted">Answer ${need} more marks of questions to see it.</span><span class="pg-more">HSC estimate and ATAR →</span>`;
     }).catch(() => {});
     renderLostBars();
@@ -1601,17 +1613,71 @@
   // ---------- predicted band and ATAR estimate (hsc.js; HSC is already the list of course names above) ----------
   const HSCX = window.HSC;
   let hscCache = null;
+  // predictions only look at the last 4 weeks (and nothing before a reset); 'timed' uses only full timed papers.
+  // Both choices live on the account, so every device agrees.
+  const PRED_DAYS = 28;
+  const predOpts = () => { const m = state.user?.user_metadata || {}; return { timed: !!m.pred_timed, from: m.pred_from || null }; };
+  const predSince = () => { const o = predOpts(); return Math.max(Date.now() - PRED_DAYS * 864e5, o.from ? new Date(o.from).getTime() : 0); };
+  async function predSet(patch) {
+    const { data, error } = await sb.auth.updateUser({ data: patch });
+    if (error) throw error;
+    if (data?.user) state.user = data.user;
+    hscCache = null;
+  }
   async function hscPredictions(force) {
     if (hscCache && !force && Date.now() - hscCache.at < 60e3) return hscCache.p;
-    const { data, error } = await sb.from('attempts').select('score, out_of, created_at, questions!inner(topic, papers!inner(subject))')
-      .eq('user_id', state.user.id).order('created_at', { ascending: false }).limit(3000);
+    const since = new Date(predSince()).toISOString(), timed = predOpts().timed;
+    const [{ data, error }, ex] = await Promise.all([
+      sb.from('attempts').select('score, out_of, created_at, questions!inner(topic, papers!inner(subject))')
+        .eq('user_id', state.user.id).gte('created_at', since).order('created_at', { ascending: false }).limit(3000),
+      timed ? sb.from('exams').select('score, out_of, created_at, papers!inner(subject)').eq('user_id', state.user.id).gte('created_at', since).limit(500) : Promise.resolve({ data: [] }),
+    ]);
     if (error) throw error;
+    if (ex.error) throw ex.error;
     const by = {};
     (data || []).forEach(a => { const sub = a.questions?.papers?.subject; if (!sub) return; (by[sub] = by[sub] || []).push({ score: a.score, out_of: a.out_of, created_at: a.created_at, topic: a.questions.topic }); });
     const p = {};
-    Object.keys(C.subjects).forEach(sub => { if (by[sub]) p[sub] = HSCX.predict(sub, by[sub]); });
+    if (!timed) {
+      Object.keys(C.subjects).forEach(sub => { if (by[sub]) p[sub] = HSCX.predict(sub, by[sub]); });
+    } else {
+      // a timed paper's questions are saved in the same moment as the paper itself, so they share its timestamp
+      const exBy = {};
+      (ex.data || []).forEach(e => { const sub = e.papers?.subject; if (sub && e.out_of) (exBy[sub] = exBy[sub] || []).push(e); });
+      Object.keys(C.subjects).forEach(sub => {
+        const papers = exBy[sub] || [];
+        if (!papers.length) { p[sub] = { ready: false, need: 0, marks: 0, timed: true, papers: 0 }; return; }
+        const x = HSCX.predict(sub, papers.map(e => ({ score: e.score, out_of: e.out_of, created_at: e.created_at, topic: null })));
+        const at = papers.map(e => new Date(e.created_at).getTime());
+        const qs = (by[sub] || []).filter(a => at.some(t => Math.abs(new Date(a.created_at).getTime() - t) < 20e3));
+        const tx = qs.length ? HSCX.predict(sub, qs) : null;
+        x.holding = tx?.holding || []; x.timed = true; x.papers = papers.length;
+        if (!x.ready) { x.need = 0; }
+        p[sub] = x;
+      });
+    }
     hscCache = { at: Date.now(), p };
     return p;
+  }
+  // the switches under the band: all practice or timed papers only, and a fresh start
+  function predControls() {
+    const o = predOpts();
+    return `<div class="pred-opts"><div class="seg" role="group" aria-label="Predict from">
+        <button type="button" class="${o.timed ? '' : 'on'}" data-pred="all">All practice</button><button type="button" class="${o.timed ? 'on' : ''}" data-pred="timed">Timed papers</button></div>
+      <span class="muted small">Last 4 weeks</span><button type="button" class="link small" id="pred-reset">Start fresh</button></div>`;
+  }
+  function predWire(box, redraw) {
+    box.querySelectorAll('[data-pred]').forEach(b => b.onclick = async () => {
+      const timed = b.dataset.pred === 'timed'; if (timed === predOpts().timed) return;
+      box.querySelectorAll('[data-pred]').forEach(x => x.classList.toggle('on', x === b));
+      try { await predSet({ pred_timed: timed }); } catch (err) { toast(esc(err.message)); }
+      redraw();
+    });
+    const r = box.querySelector('#pred-reset'); if (!r) return;
+    r.onclick = async () => {
+      if (!(await confirmBox('Start your predicted band fresh? Older answers stop counting towards it. Your practice history and topic colours stay.', 'Start fresh', 'Cancel'))) return;
+      try { await predSet({ pred_from: new Date().toISOString() }); } catch (err) { toast(esc(err.message)); }
+      redraw();
+    };
   }
   const ATAR_KEY = () => `tb_atar_${state.user?.id}`;
   const HSC_CODE = (sub) => HSCX.SCALING[sub] ? sub : null;   // our subject codes match the scaling table's
@@ -1623,15 +1689,19 @@
     const others = Object.entries(preds).filter(([s, p]) => s !== subj && p.ready);
     const box = $('hsc-band');
     if (!x || !x.ready) {
+      const timed = predOpts().timed;
       box.innerHTML = `<p class="hsc-kick">Predicted band · ${esc(shortName(name))}</p><h2 class="hsc-big muted">Not enough yet</h2>
-        <p>Answer about <b>${Math.max(1, Math.ceil(x?.need ?? 40))} more marks</b> of questions in ${esc(name)} and your predicted band appears here.</p>
-        <button class="primary" id="hsc-daily">Do today's Daily 5</button>`;
-      $('hsc-daily').onclick = () => { location.hash = '#home'; };
+        ${timed ? `<p>Do a <b>timed paper</b> in ${esc(name)} and your predicted band appears here.</p>
+        <button class="primary" id="hsc-daily">Find a paper</button>`
+        : `<p>Answer about <b>${Math.max(1, Math.ceil(x?.need ?? 40))} more marks</b> of questions in ${esc(name)} and your predicted band appears here.</p>
+        <button class="primary" id="hsc-daily">Do today's Daily 5</button>`}${predControls()}`;
+      $('hsc-daily').onclick = () => { location.hash = timed ? '#papers' : '#home'; };
+      predWire(box, renderHsc);
     } else {
       const range = x.bandLo === x.bandHi ? `Very likely ${x.band}` : `Somewhere from ${x.bandLo} to ${x.bandHi}`;
       box.innerHTML = `<p class="hsc-kick">Predicted band · ${esc(shortName(name))}</p>
         <div class="hsc-head"><h2 class="hsc-big">${x.band}</h2>
-          <div class="hsc-meta">${pro ? `<b>About ${x.mark}/${outOf}</b> <span class="muted">(${x.lo} to ${x.hi})</span><br>` : ''}<span class="muted small">${range} · from ${x.marks} marks of questions, about ${x.raw}% raw</span></div></div>
+          <div class="hsc-meta">${pro ? `<b>About ${x.mark}/${outOf}</b> <span class="muted">(${x.lo} to ${x.hi})</span><br>` : ''}<span class="muted small">${range} · from ${x.timed ? `${x.papers} timed paper${x.papers === 1 ? '' : 's'}` : `${x.marks} marks of questions`}, about ${x.raw}% raw</span></div></div>${predControls()}
         <h3 class="hsc-h3">What's holding you back</h3>
         <div class="hsc-hold ${pro ? '' : 'locked'}">${(pro ? x.holding : [{ topic: 'Topic one', pct: 48, gain: 3.1 }, { topic: 'Topic two', pct: 55, gain: 2.2 }, { topic: 'Topic three', pct: 61, gain: 1.4 }]).map(h => `
           <div class="hsc-row"><span class="hsc-t">${esc(pro ? topicName(h.topic) : h.topic)}</span><span class="muted small hsc-pct">${h.pct}% right</span><b>+${h.gain.toFixed(1)}%</b>${pro ? `<button class="link small" data-topic="${esc(h.topic)}">Practise</button>` : ''}</div>`).join('') || '<p class="muted small">Nothing stands out: your topics are all close to your average.</p>'}
@@ -1643,6 +1713,7 @@
       });
       if ($('hsc-paper')) $('hsc-paper').onclick = () => { cpOpt.focus = 'weak'; location.hash = '#practise'; setTimeout(() => { const c = $('cp-card'); if (c) { c.open = true; c.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 400); };
       if ($('hsc-pro')) $('hsc-pro').onclick = () => openPro('band');
+      predWire(box, renderHsc);
     }
     drawAtar(preds);
   }
@@ -4632,7 +4703,7 @@
     (art || `<div class="tbp-mascot">${Mascot(mood)}</div>`);
   // switching subject: a little "Welcome to <subject>" card with that subject's own animation (a flask that bubbles over
   // for Chemistry, an atom for Physics...). It sits on top for about two seconds and taps away; no sound.
-  const SH_KIND = { Ext1: 'maths', Ext2: 'maths', Adv: 'maths', Std2: 'maths', Physics: 'phys', Chem: 'chem', Bio: 'bio', Econ: 'econ', Eng: 'eng', SE: 'se' };
+  const SH_KIND = { Ext1: 'maths', Ext2: 'maths', Adv: 'maths', Std2: 'maths', Physics: 'phys', Chem: 'chem', Bio: 'bio', Econ: 'econ', Eng: 'eng', SE: 'se', EngAdv: 'lit' };
   const SH_ART = {
     chem: `<svg viewBox="0 0 120 120"><g class="sh-puff">${[0, 1, 2, 3, 4, 5, 6].map(i => `<circle style="--a:${i * 51 - 153}deg;--d:${i % 2 ? 26 : 34}px" cx="60" cy="22" r="${7 + (i % 3) * 2}"/>`).join('')}</g>
       <g class="sh-flask"><clipPath id="sh-clip"><path d="M53 46 31 88a9 9 0 0 0 8 13h42a9 9 0 0 0 8-13L67 46z"/></clipPath>
@@ -4648,6 +4719,8 @@
     econ: `<svg viewBox="0 0 120 120"><path class="sh-axis" d="M18 100h88"/>${[[24, 34], [44, 50], [64, 42], [84, 66]].map(([x, h], i) => `<rect class="sh-bar" style="--t:${i * .12}s" x="${x}" y="${100 - h}" width="14" height="${h}" rx="3"/>`).join('')}
       <path class="sh-trend" d="M22 70 46 54 66 62 98 26"/><path class="sh-tip" d="M86 26h12v12"/></svg>`,
     eng: `<svg viewBox="0 0 120 120"><g class="sh-gear g1"><circle cx="46" cy="52" r="24"/><circle class="hole" cx="46" cy="52" r="8"/></g><g class="sh-gear g2"><circle cx="82" cy="84" r="16"/><circle class="hole" cx="82" cy="84" r="5"/></g></svg>`,
+    lit: `<svg viewBox="0 0 120 120"><path class="sh-book" d="M60 34c-12-8-28-9-42-6v62c14-3 30-2 42 6 12-8 28-9 42-6V28c-14-3-30-2-42 6z"/><path class="sh-spine" d="M60 34v62"/>
+      <path class="sh-page" d="M60 34c10-6 22-7 34-5v56c-12-2-24-1-34 5z"/><path class="sh-line" style="--t:.3s" d="M28 46h22M28 56h22M28 66h16"/><path class="sh-line" style="--t:.6s" d="M70 46h22M70 56h22M70 66h16"/></svg>`,
     se: `<svg viewBox="0 0 120 120"><text class="sh-code l" x="14" y="74">&lt;</text><text class="sh-code s" x="46" y="74">/</text><text class="sh-code r" x="74" y="74">&gt;</text><rect class="sh-cursor" x="58" y="84" width="16" height="5" rx="2"/></svg>`,
   };
   function subjectHello(key) {
@@ -6046,7 +6119,17 @@
   // Fire: one shared WebGL shader draws every canvas.fire on the page. Rising, domain-warped noise makes the flame
   // tongues, a blackbody colour ramp makes them read as fire (white-yellow core, orange body, red tips that tear off),
   // and a soft halo around them is the glow. data-heat sets how tall and fierce it burns; .mini is a single flame.
-  const fireHTML = (n = 11, cls = '') => `<canvas class="fire${cls ? ' ' + cls : ''}" data-heat="${n}" aria-hidden="true"></canvas>`;
+  // fire, the Trialbank way: the same chunky cartoon flame as the streak, never a realistic one.
+  // 'mini' is one flame (the battle bar), 'icon' sits in a button, anything else is a row that dances along the bottom.
+  const FL_PATH = '<g class="fl"><path class="fo" d="M16 1c1.2 7 9.5 11.2 11.3 20.2C29 30 23.4 37 16 37S3 31.2 4.6 22.6c1-5.6 4.6-8 5.9-12.6 1.8 2.7 2 5.5 3.6 6.6C16 11.8 15.4 6.6 16 1z"/><path class="fi" d="M16 16.5c1.2 4.2 6.3 6.3 6.3 11.4 0 4.4-2.9 7.6-6.3 7.6s-6.3-3.2-6.3-7.4c0-3.3 2-4.5 3.1-7.4 1 1.3 1.8 2.9 2.8 3.1.3-2.5.2-4.8.4-7.3z"/></g>';
+  const oneFlame = (cls = '', style = '') => `<svg class="cf ${cls}" viewBox="0 0 32 38" aria-hidden="true"${style ? ` style="${style}"` : ''}>${FL_PATH}</svg>`;
+  const fireHTML = (n = 11, cls = '') => {
+    if (cls === 'mini') return '<i class="ds-knob" aria-hidden="true"></i>';   // no flames in battles: the colours carry the mood
+    if (cls === 'icon') return '';
+    if (true) return '<div class="heat" aria-hidden="true"></div>';
+    const k = Math.max(5, Math.min(11, Math.round(n * .6)));
+    return `<div class="fire band" aria-hidden="true">${Array.from({ length: k }, (_, i) => oneFlame('', `--x:${((i + .5) / k * 100).toFixed(1)}%;--s:${(.7 + ((i * 37) % 10) / 22).toFixed(2)};--d:${(-((i * 53) % 13) / 10).toFixed(1)}s`)).join('')}</div>`;
+  };
   const FIRE_FRAG = `
 precision highp float;
 uniform vec2 uRes; uniform float uTime, uHeat, uSeed, uMini, uEdge;
@@ -6351,7 +6434,7 @@ void main() {
         <div class="fc-topics">${topics.map(t => `<button type="button" class="fc-t${pick.has(t) ? ' on' : ''}" data-t="${esc(t)}">${esc(topicName(t))}</button>`).join('')}</div>
         <input class="fc-stakes" maxlength="40" placeholder="Stakes, e.g. loser buys chips" autocomplete="off" aria-label="Stakes (optional)" value="${esc(stakes)}">
         <div class="fc-go"><div class="seg fc-k"><button data-k="quick"${kind === 'quick' ? ' class="on"' : ''} title="Short textbook-style questions, marked instantly">Quick</button><button data-k="all"${kind === 'all' ? ' class="on"' : ''} title="Questions from past trial papers">Trial</button></div><div class="seg fc-n"><button data-n="5"${n === 5 ? ' class="on"' : ''}>5</button><button data-n="10"${n === 10 ? ' class="on"' : ''}>10</button></div>
-        <button class="duel-btn" id="fc-send" ${pick.size ? '' : 'disabled'}>${fireHTML(9)}<span>Send challenge</span></button></div>`;
+        <button class="duel-btn" id="fc-send" ${pick.size ? '' : 'disabled'}>${fireHTML(0, 'icon')}<span>Send challenge</span></button></div>`;
       const send = box.querySelector('#fc-send');
       box.querySelectorAll('.fc-s').forEach(b => b.onclick = () => { subj = b.dataset.s; draw(); });
       box.querySelector('.fc-stakes').oninput = (ev) => { stakes = cleanStakes(ev.target.value); };
@@ -6402,7 +6485,7 @@ void main() {
       ${embersHTML(18)}<div class="di-top"><small>Challenge</small><div class="di-av">${esc(from.slice(0, 1).toUpperCase())}</div><b class="di-vs">1v1</b></div>
       <h2 id="di-t"><span>${esc(from)}</span> wants to battle</h2>
       <p class="di-sub">${esc(title)} · ${n} questions</p>${stakes ? `<p class="di-stakes">Stakes: <b>${esc(stakes)}</b></p>` : ''}
-      <div class="di-actions"><button class="duel-btn big" data-k="go">${fireHTML(9)}<span>Accept</span></button><button class="link" data-k="no">Not now</button></div>
+      <div class="di-actions"><button class="duel-btn big" data-k="go">${fireHTML(0, 'icon')}<span>Accept</span></button><button class="link" data-k="no">Not now</button></div>
       <div class="di-timer"><i></i></div>${fireHTML(14)}</div>`;
     document.body.appendChild(m);
     fx().sfx?.whoosh?.(); setTimeout(() => fx().sfx?.fanfare?.(), 250); fx().buzz?.([30, 60, 30]);
@@ -6566,7 +6649,7 @@ void main() {
     else if (full && s.streak >= 2) duelCall(`On fire ×${s.streak}`, 'fire');
     if (before < 0 && after > 0) setTimeout(() => duelCall('Comeback!', 'gold'), 650);
     if (full) { const el = $('duel-strip'); el.classList.remove('strike'); void el.offsetWidth; el.classList.add('strike'); }
-    const sp = document.querySelector('#duel-strip .ds-spark canvas'); if (sp) sp.dataset.heat = String(12 + Math.min(5, s.streak) * 5);
+    const sp = document.querySelector('#duel-strip .ds-spark'); if (sp) sp.style.setProperty('--heat', String(1 + Math.min(5, s.streak) * .12));
     $('duel-strip').classList.toggle('blazing', s.streak >= 2);
     if (!full) duelPenalty();
   }
@@ -6617,7 +6700,7 @@ void main() {
   // the battle bar: two scores, a tug-of-war line with a flame where they meet, a pip per question, a clock and a live feed
   function duelStrip() {
     const el = $('duel-strip'), s = state.set;
-    el.hidden = !s?.duel; if (el.hidden) { clearInterval(duel.tick); return; }
+    el.hidden = !s?.duel; if (!$('view-set').hidden) duelMode(!!s?.duel); if (el.hidden) { clearInterval(duel.tick); return; }
     const me = duel.me, th = duel.them || blankP('Friend'), n = s.qs.length || 1;
     if (el.dataset.code !== duel.code + duel.at) {
       el.dataset.code = duel.code + duel.at;
@@ -6678,7 +6761,7 @@ void main() {
   function duelDraw() {
     if (!$('view-duel') || !duel.code) return;
     const me = duel.me, th = duel.them, act = $('duel-actions'), arena = document.querySelector('.duel-arena'), bd = $('duel-break');
-    if (!arena.querySelector('.fire')) arena.insertAdjacentHTML('beforeend', fireHTML(16) + embersHTML(26));
+    if (!arena.querySelector('.fire.band')) { arena.querySelectorAll('.fire, .embers').forEach(x => x.remove()); arena.insertAdjacentHTML('beforeend', fireHTML(16) + embersHTML(18)); }
     const key = duel.phase === 'done' ? JSON.stringify([me.score, th?.score, me.r, th?.r, me.done, th?.done, duel.wants, duel.asked, duel.counts, th?.here, duel.code + duel.at]) : '';
     if (key && arena.dataset.k === key) return;   // nothing new: don't replay the results
     arena.dataset.k = key;
@@ -6702,7 +6785,7 @@ void main() {
         ${th ? duelStats(me, th) : ''}
         ${duel.themId ? `<p class="dr-rec">${recLine(duel.themId, th?.name || 'They') || ''}</p>` : ''}`;
       act.innerHTML = duel.host
-        ? `<button class="duel-btn${duel.wants ? ' big' : ''}" id="duel-again">${duel.wants ? fireHTML(9) : ''}<span>${duel.wants ? `${esc(th?.name || 'They')} wants a rematch` : 'Rematch'}</span></button><button class="secondary" id="duel-out">Done</button>`
+        ? `<button class="duel-btn${duel.wants ? ' big' : ''}" id="duel-again">${duel.wants ? fireHTML(0, 'icon') : ''}<span>${duel.wants ? `${esc(th?.name || 'They')} wants a rematch` : 'Rematch'}</span></button><button class="secondary" id="duel-out">Done</button>`
         : `<button class="duel-btn" id="duel-ask" ${duel.asked ? 'disabled' : ''}><span>${duel.asked ? 'Rematch asked…' : 'Ask for a rematch'}</span></button><button class="secondary" id="duel-out">Done</button>`;
       if (duel.counts != null) setTimeout(duelReward, 0);
       if (duel.shown !== res) {
@@ -6719,7 +6802,7 @@ void main() {
       $('duel-kicker').textContent = 'Battle in progress';
       $('duel-me').innerHTML = duelCard(me, `${me.a} of ${duel.ids.length}`, `<b class="dp-score">${dN(me.score)}</b>`);
       $('duel-them').innerHTML = duelCard(th, `${th?.a || 0} of ${duel.ids.length}`, `<b class="dp-score">${dN(th?.score || 0)}</b>`);
-      act.innerHTML = '<button class="duel-btn big" id="duel-back">' + fireHTML(9) + '<span>Back to the battle</span></button>';
+      act.innerHTML = '<button class="duel-btn big" id="duel-back">' + fireHTML(0, 'icon') + '<span>Back to the battle</span></button>';
     } else {
       arena.classList.add('lobby');
       $('duel-kicker').textContent = duel.host ? '1v1 challenge' : '1v1';
@@ -6727,7 +6810,7 @@ void main() {
       $('duel-them').innerHTML = duelCard(th, th ? (th.here === false ? 'Left' : th.ready ? '<span class="dp-ready">Ready</span>' : 'Joining…') : '');
       if (duel.host) {
         const ready = !!th?.ready;
-        act.innerHTML = ready ? '<button class="duel-btn big" id="duel-fight">' + fireHTML(11) + '<span>Fight</span></button>'
+        act.innerHTML = ready ? '<button class="duel-btn big" id="duel-fight">' + fireHTML(0, 'icon') + '<span>Fight</span></button>'
           : `${duel.invitee ? `<button class="secondary" id="duel-resend">${duel.declined ? 'Ask again' : 'Send again'}</button>` : ''}<button class="secondary" id="duel-copy">Copy link</button><button class="link" id="duel-out">Cancel</button>`;
       } else act.innerHTML = `<p class="small duel-meta">${duel.err ? esc(duel.err) : me.ready ? `Waiting for ${esc(th?.name || 'them')} to start` : 'Getting the questions…'}</p><button class="link" id="duel-out">Leave</button>`;
       bd.innerHTML = `${duel.stakes ? `<p class="dr-stakes">Stakes: <b>${esc(duel.stakes)}</b></p>` : ''}<p class="dr-meta">${duel.ids.length ? `${duel.ids.length} questions · ` : ''}win +50 XP · first to finish ends it · misses cost 5s</p>`;

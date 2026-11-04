@@ -1,0 +1,87 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 11,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 1,
+        "lastPage": 1,
+        "marks": 20,
+        "number": 1,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 2
+          },
+          {
+            "label": "b",
+            "marks": 5
+          },
+          {
+            "label": "c",
+            "marks": 3
+          },
+          {
+            "label": "d",
+            "marks": 4
+          },
+          {
+            "label": "e",
+            "marks": 6
+          }
+        ]
+      },
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 20,
+        "number": 2,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 1,
+        "last": 1,
+        "lastPage": 1,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 2,
+        "firstPage": 2,
+        "last": 2,
+        "lastPage": 2,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:39:13Z",
+  "reader": "friend",
+  "sha256": "001661aced0e52986f60460fa25d6ac6aae919f4d38971447db5acfec7b61b7e",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2718,
+    "school": "James Ruse",
+    "subject": "EngAdv",
+    "title": "James Ruse 2019 P1",
+    "year": 2019
+  },
+  "topics": {
+    "1a": "Common Module: Unseen Texts",
+    "1b": "Common Module: Unseen Texts",
+    "1c": "Common Module: Unseen Texts",
+    "1d": "Common Module: Unseen Texts",
+    "1e": "Common Module: Unseen Texts",
+    "2": "Common Module: Extended Response"
+  }
+}

@@ -3,6 +3,7 @@ Reads B2_KEY_ID, B2_APP_KEY, B2_BUCKET, B2_ENDPOINT (e.g. s3.us-west-004.backbla
 import datetime, hashlib, hmac, os, sys, time, urllib.parse
 import requests
 
+import keys  # noqa: F401  (loads ~/.trialbank_keys)
 KEY_ID = os.environ.get('B2_KEY_ID', '')
 APP_KEY = os.environ.get('B2_APP_KEY', '')
 BUCKET = os.environ.get('B2_BUCKET', '')

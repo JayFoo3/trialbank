@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 12,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 3,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 3,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 4,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 4,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 6,
+        "number": 5,
+        "parts": []
+      },
+      {
+        "firstPage": 3,
+        "lastPage": 3,
+        "marks": 20,
+        "number": 6,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 5,
+        "lastPage": 2,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 6,
+        "firstPage": 3,
+        "last": 6,
+        "lastPage": 3,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:39:29Z",
+  "reader": "friend",
+  "sha256": "0f43e836e587f9c082ddcfcdd572866d00303d46ba525408e4705ead467b293f",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2718,
+    "school": "North Sydney Girls",
+    "subject": "EngAdv",
+    "title": "North Sydney Girls 2019 P1",
+    "year": 2019
+  },
+  "topics": {
+    "1": "Common Module: Unseen Texts",
+    "2": "Common Module: Unseen Texts",
+    "3": "Common Module: Unseen Texts",
+    "4": "Common Module: Unseen Texts",
+    "5": "Common Module: Unseen Texts",
+    "6": "Common Module: Extended Response"
+  }
+}

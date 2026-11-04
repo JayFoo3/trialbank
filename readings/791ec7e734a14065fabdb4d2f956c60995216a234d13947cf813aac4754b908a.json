@@ -1,0 +1,130 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 24,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 2,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 3,
+        "lastPage": 3,
+        "marks": 3,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 4,
+        "lastPage": 5,
+        "marks": 4,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 6,
+        "lastPage": 7,
+        "marks": 5,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 8,
+        "lastPage": 9,
+        "marks": 6,
+        "number": 5,
+        "parts": []
+      },
+      {
+        "firstPage": 10,
+        "lastPage": 10,
+        "marks": 20,
+        "number": 6,
+        "parts": []
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 5,
+        "lastPage": 9,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 6,
+        "firstPage": 10,
+        "last": 6,
+        "lastPage": 10,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:37:37Z",
+  "reader": "friend",
+  "sha256": "791ec7e734a14065fabdb4d2f956c60995216a234d13947cf813aac4754b908a",
+  "solutions": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 20,
+        "lastPage": 20,
+        "marks": 0,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 20,
+        "lastPage": 21,
+        "marks": 0,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 21,
+        "lastPage": 21,
+        "marks": 0,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 22,
+        "lastPage": 22,
+        "marks": 0,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 23,
+        "lastPage": 23,
+        "marks": 0,
+        "number": 5,
+        "parts": []
+      }
+    ],
+    "sections": []
+  },
+  "solutionsFrom": 20,
+  "source": {
+    "number": 2718,
+    "school": "Sydney Grammar",
+    "subject": "EngAdv",
+    "title": "Sydney Grammar 2023 P1",
+    "year": 2023
+  },
+  "topics": {
+    "1": "Common Module: Unseen Texts",
+    "2": "Common Module: Unseen Texts",
+    "3": "Common Module: Unseen Texts",
+    "4": "Common Module: Unseen Texts",
+    "5": "Common Module: Unseen Texts",
+    "6": "Common Module: Extended Response"
+  }
+}

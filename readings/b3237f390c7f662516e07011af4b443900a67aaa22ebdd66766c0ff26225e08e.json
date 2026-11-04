@@ -1,0 +1,156 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 22,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 2,
+        "lastPage": 3,
+        "marks": 4,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 4,
+        "lastPage": 5,
+        "marks": 6,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 6,
+        "lastPage": 7,
+        "marks": 6,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 8,
+        "lastPage": 8,
+        "marks": 4,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 9,
+        "lastPage": 12,
+        "marks": 20,
+        "number": 5,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 20
+          },
+          {
+            "label": "b",
+            "marks": 20
+          },
+          {
+            "label": "c",
+            "marks": 20
+          },
+          {
+            "label": "d",
+            "marks": 20
+          },
+          {
+            "label": "e",
+            "marks": 20
+          },
+          {
+            "label": "f",
+            "marks": 20
+          },
+          {
+            "label": "g",
+            "marks": 20
+          },
+          {
+            "label": "h",
+            "marks": 20
+          },
+          {
+            "label": "i",
+            "marks": 20
+          },
+          {
+            "label": "j",
+            "marks": 20
+          },
+          {
+            "label": "k",
+            "marks": 20
+          },
+          {
+            "label": "l",
+            "marks": 20
+          },
+          {
+            "label": "m",
+            "marks": 20
+          },
+          {
+            "label": "n",
+            "marks": 20
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 4,
+        "lastPage": 8,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 5,
+        "firstPage": 9,
+        "last": 5,
+        "lastPage": 12,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:37:26Z",
+  "reader": "friend",
+  "sha256": "b3237f390c7f662516e07011af4b443900a67aaa22ebdd66766c0ff26225e08e",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2718,
+    "school": "North Sydney Girls",
+    "subject": "EngAdv",
+    "title": "North Sydney Girls 2023 P1",
+    "year": 2023
+  },
+  "topics": {
+    "1": "Common Module: Unseen Texts",
+    "2": "Common Module: Unseen Texts",
+    "3": "Common Module: Unseen Texts",
+    "4": "Common Module: Unseen Texts",
+    "5a": "Common Module: Extended Response",
+    "5b": "Common Module: Extended Response",
+    "5c": "Common Module: Extended Response",
+    "5d": "Common Module: Extended Response",
+    "5e": "Common Module: Extended Response",
+    "5f": "Common Module: Extended Response",
+    "5g": "Common Module: Extended Response",
+    "5h": "Common Module: Extended Response",
+    "5i": "Common Module: Extended Response",
+    "5j": "Common Module: Extended Response",
+    "5k": "Common Module: Extended Response",
+    "5l": "Common Module: Extended Response",
+    "5m": "Common Module: Extended Response",
+    "5n": "Common Module: Extended Response"
+  }
+}

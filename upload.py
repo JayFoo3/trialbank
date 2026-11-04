@@ -14,6 +14,7 @@ import requests
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+import keys  # noqa: F401  (loads ~/.trialbank_keys)
 URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
 KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 BUCKET = 'questions'

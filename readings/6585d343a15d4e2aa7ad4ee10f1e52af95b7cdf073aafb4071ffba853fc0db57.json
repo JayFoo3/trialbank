@@ -1,0 +1,164 @@
+{
+  "format": 1,
+  "model": "sonnet",
+  "pageCount": 19,
+  "paper": {
+    "answerKey": [],
+    "questions": [
+      {
+        "firstPage": 2,
+        "lastPage": 2,
+        "marks": 3,
+        "number": 1,
+        "parts": []
+      },
+      {
+        "firstPage": 3,
+        "lastPage": 3,
+        "marks": 3,
+        "number": 2,
+        "parts": []
+      },
+      {
+        "firstPage": 4,
+        "lastPage": 4,
+        "marks": 4,
+        "number": 3,
+        "parts": []
+      },
+      {
+        "firstPage": 5,
+        "lastPage": 5,
+        "marks": 4,
+        "number": 4,
+        "parts": []
+      },
+      {
+        "firstPage": 6,
+        "lastPage": 7,
+        "marks": 6,
+        "number": 5,
+        "parts": []
+      },
+      {
+        "firstPage": 8,
+        "lastPage": 11,
+        "marks": 20,
+        "number": 6,
+        "parts": [
+          {
+            "label": "a",
+            "marks": 0
+          },
+          {
+            "label": "b",
+            "marks": 0
+          },
+          {
+            "label": "c",
+            "marks": 0
+          },
+          {
+            "label": "d",
+            "marks": 0
+          },
+          {
+            "label": "e",
+            "marks": 0
+          },
+          {
+            "label": "f",
+            "marks": 0
+          },
+          {
+            "label": "g",
+            "marks": 0
+          },
+          {
+            "label": "h",
+            "marks": 0
+          },
+          {
+            "label": "i",
+            "marks": 0
+          },
+          {
+            "label": "j",
+            "marks": 0
+          },
+          {
+            "label": "k",
+            "marks": 0
+          },
+          {
+            "label": "l",
+            "marks": 0
+          },
+          {
+            "label": "m",
+            "marks": 0
+          },
+          {
+            "label": "n",
+            "marks": 0
+          }
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "first": 1,
+        "firstPage": 2,
+        "last": 5,
+        "lastPage": 7,
+        "multipleChoice": false,
+        "name": "Section I"
+      },
+      {
+        "first": 6,
+        "firstPage": 8,
+        "last": 6,
+        "lastPage": 11,
+        "multipleChoice": false,
+        "name": "Section II"
+      }
+    ]
+  },
+  "readAt": "2026-11-03T11:38:24Z",
+  "reader": "friend",
+  "sha256": "6585d343a15d4e2aa7ad4ee10f1e52af95b7cdf073aafb4071ffba853fc0db57",
+  "solutions": {
+    "answerKey": [],
+    "questions": [],
+    "sections": []
+  },
+  "solutionsFrom": null,
+  "source": {
+    "number": 2718,
+    "school": "North Sydney Girls",
+    "subject": "EngAdv",
+    "title": "North Sydney Girls 2021 P1",
+    "year": 2021
+  },
+  "topics": {
+    "1": "Common Module: Unseen Texts",
+    "2": "Common Module: Unseen Texts",
+    "3": "Common Module: Unseen Texts",
+    "4": "Common Module: Unseen Texts",
+    "5": "Common Module: Unseen Texts",
+    "6a": "Common Module: Extended Response",
+    "6b": "Common Module: Extended Response",
+    "6c": "Common Module: Extended Response",
+    "6d": "Common Module: Extended Response",
+    "6e": "Common Module: Extended Response",
+    "6f": "Common Module: Extended Response",
+    "6g": "Common Module: Extended Response",
+    "6h": "Common Module: Extended Response",
+    "6i": "Common Module: Extended Response",
+    "6j": "Common Module: Extended Response",
+    "6k": "Common Module: Extended Response",
+    "6l": "Common Module: Extended Response",
+    "6m": "Common Module: Extended Response",
+    "6n": "Common Module: Extended Response"
+  }
+}
