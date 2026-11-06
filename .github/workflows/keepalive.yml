@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl -sf "$SUPABASE_URL/rest/v1/papers?select=id&limit=1" \
-            -H "apikey: $SUPABASE_ANON_KEY" > /dev/null && echo awake
+          curl -sf -X POST "$SUPABASE_URL/rest/v1/rpc/signup_reason" \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" -d '{"p_email":"keepalive@example.com","p_code":""}' > /dev/null && echo awake
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
