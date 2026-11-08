@@ -879,6 +879,105 @@
         ['na2', 'Normal approximation to the binomial'],
       ],
     },
+    Chem: {   // NESA Chemistry Stage 6 (2017), Year 12 modules 5-8, topic names as stored
+      'Static and Dynamic Equilibrium': [
+        ['sde1', 'Open and closed systems, reversible and non-reversible reactions'],
+        ['sde2', 'Dynamic equilibrium: equal forward and reverse rates, collision theory'],
+        ['sde3', 'Energy profiles, activation energy and catalysts'],
+        ['sde4', 'Entropy, enthalpy and Gibbs free energy: ΔG = ΔH − TΔS'],
+      ],
+      'Factors that Affect Equilibrium': [
+        ['fae1', 'Le Chatelier\'s principle: changing concentration'],
+        ['fae2', 'Changing pressure or volume of gases'],
+        ['fae3', 'Changing temperature, and what catalysts do (and don\'t) change'],
+        ['fae4', 'Concentration–time graphs and the reaction quotient Q'],
+      ],
+      'Calculating the Equilibrium Constant (Keq)': [
+        ['kq1', 'Writing Keq expressions (solids and liquids left out)'],
+        ['kq2', 'Calculating Keq from equilibrium concentrations'],
+        ['kq3', 'ICE tables: Keq from initial amounts and one change'],
+        ['kq4', 'Q versus K: which way the reaction goes, and the size of K'],
+        ['kq5', 'Keq for reversed and scaled equations, and how temperature changes K'],
+      ],
+      'Solution Equilibria': [
+        ['sq1', 'Dissolving ionic compounds: entropy, enthalpy and the solubility rules'],
+        ['sq2', 'Writing Ksp expressions'],
+        ['sq3', 'Solubility from Ksp and Ksp from solubility'],
+        ['sq4', 'Predicting precipitates: Q versus Ksp'],
+        ['sq5', 'The common ion effect'],
+      ],
+      'Properties of Acids and Bases': [
+        ['pab1', 'Properties of acids and bases, indicators'],
+        ['pab2', 'Reactions of acids with metals, carbonates and bases; naming salts'],
+        ['pab3', 'Enthalpy of neutralisation'],
+        ['pab4', 'Theories of acids: Lavoisier, Davy, Arrhenius, Brønsted–Lowry'],
+      ],
+      'Using Brønsted–Lowry Theory': [
+        ['bl1', 'Conjugate acid–base pairs and amphiprotic species'],
+        ['bl2', 'pH, pOH, [H⁺] and [OH⁻] calculations'],
+        ['bl3', 'Strong and weak, concentrated and dilute'],
+        ['bl4', 'Ka and pKa: calculating pH of weak acids'],
+        ['bl5', 'Buffers'],
+        ['bl6', 'Dilution and mixing: pH after the change'],
+      ],
+      'Quantitative Analysis': [
+        ['qan1', 'Titration calculations'],
+        ['qan2', 'Standard solutions, primary standards and rinsing glassware'],
+        ['qan3', 'Titration curves and choosing an indicator'],
+        ['qan4', 'Conductometric titrations'],
+        ['qan5', 'Back titrations'],
+      ],
+      'Nomenclature': [
+        ['nm1', 'Naming alkanes, alkenes and alkynes'],
+        ['nm2', 'Naming compounds with functional groups'],
+        ['nm3', 'Structural isomers: chain, position and functional group'],
+      ],
+      'Hydrocarbons': [
+        ['hc1', 'Homologous series and general formulas, saturated and unsaturated'],
+        ['hc2', 'Properties: boiling points, solubility and intermolecular forces'],
+        ['hc3', 'Safe use and environmental effects'],
+      ],
+      'Products of Reactions Involving Hydrocarbons': [
+        ['prh1', 'Addition reactions of alkenes: H₂, halogens, hydrogen halides, water'],
+        ['prh2', 'Substitution reactions of alkanes with halogens'],
+        ['prh3', 'Telling alkanes and alkenes apart: bromine water'],
+      ],
+      'Alcohols': [
+        ['al1', 'Primary, secondary and tertiary alcohols, properties'],
+        ['al2', 'Combustion and enthalpy of combustion: q = mcΔT'],
+        ['al3', 'Oxidation of alcohols'],
+        ['al4', 'Making alcohols (fermentation, hydration) and dehydration, substitution'],
+      ],
+      'Reactions of Organic Acids and Bases': [
+        ['oab1', 'Boiling points and solubility of the functional groups'],
+        ['oab2', 'Esterification and refluxing'],
+        ['oab3', 'Soaps, detergents and saponification'],
+        ['oab4', 'Organic acids and bases: carboxylic acids, amines and amides'],
+      ],
+      'Polymers': [
+        ['po1', 'Addition polymers'],
+        ['po2', 'Condensation polymers: polyesters and polyamides'],
+        ['po3', 'Properties and uses of polymers'],
+      ],
+      'Analysis of Inorganic Substances': [
+        ['ai1', 'Tests for ions: precipitates and flame tests'],
+        ['ai2', 'Gravimetric analysis'],
+        ['ai3', 'Precipitation titrations'],
+        ['ai4', 'Colourimetry, UV-visible spectroscopy and AAS: calibration curves'],
+      ],
+      'Analysis of Organic Substances': [
+        ['ao1', 'Chemical tests for functional groups'],
+        ['ao2', 'Infrared spectroscopy'],
+        ['ao3', '¹H NMR: environments, integration and splitting'],
+        ['ao4', '¹³C NMR'],
+        ['ao5', 'Mass spectrometry'],
+      ],
+      'Chemical Synthesis and Design': [
+        ['csd1', 'Yield and purity'],
+        ['csd2', 'Industrial reaction conditions: rate, yield and cost'],
+        ['csd3', 'Choosing a synthesis: environmental, social and economic factors'],
+      ],
+    },
   };
   const topicSteps = (t, subj = state.subject) => (STEPS[subj] || {})[t] || null;
   let topicCounts = null;   // [{subject, topic, type, n}]
@@ -5539,6 +5638,7 @@
       const el = mk('div', 'tu-msg ' + m.role + (m.error ? ' err' : ''));
       if (m.thumbs?.length) { const ph = mk('div', 'tu-pics'); m.thumbs.forEach(u => { const im = mk('img'); im.src = u; im.alt = 'Your working'; ph.appendChild(im); }); el.appendChild(ph); }
       if (m.text) el.appendChild(mk('div', 'tu-text', m.role === 'tutor' ? tuRich(m.text) : `<p>${esc(m.text).replace(/\n/g, '<br>')}</p>`));
+      if (m.diagram) { const svg = tuSvg(m.diagram, 'd' + i); if (svg) { const f = mk('div', 'tu-diagram'); f.appendChild(svg); el.appendChild(f); } }
       if (m.slip) el.appendChild(mk('div', 'tu-note', `Noted: ${esc(m.slip)}`));
       if (m.learnt) el.appendChild(mk('div', 'tu-note', `Learnt about you: ${esc(m.learnt)}`));
       if (m.error && m.buy) {   // out of messages: offer a pack (or Pro), then let them carry on
@@ -5675,10 +5775,11 @@
         subject: tu.subject || tuSubject(), mode: tu.mode, question_id: tu.q?.id || null, chunks: tu.chunks, syllabus: tuSyllabus(),
         messages: tu.msgs.filter(m => !m.error && !m.greet && (m.role === 'student' || m.role === 'tutor' || m.role === 'result')).map(m => m.role === 'result'
           ? { role: 'student', text: `(Auto-mark result for ${m.rec.title}: ${m.rec.results.map(r => `${r.label} ${r.awarded}/${r.out_of}${r.feedback ? ` (${r.feedback})` : ''}`).join('; ')})`.slice(0, 2000), images: [] }
-          : { role: m.role, text: m.text || '', images: m.images || [] }),
+          : { role: m.role, text: (m.text || '') + (m.diagram ? `\n[Your diagram: ${m.diagram}]` : ''), images: m.images || [] }),
       } });
       if (error) { let msg = error.message, body = null; try { body = await error.context.json(); msg = body.error || msg; } catch {} const e = new Error(msg); e.out = !!body?.out; throw e; }
-      tu.msgs.push({ role: 'tutor', text: data.say, slip: data.slip?.what || null, learnt: data.learnt || null });
+      tu.msgs.push({ role: 'tutor', text: data.say, diagram: data.diagram || null, slip: data.slip?.what || null, learnt: data.learnt || null });
+      if (data.learn) tuLearn(data.learn);
       if (data.left != null && tuLeft) { tuLeft.left = data.left; tuLeft.allowance = data.allowance ?? tuLeft.allowance; tuLeft.used = tuLeft.allowance - data.left; tuLeft.credits = data.credits ?? tuLeft.credits; state.tutorCredits = tuLeft.credits; drawTuLeft(); }
       else if (tuLeft?.unlimited) loadTuLeft();
       if (data.slip) tu.slipped = true;
@@ -5692,6 +5793,48 @@
       tu.busy = false; tuDraw(); tuSave(); drawTuRecent();
     }
     if (study) await tuStudy(study);
+  }
+  // "teach me method of sections": switch to that subject and to Teach me, drop any past question, and leave where their class
+  // is up to alone. The tutor's own made-up warm-up questions follow in the chat; Next question afterwards picks real ones on the topic.
+  function tuLearn({ subject: subj, topic }) {
+    if (!tuSubjects().includes(subj)) return;
+    if (state.subject !== subj) { state.subject = subj; state.topics = new Set(); try { localStorage.setItem('tb_subject', subj); } catch {} drawSubject(); }
+    tu.subject = subj; tu.topic = topic || ''; tu.focus = null;
+    if (tu.mode !== 'teach') { tu.mode = 'teach'; lsSet('tb_tu_mode', 'teach'); drawTuModes(); }
+    if (tu.q) { tu.q = null; tuDrawQuestion(); }
+    tuSave();
+  }
+  // the tutor's diagrams arrive as SVG text: rebuild them from an allow-list so nothing but drawing gets through
+  const SVG_TAGS = new Set(['svg', 'g', 'line', 'polyline', 'polygon', 'rect', 'circle', 'ellipse', 'path', 'text', 'tspan', 'defs', 'marker']);
+  const SVG_ATTRS = new Set(['viewBox', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'width', 'height', 'points', 'd', 'dx', 'dy', 'transform',
+    'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin', 'fill', 'opacity', 'font-size', 'font-weight', 'font-style',
+    'text-anchor', 'dominant-baseline', 'class', 'id', 'marker-end', 'marker-start', 'markerWidth', 'markerHeight', 'refX', 'refY', 'orient', 'markerUnits']);
+  function tuSvg(src, pre) {
+    let doc;
+    try { doc = new DOMParser().parseFromString(src, 'image/svg+xml'); } catch { return null; }
+    const root = doc.documentElement;
+    if (!root || root.nodeName !== 'svg' || doc.getElementsByTagName('parsererror').length) return null;
+    const NS = 'http://www.w3.org/2000/svg';
+    const copy = (n) => {
+      if (n.nodeType === 3) return document.createTextNode(n.nodeValue);
+      if (n.nodeType !== 1 || !SVG_TAGS.has(n.localName)) return null;
+      const e = document.createElementNS(NS, n.localName);
+      for (const a of [...n.attributes]) {
+        if (!SVG_ATTRS.has(a.name) || a.name === 'width' && n.localName === 'svg' || a.name === 'height' && n.localName === 'svg') continue;
+        let v = a.value;
+        if (a.name === 'id') v = `${pre}-${v}`;
+        else if (/^marker-(end|start)$/.test(a.name)) { const m = v.match(/^url\(#([\w-]+)\)$/); if (!m) continue; v = `url(#${pre}-${m[1]})`; }
+        else if (a.name === 'class') { if (v !== 'hl') continue; }
+        else if (/url\(|javascript:|expression|[<>]/i.test(v)) continue;
+        e.setAttribute(a.name, v);
+      }
+      for (const c of n.childNodes) { const k = copy(c); if (k) e.appendChild(k); }
+      return e;
+    };
+    const out = copy(root);
+    if (!out || !out.getAttribute('viewBox')) return null;
+    out.setAttribute('role', 'img'); out.setAttribute('aria-label', 'Diagram');
+    return out;
   }
   // what the tutor needs to turn "we're up to geometric progressions" into a class position: each subject's topics in teaching order
   function tuSyllabus() {
