@@ -2,8 +2,9 @@
 """upload_quick.py - put quick questions on Trialbank: short textbook-style multiple choice, marked as you tap.
 They live in their own hidden 'paper' (slug quick-...), so they never show in the papers list or exam mode.
 Reads quick/<slug>.json (made by quick/gen_*.py then quick/render.js).
-Usage: SUPABASE_URL=... SUPABASE_SERVICE_KEY=... python3 upload_quick.py quick-adv"""
+Usage: python3 upload_quick.py quick-chem   (keys come from ~/.trialbank_keys)"""
 import json, os, sys, requests
+import keys  # noqa: F401  (loads ~/.trialbank_keys)
 URL = os.environ.get('SUPABASE_URL', '').rstrip('/'); KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 if not URL or not KEY: sys.exit('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
 H = {'apikey': KEY, 'Authorization': f'Bearer {KEY}', 'Content-Type': 'application/json'}
@@ -16,8 +17,12 @@ TOPIC = {'wf': 'Working with Functions', 'gt': 'Graphing Techniques', 'tm': 'Tri
          'me': 'The Motor Effect', 'ei': 'Electromagnetic Induction', 'am': 'Applications of the Motor Effect', 'es': 'Electromagnetic Spectrum', 'lw': 'Light: Wave Model',
          'lq': 'Light: Quantum Model', 'sr': 'Light and Special Relativity', 'oe': 'Origins of the Elements', 'at': 'Structure of the Atom',
          'qa': 'Quantum Mechanical Nature of the Atom', 'pn': 'Properties of the Nucleus', 'da': 'Deep Inside the Atom', 've': 'Vectors', 'pj': 'Projectiles', 'tid': 'Identities', 'te': 'Trig. Eqns', 'in': 'Integration', 'vo': 'Volumes',
-         'de': "DE's", 'eg': 'Exp. G + D', 'rr': 'Related Rates', 'pa': 'Parametrics', 'if': 'Inverse Fns', 'iq': 'Inequalities', 'bd': 'Bern./Binom Dist.', 'pi': 'Proof Induction', 'be': 'Binom. Exp.', 'pc': 'Perms/Combs', 'rf': 'Rem/Fact Th.', 'sp': 'Sum/Prod. Roots', 'it': 'Inverse Trig Fns'}
-SUBJ = {'quick-adv': 'Adv', 'quick-ext1': 'Ext1', 'quick-physics': 'Physics'}
+         'de': "DE's", 'eg': 'Exp. G + D', 'rr': 'Related Rates', 'pa': 'Parametrics', 'if': 'Inverse Fns', 'iq': 'Inequalities', 'bd': 'Bern./Binom Dist.', 'pi': 'Proof Induction', 'be': 'Binom. Exp.', 'pc': 'Perms/Combs', 'rf': 'Rem/Fact Th.', 'sp': 'Sum/Prod. Roots', 'it': 'Inverse Trig Fns',
+         'sde': 'Static and Dynamic Equilibrium', 'fae': 'Factors that Affect Equilibrium', 'kq': 'Calculating the Equilibrium Constant (Keq)', 'sq': 'Solution Equilibria',
+         'pab': 'Properties of Acids and Bases', 'bl': 'Using Brønsted–Lowry Theory', 'qan': 'Quantitative Analysis', 'nm': 'Nomenclature', 'hc': 'Hydrocarbons',
+         'prh': 'Products of Reactions Involving Hydrocarbons', 'al': 'Alcohols', 'oab': 'Reactions of Organic Acids and Bases', 'po': 'Polymers',
+         'ai': 'Analysis of Inorganic Substances', 'ao': 'Analysis of Organic Substances', 'csd': 'Chemical Synthesis and Design'}
+SUBJ = {'quick-adv': 'Adv', 'quick-ext1': 'Ext1', 'quick-physics': 'Physics', 'quick-chem': 'Chem'}
 topic_of = lambda step: TOPIC[step.rstrip('0123456789')]   # tid1 -> Identities, ve3 -> Vectors
 LEVEL = {'ss1': 1, 'ss2': 1, 'ss5': 1, 'ss3': 2, 'ss6': 2, 'ss4': 3, 'ss7': 3, 'ss8': 3,
          'be1': 1, 'pc1': 1, 'rf2': 1, 'sp1': 1, 'sp2': 1, 'it1': 1, 'it2': 1, 'pi3': 3, 'be3': 3, 'be4': 3, 'pc5': 3, 'sp4': 3, 'rf1': 3}
