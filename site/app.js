@@ -498,6 +498,9 @@
     EngAdv: [
       ['Paper 1: Texts and Human Experiences', ['Common Module: Unseen Texts', 'Common Module: Extended Response']],
     ],
+    EngStd: [   // Paper 1 is the same exam as English Advanced's (share_engstd.py copies those papers across)
+      ['Paper 1: Texts and Human Experiences', ['Common Module: Unseen Texts', 'Common Module: Extended Response']],
+    ],
     Chem: [
       ['Equilibrium and Acid Reactions', ['Static and Dynamic Equilibrium', 'Factors that Affect Equilibrium', 'Calculating the Equilibrium Constant (Keq)', 'Solution Equilibria']],
       ['Acid/Base Reactions', ['Properties of Acids and Bases', 'Using Brønsted–Lowry Theory', 'Quantitative Analysis']],
@@ -4802,7 +4805,7 @@
     (art || `<div class="tbp-mascot">${Mascot(mood)}</div>`);
   // switching subject: a little "Welcome to <subject>" card with that subject's own animation (a flask that bubbles over
   // for Chemistry, an atom for Physics...). It sits on top for about two seconds and taps away; no sound.
-  const SH_KIND = { Ext1: 'maths', Ext2: 'maths', Adv: 'maths', Std2: 'maths', Physics: 'phys', Chem: 'chem', Bio: 'bio', Econ: 'econ', Eng: 'eng', SE: 'se', EngAdv: 'lit' };
+  const SH_KIND = { Ext1: 'maths', Ext2: 'maths', Adv: 'maths', Std2: 'maths', Physics: 'phys', Chem: 'chem', Bio: 'bio', Econ: 'econ', Eng: 'eng', SE: 'se', EngAdv: 'lit', EngStd: 'lit' };
   const SH_ART = {
     chem: `<svg viewBox="0 0 120 120"><g class="sh-puff">${[0, 1, 2, 3, 4, 5, 6].map(i => `<circle style="--a:${i * 51 - 153}deg;--d:${i % 2 ? 26 : 34}px" cx="60" cy="22" r="${7 + (i % 3) * 2}"/>`).join('')}</g>
       <g class="sh-flask"><clipPath id="sh-clip"><path d="M53 46 31 88a9 9 0 0 0 8 13h42a9 9 0 0 0 8-13L67 46z"/></clipPath>

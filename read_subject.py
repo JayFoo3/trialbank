@@ -3,7 +3,7 @@
 
 Run from Terminal:  cd ~/Documents/question-bank && caffeinate -i python3 read_subject.py --subject Eng --max 15
 Subjects: Adv (Maths Advanced), Std2 (Maths Standard 2), Eng (Engineering Studies), SE (Software Engineering),
-Econ (Economics), Bio (Biology), Chem (Chemistry), EngAdv (English Advanced).
+Econ (Economics), Bio (Biology), Chem (Chemistry), EngAdv (English Advanced), EngStd (English Standard Paper 2).
 Run it again any time: it carries on where it stopped.
 
 It uses Albert's reader (~/Documents/thsc-index/reader) but never changes or pushes his repo:
@@ -53,6 +53,9 @@ SUBJECTS = {
     # separate PDFs ("Abbotsleigh 2024 P1", "Abbotsleigh 2024 P2 (Adv.)"). Both pages are used; a trial is two readings.
     "EngAdv": dict(pages=["English/trialpapers_paper1.html", "English/trialpapers_paper2_advanced.html"], merge=True, per_trial=2,
                    word="paper", first=2019, folder="English Advanced", sol_only=False),
+    # English Standard: Paper 1 is the same exam as Advanced (share_engstd.py reuses those), so only its Paper 2 (Modules A, B, C) is read here
+    "EngStd": dict(pages=["English/trialpapers_paper2_standard.html", "English/trialpapers_paper2_std.html", "English/trialpapers_paper2.html"],
+                   word="paper", first=2019, folder="English Standard", sol_only=False),
 }
 NAMED = re.compile(r"^(.*?)\s+((?:19|20)\d\d)\b")
 

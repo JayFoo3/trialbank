@@ -8,7 +8,7 @@ const MODEL = Deno.env.get('QMARK_MODEL') ?? 'claude-sonnet-5-5';
 const PRICE = { in: 2, out: 10 };   // USD per million tokens (Sonnet 5.5)
 const REASONS = ['concept', 'method', 'algebra', 'careless', 'time', 'cfpe'];
 const SUBJECTS: Record<string, string> = { Adv: 'Mathematics Advanced', Ext1: 'Mathematics Extension 1', Ext2: 'Mathematics Extension 2', Std2: 'Mathematics Standard 2',
-  Physics: 'Physics', Eng: 'Engineering Studies', SE: 'Software Engineering', Bio: 'Biology', Chem: 'Chemistry', Econ: 'Economics', EngAdv: 'English Advanced' };
+  Physics: 'Physics', Eng: 'Engineering Studies', SE: 'Software Engineering', Bio: 'Biology', Chem: 'Chemistry', Econ: 'Economics', EngAdv: 'English Advanced', EngStd: 'English Standard' };
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
