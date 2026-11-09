@@ -163,6 +163,36 @@ const mediaType = (path: string, t?: string) =>
 
 type Msg = { role: 'student' | 'tutor'; text?: string; images?: string[] };
 
+// Sometimes the model writes part of its turn as text tags instead of tool fields, e.g. a say that runs on into
+// '</say> <parameter name="diagram"><svg ...>'. Pull those fields back out so the student never sees raw markup.
+const LEAK = /<\/say>|<say>|<parameter\s+name=|<\/?invoke[\s>]|<\/?function_calls>|<svg[\s>]/i;
+function fromTags(raw: string): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const re = /<parameter\s+name="(\w+)">([\s\S]*?)(?=<\/parameter>|<parameter\s+name=|<\/invoke>|$)/gi;
+  for (const m of raw.matchAll(re)) out[m[1]] = m[2].trim();
+  const said = raw.match(/<say>([\s\S]*?)(?:<\/say>|$)/i);
+  if (said && out.say === undefined) out.say = said[1].trim();
+  const svg = String(out.diagram ?? raw).match(/<svg[\s>][\s\S]*<\/svg>/i);   // a diagram field, or bare SVG in the text
+  out.diagram = svg ? svg[0] : undefined;
+  for (const k of Object.keys(out)) {
+    if (k === 'say' || k === 'diagram' || out[k] === undefined) continue;
+    const v = String(out[k]);
+    try { out[k] = JSON.parse(v); } catch { out[k] = v; }   // true / 2 / null / {"what": ...} arrive as text
+  }
+  return out;
+}
+function repair(t: Record<string, unknown>) {
+  const raw = String(t.say ?? '');
+  const at = raw.search(LEAK);
+  if (at < 0) return t;
+  const more = fromTags(raw);
+  let say = raw.slice(0, at).trim();
+  if (!say && typeof more.say === 'string') say = more.say;
+  for (const [k, v] of Object.entries(more)) if (k !== 'say' && v !== undefined && (t[k] == null || t[k] === false)) t[k] = v;
+  t.say = say.replace(/<\/?(say|parameter|invoke|function_calls)\b[^>]*>/gi, '').replace(/\[Your diagram:\s*$/, '').trim();   // it can copy how past diagrams appear in the chat
+  return t;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
@@ -335,7 +365,7 @@ Deno.serve(async (req) => {
     const txt = (out.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('\n').trim();
     let t = call?.input;
     if (!t) { const m = txt.match(/\{[\s\S]*"say"[\s\S]*\}/); if (m) { try { t = JSON.parse(m[0]); } catch { /* not JSON */ } } }
-    t = t ?? { say: txt };
+    t = repair(t ?? { say: txt });
     const say = String(t.say ?? '').trim();
     if (!say) { await refund(); return json({ error: 'The tutor went quiet. Try again.' }, 502); }
 
