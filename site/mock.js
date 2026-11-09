@@ -13,8 +13,11 @@
     select() { return this; }
     eq(k, v) { this.rows = this.rows.filter(r => get(r, k) == v); return this; }
     in(k, vs) { this.rows = this.rows.filter(r => vs.includes(get(r, k))); return this; }
-    not(k, op, v) { if (op === 'is' && v === null) this.rows = this.rows.filter(r => get(r, k) != null); return this; }
+    not(k, op, v) { if (op === 'is' && v === null) this.rows = this.rows.filter(r => get(r, k) != null); else if (op === 'like') { const re = new RegExp('^' + v.replace(/%/g, '.*') + '$'); this.rows = this.rows.filter(r => !re.test(String(get(r, k) ?? ''))); } return this; }
     or(expr) { const ps = expr.split(',').map(x => x.split('.')); this.rows = this.rows.filter(r => ps.some(([k, ...op]) => op.join('.') === 'not.is.null' ? get(r, k) != null : true)); return this; }
+    like(k, pat) { const re = new RegExp('^' + pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*') + '$'); this.rows = this.rows.filter(r => re.test(String(get(r, k) ?? ''))); return this; }
+    lte(k, v) { this.rows = this.rows.filter(r => get(r, k) <= v); return this; }
+    gte(k, v) { this.rows = this.rows.filter(r => get(r, k) >= v); return this; }
     limit(n) { this.rows = this.rows.slice(0, n); return this; }
     order() { return this; }
     upsert(rows) { (Array.isArray(rows) ? rows : [rows]).forEach(r => { const i = this.rows.findIndex(x => x.key ? x.key === r.key : x.email === r.email); i >= 0 ? Object.assign(this.rows[i], r) : this.rows.push(r); }); return Promise.resolve({ data: null, error: null }); }

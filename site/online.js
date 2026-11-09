@@ -89,7 +89,13 @@
       c.options.forEach((o, j) => right.appendChild(el('li', '', `<span class="ol-box">${L[j]}</span><span>${o}</span>`)));
       grid.append(left, right); root.appendChild(grid);
     } else if (k === 'proof') {
-      // nothing to type: the proof is written by hand in the working space
+      // written by hand in the working space; worded subjects (typed: true) can type the answer instead
+      if (c.typed) {
+        const ta = el('textarea', 'ol-written');
+        ta.rows = c.format === 'extended' ? 14 : 6; ta.placeholder = 'Type your answer, or write it in the working space';
+        ta.value = v || ''; ta.disabled = !!opts.disabled; ta.oninput = () => set(ta.value);
+        root.appendChild(ta);
+      }
     } else {
       const ta = el('textarea', k === 'code' ? 'ol-code' : 'ol-written');
       ta.rows = Math.max(4, Math.round((c.lines || 8) * (k === 'code' ? 1.1 : 0.7)));

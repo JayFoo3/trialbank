@@ -36,7 +36,7 @@
     subject: (() => { try { const k = localStorage.getItem('tb_subject'); return k && C.subjects[k] ? k : Object.keys(C.subjects)[0]; } catch { return Object.keys(C.subjects)[0]; } })(),
     topics: new Set(),          // selected topic names
     steps: new Map(),           // topic -> the dot points picked inside it (empty: the whole topic)
-    opts: { count: 10, type: 'all', diff: 'all', fresh: 1 },
+    opts: { count: 10, type: 'all', diff: 'all', fresh: 1, qfmt: 'mcq' },
     set: null,                  // { qs: [...], i, results: [] }
   };
 
@@ -364,7 +364,10 @@
   const INDUCTION = new Set(['Proof Induction', 'Proof by Induction', 'Induction']);
   const isInduction = (q) => !!q && INDUCTION.has(q.topic);
   const isProof = (q) => q?.content?.kind === 'proof';
-  const inductionSpace = (q) => isInduction(q) ? { space: 1800, grid: true } : {};
+  const inductionSpace = (q) => isInduction(q) ? { space: 1800, grid: true } : q?.content?.format === 'extended' ? { space: 1300, grid: !q.content.typed } : {};
+  // quick questions come in three formats: multiple choice (tap), written (a short worked answer) and extended (long working, tall space)
+  const qFormat = (q) => q?.type === 'mcq' ? 'mcq' : (q?.content?.format || ((q?.marks || 0) >= 3 ? 'extended' : 'written'));
+  const QFMT_NAME = { mcq: 'multiple choice', written: 'written', extended: 'extended working' };
   const seePaper = (p) => !isQuick(p) && !isBook(p) && (state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial);
   // Pro can be bought (pro_sales) or tried free (pro_trials); 'admin' means only admins see it while testing
   const proOpen = () => !!state.user && !state.preview && [state.proSale, state.pro?.trials].some(v => v === 'on' || (v === 'admin' && adminOn()));
@@ -1184,7 +1187,7 @@
   $('topic-filter').oninput = filterTopics;
   function startSummary() {
     const n = state.topics.size, o = state.opts;
-    const type = { all: '', mcq: ' multiple choice', short: ' written', quick: ' quick' }[o.type] || '';
+    const type = { all: '', mcq: ' multiple choice', short: ' written', quick: ` quick ${QFMT_NAME[o.qfmt || 'mcq']}` }[o.type] || '';
     const dots = [...state.steps.values()].reduce((a, x) => a + x.size, 0);
     $('start-summary').textContent = n ? `${o.count}${type} questions · ${dots ? `${dots} dot point${dots === 1 ? '' : 's'}` : `${n} topic${n === 1 ? '' : 's'}`}` : 'Tick a topic to start';
     const names = [...state.topics].map(topicName).sort();
@@ -1199,6 +1202,7 @@
       b.classList.add('on');
       const v = b.dataset.v;
       state.opts[seg.dataset.opt] = isNaN(v) ? v : Number(v);
+      if (seg.dataset.opt === 'type') { $('opt-qfmt').hidden = v !== 'quick'; $('opt-diff').hidden = v === 'quick'; }
       if (seg.dataset.opt) startSummary();
     });
   });
@@ -1239,17 +1243,21 @@
   async function buildSet(over = {}) {
     const o = { ...state.opts, ...over };
     if (![...state.topics].some(t => o.allowSkipped || !skipped().has(t))) throw new Error('Those topics are all marked as not learnt yet.');
-    let q = sb.from('questions').select(QCOLS)
+    const qf = o.type === 'quick' ? (o.qfmt || 'mcq') : null, worked = qf && qf !== 'mcq';
+    let q = sb.from('questions').select(worked ? QCOLS.replace('content, ', '') : QCOLS)   // worked answers carry big model answers: fetched for the chosen few only
       .eq('papers.subject', state.subject)
       .in('topic', [...state.topics].filter(t => o.allowSkipped || !skipped().has(t)))
       .or('image_path.not.is.null,content.not.is.null')
       .limit(400);
-    if (o.type === 'quick') q = q.like('papers.slug', 'quick-%').not('papers.slug', 'like', 'quick-%-proof');   // short textbook-style questions only (not the induction drills)
+    if (o.type === 'quick') {   // short textbook-style questions, in the format picked (induction drills count as extended working)
+      q = q.like('papers.slug', 'quick-%').eq('type', worked ? 'short' : 'mcq');
+      if (qf === 'written') q = q.lte('marks', 2); else if (qf === 'extended') q = q.gte('marks', 3);
+    }
     else { q = q.not('papers.slug', 'like', 'quick-%'); if (o.type !== 'all') q = q.eq('type', o.type); }
-    if (o.diff !== 'all') q = q.eq('papers.difficulty', o.diff);
+    if (o.diff !== 'all' && o.type !== 'quick') q = q.eq('papers.difficulty', o.diff);
     const { data: found, error } = await q;
     if (error) throw error;
-    let data = found;
+    let data = worked ? found.map(d => ({ ...d, _drill: true })) : found;
     const indTopics = [...state.topics].filter(t => INDUCTION.has(t) && (o.allowSkipped || !skipped().has(t)));
     if (indTopics.length && o.type !== 'quick' && o.type !== 'mcq') {
       let dq = sb.from('questions').select(QCOLS.replace('content, ', '')).eq('papers.subject', state.subject).like('papers.slug', 'quick-%-proof').in('topic', indTopics).limit(200);
@@ -1258,7 +1266,7 @@
       if (de) console.warn('induction drills', de.message);
       else data = data.concat(drills.map(d => ({ ...d, _drill: true })));
     }
-    if (!data.length) throw new Error(o.type === 'quick' ? 'No quick questions on those topics yet. Pick other topics, or switch to trial questions.' : 'No questions match that. Widen the filters.');
+    if (!data.length) throw new Error(o.type === 'quick' ? `No ${QFMT_NAME[qf]} quick questions on those topics yet. Try another format or other topics.` : 'No questions match that. Widen the filters.');
 
     await loadStepBlock(); const tooHard = blockedQs();
     let pool = data.filter(x => !tooHard.has(x.id) && !x.syllabus_note && hasKey(x));
@@ -1310,7 +1318,7 @@
     if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${s.sid}_${x.id}`, { scope: $('view-set'), full: true, ...inductionSpace(x) })); qcard.prepend(tb); }
     $('set-pos').innerHTML = `<b>${s.i + 1} of ${s.qs.length}</b><span>${esc(topicName(x.topic))}</span>`;
     firstHint(x);
-    $('set-meta').textContent = isProof(x) ? `Induction drill · ${x.marks} marks` : isQuick(x.papers) ? `Quick question · ${topicName(x.topic)}` : isBook(x.papers) ? `Margaret · ${bookLabel(x)}` : `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
+    $('set-meta').textContent = isProof(x) ? (x.content.format ? `Quick question · ${x.content.format === 'extended' ? 'Extended working' : 'Written'} · ${x.marks} mark${x.marks === 1 ? '' : 's'}` : `Induction drill · ${x.marks} marks`) : isQuick(x.papers) ? `Quick question · ${topicName(x.topic)}` : isBook(x.papers) ? `Margaret · ${bookLabel(x)}` : `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
     const qi = $('q-img'); qi.crossOrigin = 'anonymous';
     if (x.content) qi.removeAttribute('src');
@@ -1335,7 +1343,7 @@
     $('q-syllabus').hidden = !x.syllabus_note;
     const on = !!x.content, obj = on && Online.objective(x);
     qi.hidden = on; $('q-online').hidden = !on; $('q-online').innerHTML = '';
-    const quick = on && isQuick(x.papers);
+    const quick = on && isQuick(x.papers) && x.type === 'mcq';   // tap = answer (written and extended ones are marked from the working)
     if (quick || isProof(x)) katexCss();
     if (on) { x._v = null; $('q-online').appendChild(Online.render(x, { onChange: v => { x._v = v; if (quick && v) setTimeout(() => $('check-online').click(), 140); } })); }   // quick: tap = answer
     if (obj) { $('mcq-controls').hidden = true; $('short-controls').hidden = true; }
@@ -1402,6 +1410,8 @@
     const s = state.set, x = s && s.qs[s.i], btn = $('auto-mark');
     if (!x || btn.disabled || s.results[s.i]) return;
     let blob = photo ? await shrinkImage(photo, 1600) : await window.Annotate?.image(`tb_ann_${state.user.id}_${s.sid}_${x.id}`).catch(() => null);
+    const typed = !photo && x.content?.typed && String(x._v || '').trim();
+    if (typed) blob = await typedImage(String(x._v), blob);   // a typed answer goes to the marker as a picture of the text, above any handwriting
     if (!blob) { $('am-photo').click(); return; }   // nothing written on screen: a photo of their paper working instead
     const at = s.i, folder = `${state.user.id}/qm-${Date.now().toString(36)}`, paths = [];
     btn.disabled = true; btn.innerHTML = '<span class="am-spin" aria-hidden="true"></span>Marking…';
@@ -1429,6 +1439,25 @@
       if (paths.length) sb.storage.from('submissions').remove(paths).catch(() => {});
       if (state.set === s && s.i === at && !s.results[at]) { btn.disabled = false; btn.textContent = 'Mark my working'; }
     }
+  }
+  // a typed answer drawn as a white page of text (the marker reads pictures), with any handwriting underneath
+  async function typedImage(text, below) {
+    const W = 1100, PAD = 40, LH = 34, cv = document.createElement('canvas'), ctx = cv.getContext('2d');
+    ctx.font = '24px Inter, Arial, sans-serif';
+    const lines = [];
+    text.split(/\n/).forEach(par => {
+      let line = '';
+      par.split(/\s+/).forEach(w => { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > W - PAD * 2 && line) { lines.push(line); line = w; } else line = t; });
+      lines.push(line);
+    });
+    let bmp = null; try { if (below) bmp = await createImageBitmap(below); } catch {}
+    const th = PAD * 2 + lines.length * LH, bh = bmp ? Math.round(bmp.height * W / bmp.width) : 0;
+    cv.width = W; cv.height = th + bh;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, cv.height);
+    ctx.fillStyle = '#111'; ctx.font = '24px Inter, Arial, sans-serif'; ctx.textBaseline = 'top';
+    lines.forEach((l, i) => ctx.fillText(l, PAD, PAD + i * LH));
+    if (bmp) ctx.drawImage(bmp, 0, th, W, bh);
+    return new Promise(r => cv.toBlob(r, 'image/png'));
   }
   // a tall picture of someone's working, cut into at most 4 overlapping strips: the marker shrinks very tall images until handwriting blurs
   async function stripsOf(blob) {
@@ -6677,7 +6706,7 @@ void main() {
     const keepT = state.topics, keepS = state.steps, keepSub = state.subject;
     state.topics = new Set(topics); state.steps = new Map(); state.subject = subj;
     try {
-      try { await buildSet({ count: n, allowSkipped: true, type: kind, diff: 'all', fresh: 1 }); }
+      try { await buildSet({ count: n, allowSkipped: true, type: kind, diff: 'all', fresh: 1, qfmt: 'mcq' }); }
       catch (err) {   // no quick questions on those topics yet: trial questions instead, and say so
         if (kind !== 'quick') throw err;
         await buildSet({ count: n, allowSkipped: true, type: 'all', diff: 'all', fresh: 1 });
