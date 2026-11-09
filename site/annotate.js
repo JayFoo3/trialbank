@@ -1,5 +1,5 @@
 // Trialbank annotation: write anywhere on the question page with an Apple Pencil, mouse or finger: the question, the answers,
-// the solution, the margins, plus lined working space at the bottom.
+// the solution, the margins, plus lined working space at the bottom (taller and squared for induction proofs, with More space).
 // Each stroke is pinned to the part of the page it was drawn on (question, solution, working space...), so it stays in place
 // when the page changes around it (a solution opening, a hint appearing). Saved on this device per student and question.
 (function () {
@@ -57,10 +57,14 @@
   document.addEventListener('contextmenu', (ev) => { if (active && ev.target.closest('.ann-live')) ev.preventDefault(); });
   document.addEventListener('gesturestart', block);   // iOS pinch while writing
 
-  function attach(scope, key, legacyAnchor) {
+  // look: { space: starting height of the working space in px, grid: squared paper instead of lines } (induction proofs get a tall grid)
+  function attach(scope, key, legacyAnchor, look = {}) {
     const data = load(key);
-    const space = document.createElement('div'); space.className = 'ann-space';
-    space.innerHTML = '<span>Working space</span>';
+    const space = document.createElement('div'); space.className = 'ann-space' + (look.grid ? ' ann-grid' : '');
+    space.innerHTML = '<span>Working space</span><button type="button" class="ann-more">More space</button>';
+    const MORE = 600, fit = () => { space.style.height = ((look.space || 460) + (data.x || 0) * MORE) + 'px'; };
+    fit();
+    space.querySelector('.ann-more').onclick = () => { data.x = (data.x || 0) + 1; fit(); store(key, data); };   // remembered with the writing
     const base = document.createElement('canvas'); base.className = 'ann-canvas';
     const live = document.createElement('canvas'); live.className = 'ann-canvas ann-live';
     scope.classList.add('ann-on');
@@ -364,7 +368,7 @@
     if (isFull()) setFull(false);
   }
   // a button that switches annotation on. `card` is the question; `opts.scope` is the area you can write on (defaults to the card);
-  // `opts.full` offers a full-screen button. `key` identifies this student's notes for this question.
+  // `opts.full` offers a full-screen button; `opts.space` / `opts.grid` size and rule the working space. `key` identifies this student's notes for this question.
   function button(card, key, opts = {}) {
     const scope = opts.scope || card;
     const btn = document.createElement('button');
@@ -374,7 +378,7 @@
     btn.onclick = () => {
       if (active && active.btn === btn) { stop(); return; }
       stop();
-      active = { card, btn, key, full: !!opts.full, api: attach(scope, key, scope !== card ? card : null) };
+      active = { card, btn, key, full: !!opts.full, api: attach(scope, key, scope !== card ? card : null, { space: opts.space, grid: opts.grid }) };
       btn.classList.add('on'); btn.querySelector('span').textContent = 'Stop';
       showBar();
       if (opts.full && matchMedia('(min-width: 641px) and (max-width: 1100px)').matches && !isFull()) hint('Tip: full screen gives you the whole display to write on.');

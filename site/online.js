@@ -1,5 +1,6 @@
 // Trialbank online questions: questions stored as content (not page images), answered on screen like the online HSC.
-// kinds: single (one letter), multi (select all), match (item -> letter), written (typed), code (typed, with Python tests).
+// kinds: single (one letter), multi (select all), match (item -> letter), written (typed), code (typed, with Python tests),
+// proof (handwritten in the working space; the solution is a model answer laid out like the class teacher's).
 (function () {
   const L = 'ABCDEFGHIJ';
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -87,6 +88,8 @@
       });
       c.options.forEach((o, j) => right.appendChild(el('li', '', `<span class="ol-box">${L[j]}</span><span>${o}</span>`)));
       grid.append(left, right); root.appendChild(grid);
+    } else if (k === 'proof') {
+      // nothing to type: the proof is written by hand in the working space
     } else {
       const ta = el('textarea', k === 'code' ? 'ol-code' : 'ol-written');
       ta.rows = Math.max(4, Math.round((c.lines || 8) * (k === 'code' ? 1.1 : 0.7)));
@@ -125,6 +128,7 @@
   // ---------- solution ----------
   function solution(q, v) {
     const c = q.content, k = c.kind, box = el('div', 'ol-sol');
+    if (k === 'proof') { box.innerHTML = c.solution; return box; }   // KaTeX HTML made by quick/render_proof.js
     if (k === 'single' || k === 'multi') box.appendChild(el('p', '', `<b>Answer: ${esc(k === 'multi' ? c.answer.join(', ') : c.answer)}</b>`));
     if (k === 'match') box.appendChild(el('p', '', `<b>Answer: ${esc(c.answer.map((a, i) => `${i + 1}–${a}`).join(', '))}</b> <span class="muted small">(${q.marks} marks for all correct, ${Math.floor(q.marks / 2)} for at least half)</span>`));
     if (c.why) box.appendChild(el('p', '', c.why));

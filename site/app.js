@@ -359,6 +359,12 @@
   // quick questions: short textbook-style questions kept in their own 'paper' (slug quick-...); never shown as a paper
   const isQuick = (p) => /^quick-/.test(p?.slug || '');
   const isBook = (p) => /^margaret-/.test(p?.slug || '');   // the Margaret textbook: a private set only admins can see (subject 'Book')
+  // proof by induction: a tall squared working space, the class teacher's layout checked by the marker, and drills
+  // (quick-*-proof papers) whose model answers are laid out the way the teacher writes them
+  const INDUCTION = new Set(['Proof Induction', 'Proof by Induction', 'Induction']);
+  const isInduction = (q) => !!q && INDUCTION.has(q.topic);
+  const isProof = (q) => q?.content?.kind === 'proof';
+  const inductionSpace = (q) => isInduction(q) ? { space: 1800, grid: true } : {};
   const seePaper = (p) => !isQuick(p) && !isBook(p) && (state.viewAs !== 'free' || state.viewDial >= 100 || p.difficulty === 'HSC' || (p.release_pct ?? 0) < state.viewDial);
   // Pro can be bought (pro_sales) or tried free (pro_trials); 'admin' means only admins see it while testing
   const proOpen = () => !!state.user && !state.preview && [state.proSale, state.pro?.trials].some(v => v === 'on' || (v === 'admin' && adminOn()));
@@ -1238,11 +1244,20 @@
       .in('topic', [...state.topics].filter(t => o.allowSkipped || !skipped().has(t)))
       .or('image_path.not.is.null,content.not.is.null')
       .limit(400);
-    if (o.type === 'quick') q = q.like('papers.slug', 'quick-%');   // short textbook-style questions only
+    if (o.type === 'quick') q = q.like('papers.slug', 'quick-%').not('papers.slug', 'like', 'quick-%-proof');   // short textbook-style questions only (not the induction drills)
     else { q = q.not('papers.slug', 'like', 'quick-%'); if (o.type !== 'all') q = q.eq('type', o.type); }
     if (o.diff !== 'all') q = q.eq('papers.difficulty', o.diff);
-    const { data, error } = await q;
+    const { data: found, error } = await q;
     if (error) throw error;
+    let data = found;
+    const indTopics = [...state.topics].filter(t => INDUCTION.has(t) && (o.allowSkipped || !skipped().has(t)));
+    if (indTopics.length && o.type !== 'quick' && o.type !== 'mcq') {
+      let dq = sb.from('questions').select(QCOLS.replace('content, ', '')).eq('papers.subject', state.subject).like('papers.slug', 'quick-%-proof').in('topic', indTopics).limit(200);
+      if (o.diff !== 'all') dq = dq.eq('papers.difficulty', o.diff);
+      const { data: drills, error: de } = await dq;
+      if (de) console.warn('induction drills', de.message);
+      else data = data.concat(drills.map(d => ({ ...d, _drill: true })));
+    }
     if (!data.length) throw new Error(o.type === 'quick' ? 'No quick questions on those topics yet. Pick other topics, or switch to trial questions.' : 'No questions match that. Widen the filters.');
 
     await loadStepBlock(); const tooHard = blockedQs();
@@ -1263,13 +1278,20 @@
     }
     shuffle(pool);
     const qs = pool.slice(0, o.count);
+    const drillIds = qs.filter(x => x._drill).map(x => x.id);
+    if (drillIds.length) {
+      const { data: full, error: fe } = await sb.from('questions').select('id, content').in('id', drillIds);
+      if (fe) throw fe;
+      const byId = Object.fromEntries(full.map(r => [r.id, r.content]));
+      qs.forEach(x => { if (x._drill) x.content = byId[x.id]; });
+    }
     await attachUrls(qs);
     state.set = { qs, i: 0, results: [] };
     window.Juice && Juice.resetCombo();
     renderQuestion();
   }
   // only questions students can check themselves: multiple choice with an answer key, written ones with a worked solution
-  const hasKey = (q) => !!q.content || (q.type === 'mcq' ? !!q.answer : !!q.solution_path);
+  const hasKey = (q) => !!q.content || !!q._drill || (q.type === 'mcq' ? !!q.answer : !!q.solution_path);
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
   // ---------- set ----------
@@ -1285,10 +1307,10 @@
     // write on the question: pencil, highlighter, eraser, plus working space underneath
     if (window.Annotate) { Annotate.stop(); qcard?.querySelector('.ann-tools')?.remove(); }
     if (!s.sid) { s.sid = 's' + Date.now().toString(36); annPrune(s.sid); }   // writing belongs to this set: a new set starts with clean questions
-    if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${s.sid}_${x.id}`, { scope: $('view-set'), full: true })); qcard.prepend(tb); }
+    if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${s.sid}_${x.id}`, { scope: $('view-set'), full: true, ...inductionSpace(x) })); qcard.prepend(tb); }
     $('set-pos').innerHTML = `<b>${s.i + 1} of ${s.qs.length}</b><span>${esc(topicName(x.topic))}</span>`;
     firstHint(x);
-    $('set-meta').textContent = isQuick(x.papers) ? `Quick question · ${topicName(x.topic)}` : isBook(x.papers) ? `Margaret · ${bookLabel(x)}` : `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
+    $('set-meta').textContent = isProof(x) ? `Induction drill · ${x.marks} marks` : isQuick(x.papers) ? `Quick question · ${topicName(x.topic)}` : isBook(x.papers) ? `Margaret · ${bookLabel(x)}` : `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
     const qi = $('q-img'); qi.crossOrigin = 'anonymous';
     if (x.content) qi.removeAttribute('src');
@@ -1306,7 +1328,7 @@
     $('ask-tutor').hidden = !(tutorUsable() && tuSubjects().includes(x.papers.subject) && x.image_path && !x.content);
     $('ask-tutor').onclick = () => askTutor(x);
     $('explain-mistake').hidden = true;
-    $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true;
+    $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true; $('layout-box').hidden = true;
     $('next').hidden = true; $('skip').hidden = false;
     $('mcq-controls').hidden = x.type !== 'mcq' || !!x.syllabus_note;
     $('short-controls').hidden = x.type !== 'short' || !!x.syllabus_note;
@@ -1314,13 +1336,13 @@
     const on = !!x.content, obj = on && Online.objective(x);
     qi.hidden = on; $('q-online').hidden = !on; $('q-online').innerHTML = '';
     const quick = on && isQuick(x.papers);
-    if (quick) katexCss();
+    if (quick || isProof(x)) katexCss();
     if (on) { x._v = null; $('q-online').appendChild(Online.render(x, { onChange: v => { x._v = v; if (quick && v) setTimeout(() => $('check-online').click(), 140); } })); }   // quick: tap = answer
     if (obj) { $('mcq-controls').hidden = true; $('short-controls').hidden = true; }
     $('check-online').hidden = !obj || !!x.syllabus_note || quick;
     $('sol-wrap').hidden = true; $('sol-wrap').classList.remove('marked'); $('show-sol').hidden = false; $('show-sol').disabled = !x.solutionUrl && !on;
     // written answers: the marker reads what they wrote. In a battle that's the only way to mark, and the solution stays hidden until then
-    const canAuto = x.type === 'short' && !on && !!x.solutionUrl && !x.syllabus_note && !state.preview;
+    const canAuto = x.type === 'short' && (on ? isProof(x) : !!x.solutionUrl) && !x.syllabus_note && !state.preview;
     $('auto-mark').hidden = !canAuto || !!state.markBlocked; $('auto-mark').disabled = false; $('auto-mark').textContent = 'Mark my working';
     if (s.duel && canAuto && !state.markBlocked) $('show-sol').hidden = true;
     $('show-sol').textContent = x.solutionUrl || on ? 'Show solution' : 'No solution available';
@@ -1384,12 +1406,15 @@
     const at = s.i, folder = `${state.user.id}/qm-${Date.now().toString(36)}`, paths = [];
     btn.disabled = true; btn.innerHTML = '<span class="am-spin" aria-hidden="true"></span>Marking…';
     try {
-      const path = `${folder}/w1.${blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg'}`;
-      const { error: ue } = await sb.storage.from('submissions').upload(path, blob, { contentType: blob.type || 'image/png', upsert: true });
-      if (ue) throw ue;
-      paths.push(path);
+      const pages = [];
+      for (const [i, part] of (await stripsOf(blob)).entries()) {
+        const path = `${folder}/w${i + 1}.${part.type === 'image/png' ? 'png' : part.type === 'image/webp' ? 'webp' : 'jpg'}`;
+        const { error: ue } = await sb.storage.from('submissions').upload(path, part, { contentType: part.type || 'image/png', upsert: true });
+        if (ue) throw ue;
+        paths.push(path); pages.push(path);
+      }
       const chunks = await sliceTallImages([x], folder, () => {}, paths);
-      const { data, error } = await sb.functions.invoke('mark-question', { body: { question_id: x.id, pages: [path], chunks, duel: !!s.duel } });
+      const { data, error } = await sb.functions.invoke('mark-question', { body: { question_id: x.id, pages, chunks, duel: !!s.duel } });
       if (error) { let msg = error.message, blocked = false; try { const j = await error.context.json(); msg = j.error || msg; blocked = !!j.blocked; } catch {} if (blocked) { markBlocked(msg); return; } throw new Error(msg); }
       if (data.blocked) { markBlocked(data.error || 'Not cool bro.'); return; }   // wrote something inappropriate: no more auto-marking
       if (state.set !== s || s.i !== at) return;   // they moved on while it marked
@@ -1405,6 +1430,21 @@
       if (state.set === s && s.i === at && !s.results[at]) { btn.disabled = false; btn.textContent = 'Mark my working'; }
     }
   }
+  // a tall picture of someone's working, cut into at most 4 overlapping strips: the marker shrinks very tall images until handwriting blurs
+  async function stripsOf(blob) {
+    let bmp; try { bmp = await createImageBitmap(blob); } catch { return [blob]; }
+    const OVER = 60, H = bmp.height, W = bmp.width;
+    if (H <= 1500) return [blob];
+    const STRIP = Math.max(1500, Math.ceil((H + OVER * 3) / 4));
+    const out = [];
+    for (let y = 0; y < H; y += STRIP - OVER) {
+      const h = Math.min(STRIP, H - y), cv = document.createElement('canvas'); cv.width = W; cv.height = h;
+      const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, h); ctx.drawImage(bmp, 0, y, W, h, 0, 0, W, h);
+      out.push(await new Promise(r => cv.toBlob(r, 'image/png')));
+      if (y + h >= H || out.length === 4) break;
+    }
+    return out.filter(Boolean).length === out.length ? out : [blob];
+  }
   function markBlocked(msg) {
     state.markBlocked = true;
     const btn = $('auto-mark'); btn.hidden = true;
@@ -1416,7 +1456,9 @@
   $('show-sol').onclick = () => {
     const x = state.set.qs[state.set.i];
     $('sol-html').innerHTML = ''; $('sol-img').parentElement.hidden = !!x.content;
+    $('sol-layout')?.remove();
     if (x.content) $('sol-html').appendChild(Online.solution(x)); else $('sol-img').src = x.solutionUrl;
+    if (isInduction(x) && !isProof(x)) $('sol-img').parentElement.after(teacherLayout());
     $('sol-wrap').hidden = false; $('show-sol').hidden = true;
   };
   $('check-online').onclick = () => {
@@ -1430,6 +1472,39 @@
     record(sc, out, Array.isArray(v) ? v.join(',') : v);
     verdict(sc === out ? 'Correct.' : sc ? `${sc}/${out}. Check the ones in red.` : 'Not quite. The answer is shown in green.', sc === out ? 'good' : sc ? 'warn' : 'bad');
   };
+  const LAYOUT_LINES = [
+    ['s1_head', 'Step 1: Prove true for n=1'], ['s1_when', 'when n=1,'], ['s1_sides', 'LHS and RHS worked side by side'], ['s1_conc', '∴ true for n=1'],
+    ['s2_head', 'Step 2: Let n=k be a number for which the statement is true'], ['s2_ie', 'i.e. the statement for n=k'],
+    ['s3_head', 'Step 3: Prove true for n=k+1'], ['s3_ie', 'i.e. the statement for n=k+1'], ['s3_lhs', 'LHS = written out to the (k+1)th term'],
+    ['s3_step2', '= … from step 2'], ['s3_rhs', 'Works down from LHS, ending = RHS'], ['s3_conc', '∴ true for n=k+1'],
+    ['final', '∴ by induction, the statement is true for all integers n ≥ 1'],
+  ];
+  function showLayout(layout) {
+    const got = Object.fromEntries(layout.map(l => [l.id, l]));
+    const rows = LAYOUT_LINES.filter(([id]) => got[id]);
+    const miss = rows.filter(([id]) => !got[id].ok);
+    const box = $('layout-box');
+    box.className = 'lay ' + (miss.length ? 'miss' : 'ok');
+    box.innerHTML = `<h4><span>Teacher's layout</span><b>${rows.length - miss.length}/${rows.length}</b></h4>`
+      + (miss.length ? `<ul>${miss.map(([id, label]) => `<li><i>✗</i><b>${esc(label)}</b><span>${esc(got[id].note || '')}</span></li>`).join('')}</ul>` : '');
+    box.hidden = false;
+  }
+  // the class teacher's layout, set out under another school's solution so the two can be compared
+  function teacherLayout() {
+    const box = mk('div'); box.id = 'sol-layout';
+    box.innerHTML = `<h4>Your teacher's layout</h4><div class="pf">
+      <p class="pf-h"><u>Step 1:</u> Prove true for n=1</p><p>when n=1,</p>
+      <div class="pf-cols"><div class="pf-eq"><span class="pf-lab">LHS</span><span class="pf-e">=</span><span>…</span><span></span><span></span><span class="pf-e">=</span><span>…</span><span></span></div>
+        <div class="pf-eq"><span class="pf-lab">RHS</span><span class="pf-e">=</span><span>…</span><span></span><span></span><span class="pf-e">=</span><span>…</span><span></span></div></div>
+      <p>∴ true for n=1</p>
+      <p class="pf-h"><u>Step 2:</u> Let n=k be a number for which the statement is true</p><p class="pf-ie">i.e. …</p>
+      <p class="pf-h"><u>Step 3:</u> Prove true for n=k+1</p><p class="pf-ie">i.e. …</p>
+      <div class="pf-eq pf-chain"><span class="pf-lab">LHS</span><span class="pf-e">=</span><span>…</span><span></span>
+        <span></span><span class="pf-e">=</span><span>…</span><span class="pf-n">from step 2</span>
+        <span></span><span class="pf-e">=</span><span>… = RHS</span><span></span></div>
+      <div class="pf-end"><p>∴ true for n=k+1</p><p>∴ by induction, the statement is true for all integers n ≥ 1</p></div></div>`;
+    return box;
+  }
   function verdict(text, cls) {
     const mood = cls === 'good' ? 'cheer' : cls === 'bad' ? 'sad' : 'think';
     $('verdict').innerHTML = `<span class="vm">${Mascot(mood, '', { still: true })}</span><span>${esc(text)}</span>`;
@@ -1446,6 +1521,7 @@
     $('next').hidden = false; $('skip').hidden = true;
     if (s.duel) duelAnswered(score, outOf);
     if (x.type === 'short' && score < outOf && !ai && !(x.content && Online.objective(x))) showLost(s.results[s.i], outOf - score);
+    if (ai && Array.isArray(ai.layout) && ai.layout.length) showLayout(ai.layout);
     if (score < outOf) showExplain(x, score, outOf, chosen, s.results[s.i]);
     const { data: row, error } = await sb.from('attempts').insert({ user_id: state.user.id, question_id: x.id, score, out_of: outOf, chosen }).select('id').single();
     if (error) console.warn('attempt not saved', error.message);
@@ -3327,7 +3403,7 @@
       jump.appendChild(chip);
       const c = mk('div', 'card qcard'); c.id = 'xq' + idx;
       c.innerHTML = `<div class="between"><strong>${qLabel(q)} ${sylFlag(q)}</strong><span class="muted small">${marksText(q.marks)}</span></div>`;
-      if (window.Annotate && state.user && !q.content) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(c, `tb_ann_${state.user.id}_x${e.startedAt || 0}_${q.id}`)); c.appendChild(tb); }
+      if (window.Annotate && state.user && !q.content) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(c, `tb_ann_${state.user.id}_x${e.startedAt || 0}_${q.id}`, inductionSpace(q))); c.appendChild(tb); }
       if (q.content) c.appendChild(Online.render(q, { value: e.answers[q.id], disabled: e.phase !== 'working', reveal: marking && Online.objective(q),
         onChange: v => { e.answers[q.id] = v; saveExam(); chip.classList.toggle('done', Online.answered(q, v)); } }));
       else c.appendChild(qImg(q.imageUrl, 'Question ' + qLabel(q)));

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """upload_quick.py - put quick questions on Trialbank: short textbook-style multiple choice, marked as you tap.
+Also the induction drills (quick-ext1-proof, from quick/gen_proof.py + render_proof.js): written proofs, 3 marks, with a model answer
+in the class teacher's layout. They show up in written practice on Proof by Induction, never in quick sets.
 They live in their own hidden 'paper' (slug quick-...), so they never show in the papers list or exam mode.
 Reads quick/<slug>.json (made by quick/gen_*.py then quick/render.js).
 Usage: python3 upload_quick.py quick-chem   (keys come from ~/.trialbank_keys)"""
@@ -22,7 +24,7 @@ TOPIC = {'wf': 'Working with Functions', 'gt': 'Graphing Techniques', 'tm': 'Tri
          'pab': 'Properties of Acids and Bases', 'bl': 'Using Brønsted–Lowry Theory', 'qan': 'Quantitative Analysis', 'nm': 'Nomenclature', 'hc': 'Hydrocarbons',
          'prh': 'Products of Reactions Involving Hydrocarbons', 'al': 'Alcohols', 'oab': 'Reactions of Organic Acids and Bases', 'po': 'Polymers',
          'ai': 'Analysis of Inorganic Substances', 'ao': 'Analysis of Organic Substances', 'csd': 'Chemical Synthesis and Design'}
-SUBJ = {'quick-adv': 'Adv', 'quick-ext1': 'Ext1', 'quick-physics': 'Physics', 'quick-chem': 'Chem'}
+SUBJ = {'quick-adv': 'Adv', 'quick-ext1': 'Ext1', 'quick-physics': 'Physics', 'quick-chem': 'Chem', 'quick-ext1-proof': 'Ext1'}
 topic_of = lambda step: TOPIC[step.rstrip('0123456789')]   # tid1 -> Identities, ve3 -> Vectors
 LEVEL = {'ss1': 1, 'ss2': 1, 'ss5': 1, 'ss3': 2, 'ss6': 2, 'ss4': 3, 'ss7': 3, 'ss8': 3,
          'be1': 1, 'pc1': 1, 'rf2': 1, 'sp1': 1, 'sp2': 1, 'it1': 1, 'it2': 1, 'pi3': 3, 'be3': 3, 'be4': 3, 'pc5': 3, 'sp4': 3, 'rf1': 3}
@@ -40,11 +42,17 @@ for slug in sys.argv[1:]:
     for q in qs:
         count[q['step']] = count.get(q['step'], 0) + 1
         qid = f"{q['step']}-{count[q['step']]:02d}"
+        if q.get('kind') == 'proof':   # a written proof, marked from the handwriting against sol_text
+            rows.append({'id': f'{slug}/{qid}', 'paper_id': pid, 'qid': qid, 'number': len(rows) + 1, 'type': 'short', 'marks': q['marks'],
+                         'topic': topic_of(q['step']), 'topics': [topic_of(q['step'])], 'skills': [q['step']], 'level': q.get('level', 2),
+                         'answer': None, 'content': {'kind': 'proof', 'prompt': q['prompt'], 'solution': q['solution'], 'stmt_text': q['stmt_text'], 'sol_text': q['sol_text']}})
+            continue
         rows.append({'id': f'{slug}/{qid}', 'paper_id': pid, 'qid': qid, 'number': len(rows) + 1, 'type': 'mcq', 'marks': 1,
                      'topic': topic_of(q['step']), 'topics': [topic_of(q['step'])], 'skills': [q['step']], 'level': LEVEL.get(q['step'], 2),
                      'answer': q['answer'], 'content': {'kind': 'single', 'quick': True, 'prompt': q['prompt'], 'options': q['options'], 'answer': q['answer'], 'why': q['why']}})
-    for i in range(0, len(rows), 100):
-        ok(requests.post(f'{URL}/rest/v1/questions?on_conflict=id', headers={**H, 'Prefer': 'resolution=merge-duplicates'}, json=rows[i:i + 100], timeout=120), 'questions')
+    for i in range(0, len(rows), 20 if slug.endswith('-proof') else 100):   # proofs carry big model answers: smaller batches
+        n = 20 if slug.endswith('-proof') else 100
+        ok(requests.post(f'{URL}/rest/v1/questions?on_conflict=id', headers={**H, 'Prefer': 'resolution=merge-duplicates'}, json=rows[i:i + n], timeout=120), 'questions')
     keep = {x['id'] for x in rows}   # remove questions dropped from the file (looked up first: a long id list won't fit in a URL)
     have, off = [], 0
     while True:   # the server hands back 1000 rows at a time
@@ -55,4 +63,4 @@ for slug in sys.argv[1:]:
     for i in range(0, len(old), 50):
         ids = ','.join(f'"{x}"' for x in old[i:i + 50])
         ok(requests.delete(f'{URL}/rest/v1/questions?id=in.({ids})', headers=H, timeout=60), 'remove old questions')
-    print(f'{slug}: {len(rows)} quick questions')
+    print(f'{slug}: {len(rows)} {"induction drills" if slug.endswith("-proof") else "quick questions"}')
