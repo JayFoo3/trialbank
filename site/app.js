@@ -509,6 +509,7 @@
     ],
     EngStd: [   // Paper 1 is the same exam as English Advanced's (share_engstd.py copies those papers across)
       ['Paper 1: Texts and Human Experiences', ['Common Module: Unseen Texts', 'Common Module: Extended Response']],
+      ['Paper 2: Modules A, B and C', ['Module A: Language, Identity and Culture', 'Module B: Close Study of Literature', 'Module C: The Craft of Writing']],
     ],
     Chem: [
       ['Equilibrium and Acid Reactions', ['Static and Dynamic Equilibrium', 'Factors that Affect Equilibrium', 'Calculating the Equilibrium Constant (Keq)', 'Solution Equilibria']],
