@@ -168,10 +168,19 @@ def main(argv=None):
         try:
             kept["pdf"] = download(number, title, s)
         except thsc.ThscError:
-            if not title.endswith(" (Adv.)"):
+            # THSC stores English Paper 2s under "... P2 Adv" / "... P2 Std", though the page shows "... P2 (Adv.)" / "... P2 (Std.)"
+            tails = {" (Adv.)": [" Adv", " Advanced", ""], " (Std.)": [" Std", " Standard", " Std.", ""]}
+            tail = next((t for t in tails if title.endswith(t)), None)
+            if not tail:
                 raise
-            # THSC stores English Paper 2s under "... P2 Adv", though the page shows "... P2 (Adv.)"
-            kept["pdf"] = download(number, title[:-len(" (Adv.)")] + " Adv", s)
+            for alt in tails[tail]:
+                try:
+                    kept["pdf"] = download(number, title[:-len(tail)] + alt, s)
+                    break
+                except thsc.ThscError:
+                    continue
+            else:
+                raise
         return kept["pdf"]
 
     thsc.download = download_and_keep
