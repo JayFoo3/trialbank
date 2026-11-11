@@ -64,6 +64,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   .about p { margin: 0 0 6px; color: var(--muted); }
   .toc { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 22px 0 0; font-weight: 700; }
   .toc a { color: var(--biro); text-decoration: none; }
+  .info p a:not(.open-btn), .info li a { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -76,12 +77,12 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <h1>HSC exam practice, built from past trial papers.</h1>
   <p class="lede">Trialbank sorts every question from past HSC and trial papers by topic, so you can practise exactly what you're weak at, sit full papers on the clock, and have your handwritten working marked.</p>
   <p class="free-banner"><b>Trialbank is free to use.</b> Creating an account costs nothing and needs no card. Marking packs are an optional extra.</p>
-  <p class="papers-note"><b>We never charge for papers.</b> Past HSC and trial papers aren't our property: they belong to NESA and the schools that wrote them, and they're freely available online. Trialbank just sorts them by topic so they're easier to study from. The only thing you can pay for is the auto-marking service.</p>
-  <nav class="toc" aria-label="On this page"><a href="#pricing">Marking packs</a><a href="#contact">Contact</a><a href="#refunds">Refunds</a><a href="#terms">Terms of use</a><a href="#privacy">Privacy</a></nav>
+  <p class="papers-note"><b>We never charge for papers.</b> Past HSC and trial papers aren't our property: they belong to NESA and the schools that wrote them, and they're freely available online. Trialbank just sorts them by topic so they're easier to study from. What you can pay for is AI marking and tutoring, never the papers themselves.</p>
+  <nav class="toc" aria-label="On this page"><a href="#pricing">Prices</a><a href="#contact">Contact</a><a href="#refunds">Refunds</a><a href="#terms">Terms of use</a><a href="#privacy">Privacy</a></nav>
 
   <h2>Free or paid?</h2>
   <div class="tbl-wrap"><table class="cmp">
-    <thead><tr><th></th><th class="c-free">Free account</th><th class="c-pack">With a marking pack</th></tr></thead>
+    <thead><tr><td></td><th class="c-free">Free account</th><th class="c-pack">With a marking pack</th></tr></thead>
     <tbody>
       <tr><td>Create an account</td><td class="c-free"><b>Free</b></td><td class="c-pack">Free</td></tr>
       <tr><td>Past HSC papers and topic practice</td><td class="c-free">✓</td><td class="c-pack">✓</td></tr>
@@ -99,7 +100,14 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <div class="pack best"><span class="tag">Most popular</span><div class="n">25</div><div class="u">papers</div><div class="price">$9.99</div><div class="each">40c a paper</div></div>
     <div class="pack"><span class="tag">Best value</span><div class="n">60</div><div class="u">papers</div><div class="price">$19.99</div><div class="each">33c a paper</div></div>
   </div>
-  <p class="fine">One-off payments in Australian dollars, processed securely by Stripe. Trialbank never sees or stores your card details. Nothing renews automatically.</p>
+  <p class="fine">One-off payments in Australian dollars, processed securely by Stripe. Trialbank never sees or stores your card details. Packs never renew.</p>
+
+  <h3 id="tutor-packs">Tutor message packs</h3>
+  <p>Where they're switched on, you can buy messages with the AI tutor: 150 messages for $4.99 or 300 for $8.99. One-off payments, and the messages never expire.</p>
+
+  <h3 id="pro">Trialbank Pro</h3>
+  <p>Where it's switched on, Pro is a subscription: <b>$12.99 a month, or $99 a year.</b> It adds the AI tutor (300 messages a month), 5 marked papers a month, unlimited practice papers and Pro profile looks. Monthly allowances don't roll over.</p>
+  <p><b>Pro renews automatically</b> at the same price each month or year until you cancel. Cancel any time from your Profile, under Manage subscription. You keep Pro until the end of the period you've paid for, and you aren't charged again. Free trials and Pro Mini never need a card and never turn into a paid plan by themselves.</p>
 
   <h2 id="contact">Contact</h2>
   <div class="policy">
@@ -113,6 +121,10 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <p>If you change your mind, we'll refund any papers from a pack you haven't had marked yet, if you ask within 14 days of buying it. Email us from the address on your account.</p>
     <h3>Papers already marked</h3>
     <p>Papers that have already been marked aren't refundable for change of mind. If a marking result is clearly wrong or the marking failed, contact us and we'll give you that paper back or refund it.</p>
+    <h3>Tutor message packs</h3>
+    <p>The same as marking packs: unused messages are refundable within 14 days of buying. Messages you've used aren't refundable for change of mind.</p>
+    <h3>Trialbank Pro</h3>
+    <p>If you ask within 14 days of your first Pro payment, we'll refund it in full. After that, cancelling stops the next renewal; we don't refund part of a month or year you've already started for change of mind. If you were charged for a renewal you didn't want, email us within 14 days of the charge and we'll refund it.</p>
     <h3>Your rights</h3>
     <p>Nothing in this policy limits your rights under the Australian Consumer Law. If something we sell has a major problem, you're entitled to a refund.</p>
     <p>Refunds go back to the original payment method, usually within 5 to 10 business days.</p>
@@ -122,12 +134,24 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   <div class="policy">
     <h3>Using Trialbank</h3>
     <p>Trialbank is a study tool for students preparing for the NSW HSC. Keep your login to yourself and don't share, resell or republish the papers or questions on the site.</p>
+    <h3>If you're under 18</h3>
+    <p>You're welcome to use Trialbank. Before you buy anything, get a parent or guardian's permission; they can email us about any purchase. If you're under 15, ask them before you sign up.</p>
+    <h3>Your account and what you post</h3>
+    <p>Sign up with your own email and real first name. You're responsible for what you upload, write in Study together or use as a profile photo: nothing offensive, nothing that isn't yours to share, and no photos of other people without their say-so. We can remove content or close accounts that break these rules.</p>
     <h3>Papers and copyright</h3>
     <p>Past papers belong to NESA and to the schools that wrote them, not to Trialbank, and they're freely available online. Trialbank never charges for access to papers; they're provided here, sorted by topic, for personal study only. If you own a paper and would like it removed, contact us and we'll take it down.</p>
     <h3>Auto-marking</h3>
     <p>Auto-marking uses AI (Anthropic's Claude) to read your working and mark it against the paper's marking guidelines. It's a study aid, not an official mark, and it can make mistakes; always check the feedback against the worked solutions.</p>
+    <h3>The tutor</h3>
+    <p>The tutor is also AI. It can be wrong, and it isn't a teacher or an official source. Predicted bands and marks are estimates only, not a promise of your result. Trialbank isn't affiliated with or endorsed by NESA or any school.</p>
+    <h3>Paying for things</h3>
+    <p>Prices are in Australian dollars and are shown before you pay. Packs are one-off. Pro renews automatically until you cancel, as set out under <a href="#pro">Trialbank Pro</a>. Refunds are covered under <a href="#refunds">Refunds</a>.</p>
     <h3>Changes and availability</h3>
-    <p>We may update features, access levels and these terms. We'll do our best to keep Trialbank running, but we can't promise it will always be available. If we ever close Trialbank, we'll refund any unused papers from packs.</p>
+    <p>We may update features, access levels and these terms. We'll do our best to keep Trialbank running, but we can't promise it will always be available. If we ever close Trialbank, we'll refund any unused papers and tutor messages from packs, and the unused part of any Pro subscription. If we change these terms in a way that matters, we'll tell you on the site before it takes effect.</p>
+    <h3>Our responsibility to you</h3>
+    <p>Trialbank is a study aid and we can't promise any exam result. You have rights under the Australian Consumer Law that these terms don't take away. Beyond those rights, and as far as the law allows, we aren't liable for indirect losses, and our liability for a paid feature is limited to supplying it again or refunding what you paid for it.</p>
+    <h3>Law</h3>
+    <p>These terms are governed by the law of New South Wales, Australia.</p>
   </div>
 
   <h2 id="privacy">Privacy</h2>
@@ -135,7 +159,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     <p>Trialbank is built for HSC students, many of whom are under 18, so we collect as little as we can and keep it only as long as we need it.</p>
     <h3>What we collect</h3>
     <ul>
-      <li><b>Your account:</b> email address, first name, the subjects you choose, and your profile look (pet, colours, an optional photo).</li>
+      <li><b>Your account:</b> email address, your name, the subjects you choose, and your profile look (pet, colours, an optional photo).</li>
       <li><b>Your practice:</b> the questions you answer, your scores, which topics you've learnt, starred questions and timed papers.</li>
       <li><b>Uploads:</b> photos or PDFs of your working for marking, photos you send the tutor, and photos put up in Study together.</li>
       <li><b>The tutor:</b> a short note of how you learn best and your recent slips, so it can help you better. Your tutor chat itself is kept only in your browser, not on our servers.</li>
@@ -144,7 +168,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </ul>
     <h3>Who sees it</h3>
     <ul>
-      <li><b>Friends you add</b> see your first name, level, streak and pet or photo. Nothing else.</li>
+      <li><b>Friends you add</b> see your name, level, streak and pet or photo. Nothing else.</li>
       <li><b>Study together:</b> people in a session see your first name and what's written in the chat and on the board. Nothing from a session is saved on our servers.</li>
       <li><b>Year averages</b> only appear for topics where at least 5 students have answered, so no one's own scores can be picked out.</li>
       <li><b>The Trialbank admin</b> can see accounts, usage and marking records to run the site and help you.</li>
@@ -155,6 +179,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <li><b>Anthropic (Claude)</b> marks uploaded working and runs the tutor. Pages and messages are sent to it only to answer that request. Under Anthropic's commercial terms they aren't used to train its AI.</li>
       <li><b>Stripe</b> handles payments. <b>Backblaze</b> stores the exam paper PDFs (no personal information).</li>
       <li>Fonts and code libraries load from Google Fonts, jsDelivr and cdnjs, which see your IP address like any website you visit.</li>
+      <li>Some of these services store or process information outside Australia, including in the United States.</li>
     </ul>
     <h3>How long we keep it</h3>
     <ul>
@@ -169,13 +194,15 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <li>Change your name, subjects and topics whenever you like, or email us to see or correct anything else.</li>
       <li>Signing out clears your tutor chat and marking results from that device, so shared computers are safe to use.</li>
     </ul>
+    <h3>Parents and guardians</h3>
+    <p>You can ask to see, correct or delete your child's information at any time by emailing us.</p>
     <h3>Cookies and tracking</h3>
     <p>The site stores your sign-in and display settings on your device so you stay logged in. There are no advertising or tracking cookies, and we don't sell your information or use it for advertising.</p>
     <h3>If something goes wrong</h3>
     <p>If we ever learn of a data breach that could harm you, we'll tell you and, where required, the Office of the Australian Information Commissioner. Questions or complaints: email us at the contact address above.</p>
   </div>
 
-  <p class="info-foot">Trialbank is a JAI-OPS product. Last updated 26 October 2026 · <a href="./">Back to Trialbank</a></p>
+  <p class="info-foot">Trialbank is a JAI-OPS product. Last updated 10 November 2026 · <a href="./">Back to Trialbank</a></p>
 </main>
 <script src="config.js?v=dev"></script>
 <script>

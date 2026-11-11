@@ -154,6 +154,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
           <label id="invite-row" hidden>Invite code <input type="text" name="invite" autocomplete="off" placeholder="from the Classroom post"></label>
           <p class="error" id="auth-error" hidden></p>
           <button class="primary wide" type="submit" id="auth-submit">Sign in</button>
+          <p class="small center muted" id="auth-agree" hidden>By creating an account you agree to the <a href="info.html#terms" target="_blank" rel="noopener">terms</a> and <a href="info.html#privacy" target="_blank" rel="noopener">privacy policy</a>.</p>
         </form>
         <p class="small center"><button class="link" id="auth-toggle">New here? Create a free account</button></p>
         <p class="small center muted">Optional marking packs: <a href="info.html#pricing">see pricing</a></p>
@@ -244,6 +245,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div id="topic-chips"></div>
       <p class="small pr-foot"><button class="link" id="topics-all" hidden>Select every topic</button><button class="link" id="open-syllabus">Syllabus</button></p>
     </div>
+    <div class="tp-mine" id="tp-mine" hidden></div>
     <details class="card cp-card" id="cp-card">
       <summary><span><b>Make a practice paper</b></span><em class="pro-chip" id="cp-pro" hidden>Pro</em><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
       <p class="small muted" id="cp-sub" hidden></p>
@@ -356,6 +358,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 
   <!-- ===== progress ===== -->
   <section id="view-study" class="view" hidden>
+    <a class="back small" href="#home">‹ Home</a>
     <div class="st-head">
       <div><h1>Study together <em class="pro-chip">Beta</em></h1><p class="small muted" id="st-sub"></p></div>
       <div class="st-room" id="st-room"></div>
@@ -397,6 +400,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </section>
 
   <section id="view-hsc" class="view" hidden>
+    <a class="back small" href="#progress" data-feature="progress">‹ Progress</a>
     <h1>Your HSC estimate</h1>
     <p class="muted small hsc-lead">From your answers on Trialbank, with recent work counting more. It's an estimate, not a promise.</p>
     <div class="card hsc-band" id="hsc-band"></div>
@@ -404,6 +408,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   </section>
 
   <section id="view-progress" class="view" hidden>
+    <a class="back small" href="#home">‹ Home</a>
     <div class="pg-head"><h1>Progress</h1><p class="muted" id="pg-sub"></p></div>
     <div class="pg-top">
       <div class="card pg-hero" id="pg-hero"></div>

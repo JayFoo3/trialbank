@@ -41,7 +41,8 @@
   };
 
   // ---------- routing ----------
-  const NAV = { duel: 'practise', tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'progress', examrun: 'papers', hsc: 'progress' };
+  const NAV = { duel: 'practise', tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'home', examrun: 'papers', hsc: 'home', profile: 'home', study: 'home' };   // Progress, HSC, Profile and Study together all hang off Home
+  const NAV_TITLES = { home: 'Home', practise: 'Practise', set: 'Practise', summary: 'Results', papers: 'Papers', paper: 'Paper', examrun: 'Exam', progress: 'Progress', hsc: 'HSC estimate', profile: 'Profile', tutor: 'Tutor', mark: 'Marking', study: 'Study together', duel: 'Battle', admin: 'Admin' };
   // page transitions: iOS-style push going deeper, pop going back, a quick fade between tabs
   const DEPTH = { duel: 1, tutor: 0, mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, profile: 1, paper: 1, set: 2, examrun: 2, summary: 3 };
   const canVT = !!document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -71,9 +72,20 @@
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === NAV[name]));
     document.body.classList.toggle('focus', name === 'set' || (name === 'examrun' && state.exam && state.exam.phase !== 'marking'));
     duelMode(name === 'duel' || (name === 'set' && !!state.set?.duel));
-    $('account-menu').hidden = true;
-    window.scrollTo(0, 0);
+    $('account-menu').hidden = true; $('account-btn').setAttribute('aria-expanded', false);
+    document.title = NAV_TITLES[name] && state.user ? `${NAV_TITLES[name]} · ${C.name}` : C.name;   // tabs and the back-button list say where you are
+    window.scrollTo(0, showNow.y || 0);
+    if (name !== showNow.last) {   // keyboards and screen readers start at the new page's heading, not back up in the header
+      if (showNow.last && name !== 'set' && name !== 'examrun' && name !== 'auth') { const h = $('view-' + name).querySelector('h1'); if (h) { h.tabIndex = -1; try { h.focus({ preventScroll: true }); } catch {} } }
+      showNow.last = name;
+    }
   }
+  // going back or forward returns you to where you were on that page; a fresh visit starts at the top
+  const scrollMem = new Map(); let backY = null;
+  window.addEventListener('scroll', () => { if (!document.body.classList.contains('focus')) scrollMem.set(location.hash || '#home', window.scrollY); }, { passive: true });
+  try { window.navigation?.addEventListener('navigate', (e) => { let h = '#home'; try { h = new URL(e.destination.url).hash || '#home'; } catch {} backY = e.navigationType === 'traverse' ? (scrollMem.get(h) || 0) : null; }); } catch { /* older browsers: every page starts at the top */ }
+  // leaving a page (or pressing Escape) closes any pop-up card left open on top of it
+  const closePopups = (all) => { const ms = [...document.querySelectorAll('body > .modal:not([id])')]; (all ? ms : ms.slice(-1)).forEach(m => m.dispatchEvent(new MouseEvent('click'))); return ms.length; };
   let loadingN = 0;
   async function busy(fn) {
     loadingN++; $('loading').hidden = false;
@@ -93,7 +105,7 @@
     if (!state.preview) sb.rpc('log_visit', { v: h || 'home' }).then(() => {}, () => {});   // engagement stats for the Admin page
     return busy(async () => {
      try {
-      if (h === 'practise') { show('practise'); drawCpCard(); drawResume(); await renderBuild(); return; }
+      if (h === 'practise') { show('practise'); drawCpCard(); drawResume(); drawMyPapers().catch(err => console.warn('papers', err)); await renderBuild(); return; }
       if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
       if (h === 'admin' && adminOn()) { show('admin'); await renderAdmin(); adminTabs(); return; }
       if (h === 'profile') { show('profile'); await renderProfile(); return; }
@@ -243,7 +255,16 @@
   };
   document.addEventListener('click', (ev) => { if (!ev.target.closest('.account')) $('account-menu').hidden = true; });
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') $('account-menu').hidden = true; });
-  window.addEventListener('hashchange', route);
+  window.addEventListener('hashchange', () => {
+    closePopups(true);
+    const y = showNow.y = backY; backY = null;   // set only when this was Back or Forward
+    Promise.resolve(route()).finally(() => {
+      if (!y) return;
+      requestAnimationFrame(() => window.scrollTo(0, y));   // the page's content is in now, so the full height is there to scroll to
+      setTimeout(() => { if (window.scrollY === 0 && showNow.y === y) window.scrollTo(0, y); if (showNow.y === y) showNow.y = null; }, 400);   // the page-change animation can land after the first try
+    });
+  });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !ev.defaultPrevented) closePopups(false); });
 
   // ---------- auth ----------
   let signup = false;
@@ -253,6 +274,7 @@
     $('auth-submit').textContent = signup ? 'Create free account' : 'Sign in';
     $('auth-toggle').textContent = signup ? 'Already have an account? Sign in' : 'New here? Create a free account';
     $('invite-row').hidden = !signup;
+    $('auth-agree').hidden = !signup;
   };
   $('auth-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -1481,13 +1503,14 @@
     verdict(msg, 'bad');
     const s = state.set; if (s?.duel) $('show-sol').hidden = false;   // a battle still needs a way to mark it
   }
+  $('sol-img').onclick = () => { const c = $('sol-img').parentElement, on = c.classList.toggle('zoom'); if (on) c.scrollLeft = (c.scrollWidth - c.clientWidth) / 2; };
   $('auto-mark').onclick = () => autoMark();
   $('am-photo').onchange = (ev) => { const f = ev.target.files[0]; ev.target.value = ''; if (f) autoMark(f); };
   $('show-sol').onclick = () => {
     const x = state.set.qs[state.set.i];
     $('sol-html').innerHTML = ''; $('sol-img').parentElement.hidden = !!x.content;
     $('sol-layout')?.remove();
-    if (x.content) $('sol-html').appendChild(Online.solution(x)); else $('sol-img').src = x.solutionUrl;
+    if (x.content) $('sol-html').appendChild(Online.solution(x)); else { const si = $('sol-img'); si.crossOrigin = 'anonymous'; si.dataset.trimmed = ''; si.parentElement.classList.remove('zoom'); si.onload = () => trimImg(si); si.src = x.solutionUrl; }
     if (isInduction(x) && !isProof(x)) $('sol-img').parentElement.after(teacherLayout());
     $('sol-wrap').hidden = false; $('show-sol').hidden = true;
   };
@@ -2698,6 +2721,121 @@
   }
   $('cp-pdf').onclick = () => cpRun('pdf');
   $('cp-now').onclick = () => cpRun('now');
+  // ---------- practice papers from the tutor: "make me a 1 hour paper on logs and series". Built from the bank, kept on the account ----------
+  let myPapers = { uid: null, list: null };   // this student's saved papers, newest first
+  async function loadMyPapers(force) {
+    const uid = state.user?.id;
+    if (!uid || state.preview) return [];
+    if (!force && myPapers.uid === uid && myPapers.list) return myPapers.list;
+    const { data, error } = await sb.from('practice_papers').select('id, subject, title, mins, reading, question_ids, marks, topics, created_at').order('created_at', { ascending: false }).limit(30);
+    if (error) { console.warn('practice papers', error.message); return []; }
+    myPapers = { uid, list: data || [] };
+    return myPapers.list;
+  }
+  // the tutor says what the paper covers and its shape; this picks the questions, evenly across the topics, easier ones first
+  async function buildTutorPaper(spec) {
+    const subj = spec.subject, tps = spec.topics.map(t => t.topic);
+    const { data: pool_, error } = await sb.rpc('paper_pool_topics', { subj, tps });
+    if (error) throw new Error('Practice papers are not switched on yet.');
+    const hard = hardQs();
+    let qs = (pool_ || []).filter(q => !hard.has(q.id));
+    spec.topics.forEach(({ topic, upto }) => {   // only part of a topic learnt: questions that need its later steps stay out
+      const st = topicSteps(topic, subj), at = st && upto ? st.findIndex(([id]) => id === upto) : -1;
+      if (at < 0 || at >= st.length - 1) return;
+      const later = new Set(st.slice(at + 1).map(([id]) => id));
+      const tagged = qs.filter(q => q.topic === topic && q.skills).length >= 15;   // once enough are tagged, untagged ones can't be trusted to fit
+      qs = qs.filter(q => q.topic !== topic || (q.skills ? !q.skills.some(x => later.has(x)) : !tagged));
+    });
+    const mins = spec.minutes || 40, auto = Math.max(8, Math.round(mins / 1.8));   // HSC pace: about 100 marks in 3 hours
+    const nMc = spec.mcq ?? (spec.written != null ? 0 : Math.round(auto * 0.15));
+    const wMarks = spec.written ?? Math.max(0, auto - nMc);
+    const lvl = (q) => q.level ?? 3, weigh = (q) => (spec.level === 'harder' ? lvl(q) : spec.level === 'easier' ? 6 - lvl(q) : 1) * (q.marks >= 2 ? 1.6 : 1);
+    const take = (list, need, sizeOf) => {
+      const by = Object.fromEntries(tps.map(t => [t, list.filter(q => q.topic === t)])), got = Object.fromEntries(tps.map(t => [t, 0]));
+      const out = []; let sum = 0;
+      while (sum < need) {
+        const order = tps.filter(t => by[t].length).sort((a, b) => got[a] - got[b] || Math.random() - 0.5);   // the topic with the least so far goes next
+        let placed = false;
+        for (const t of order) {
+          const fits = by[t].filter(q => sizeOf(q) <= need - sum); if (!fits.length) continue;
+          const ws = fits.map(weigh); let r = Math.random() * ws.reduce((a, b) => a + b, 0), i = 0; while (i < ws.length - 1 && r > ws[i]) r -= ws[i++];
+          const q = fits[i]; by[t].splice(by[t].indexOf(q), 1);
+          out.push(q); got[t] += sizeOf(q); sum += sizeOf(q); placed = true; break;
+        }
+        if (!placed) break;
+      }
+      return out;
+    };
+    const mc = take(qs.filter(q => q.type === 'mcq'), nMc, () => 1);
+    const wr = take(qs.filter(q => q.type !== 'mcq' && q.marks > 0), wMarks, q => q.marks).sort((a, b) => lvl(a) - lvl(b) || a.marks - b.marks);
+    const ids = [...mc, ...wr].map(q => q.id);
+    if (ids.length < Math.min(4, nMc + Math.ceil(wMarks / 3))) throw new Error("There aren't enough questions on that yet. Try adding a topic.");
+    const p = { subject: subj, title: spec.title || 'Practice paper', mins, question_ids: ids, marks: mc.length + wr.reduce((a, q) => a + q.marks, 0), topics: tps };
+    const { data: saved, error: e2 } = await sb.from('practice_papers').insert(p).select('id, created_at').single();
+    if (e2) { console.warn('paper not saved', e2.message); p.unsaved = /row-level/i.test(e2.message) ? 'full' : 'off'; }   // the paper still works from the chat
+    else { Object.assign(p, saved); if (myPapers.list && myPapers.uid === state.user?.id) myPapers.list.unshift(p); }
+    return p;
+  }
+  async function paperQs(p) {
+    const { data, error } = await sb.from('questions').select(QCOLS).in('id', p.question_ids);
+    if (error) throw error;
+    const by = new Map((data || []).map(r => [r.id, r]));
+    const qs = p.question_ids.map(id => by.get(id)).filter(q => q && q.image_path);
+    if (!qs.length) throw new Error("Those questions aren't open on your account.");
+    return qs;
+  }
+  const paperMeta = (p, subj) => [subj && p.subject !== subj ? C.subjects[p.subject] || p.subject : '', p.marks ? `${p.marks} marks` : `${p.question_ids.length} questions`, p.mins ? `${p.mins} min` : ''].filter(Boolean).join(' · ');
+  // one paper: Start does it here question by question, PDF prints it with writing lines and solutions at the back
+  function paperCard(p, { onDelete, subj } = {}) {
+    const c = mk('div', 'tp-card');
+    c.innerHTML = `<div class="tp-info"><b>${esc(p.title)}</b><span class="small muted">${esc(paperMeta(p, subj))}</span></div>
+      <div class="tp-acts"><button class="primary" data-go>Start</button><button class="secondary" data-pdf>PDF</button>${onDelete && p.id ? '<button class="link small tp-del" data-del aria-label="Delete this paper">✕</button>' : ''}</div>
+      <p class="small error" data-err hidden></p>`;
+    const err = c.querySelector('[data-err]'), go = c.querySelector('[data-go]'), pdf = c.querySelector('[data-pdf]');
+    const run = async (btn, fn) => {
+      err.hidden = true; btn.disabled = true; const old = btn.textContent;
+      try { await fn(); } catch (e) { err.textContent = e.message || String(e); err.hidden = false; }
+      finally { btn.textContent = old; btn.disabled = false; }
+    };
+    go.onclick = () => run(go, async () => {
+      const qs = await paperQs(p);
+      if (state.subject !== p.subject && C.subjects[p.subject]) { state.subject = p.subject; state.topics = new Set(); try { localStorage.setItem('tb_subject', p.subject); } catch {} drawSubject(); }
+      await startSet(qs);
+    });
+    pdf.onclick = () => run(pdf, async () => {
+      const qs = await paperQs(p); await attachUrls(qs);
+      await makePdf({ title: p.title, sub: `${C.subjects[p.subject] || p.subject} · ${p.marks || '?'} marks · ${p.mins || '?'} minutes${p.reading ? ` + ${p.reading} reading` : ''}`,
+        filename: `Trialbank ${p.title.replace(/[^\w ,.-]+/g, '')}.pdf`, qs, withSolutions: true, lines: true, onProgress: (d, t) => { pdf.textContent = `${d}/${t}`; } });
+    });
+    const del = c.querySelector('[data-del]');
+    if (del) del.onclick = async () => {
+      if (!(await confirmBox(`Delete ${esc(p.title)}?`))) return;
+      const { error } = await sb.from('practice_papers').delete().eq('id', p.id);
+      if (error) { err.textContent = error.message; err.hidden = false; return; }
+      if (myPapers.list) myPapers.list = myPapers.list.filter(x => x.id !== p.id);
+      onDelete();
+    };
+    return c;
+  }
+  // "Your papers" on Practise: the ones made for this subject
+  async function drawMyPapers() {
+    const box = $('tp-mine'); if (!box) return;
+    const list = (await loadMyPapers()).filter(p => p.subject === state.subject);
+    box.hidden = !list.length; box.innerHTML = '';
+    if (!list.length) return;
+    box.appendChild(mk('h2', 'tp-h', 'Your papers'));
+    list.forEach(p => box.appendChild(paperCard(p, { onDelete: drawMyPapers, subj: state.subject })));
+  }
+  async function tuPaper(spec) {
+    if (!tuSubjects().includes(spec.subject)) return;
+    tu.busy = true; tuDraw();
+    try {
+      const p = await buildTutorPaper(spec);
+      tu.msgs.push({ role: 'paper', paper: p });
+      if (p.unsaved === 'full') tu.msgs.push({ sys: true, text: 'You have 30 saved papers, so this one is only in this chat. Delete one on Practise to keep new ones.' });
+    } catch (err) { tu.msgs.push({ sys: true, text: err.message || String(err) }); }
+    finally { tu.busy = false; tuDraw(); tuSave(); }
+  }
   async function pdfAction(btn, opts, errEl) {
     const old = btn.textContent; btn.disabled = true;
     if (errEl) errEl.hidden = true;
@@ -2833,7 +2971,7 @@
     const nH = papers.filter(isHsc).length;
     $('papers-count').textContent = `${nH ? nH + ' HSC exams · ' : ''}${papers.length - nH} trial papers from ${new Set(papers.filter(p => !isHsc(p)).map(p => p.school)).size} schools`;
     const wrap = $('papers-list'); wrap.innerHTML = '';
-    if (!schools.length) { wrap.innerHTML = '<p class="muted">Nothing matches.</p>'; return; }
+    if (!schools.length) { wrap.innerHTML = `<p class="muted">${!papers.length ? 'No papers for this subject yet.' : q ? 'No school or year matches that search.' : 'No papers at this level.'}</p>`; return; }
     const { thumbs = {} } = papersData;
     schools.forEach(sch => {
       const list = bySchool[sch].sort((a, b) => b.year - a.year);
@@ -3989,7 +4127,7 @@
       : onSale ? `<div class="pro-plans${canTrial ? ' after-trial' : ''}">
           <button class="pro-plan best" data-k="annual"><span class="pro-tag">Best value · save ${save}%</span><b>${money(Math.round(perMonth * 100) / 100)}<small>/month</small></b><span>Billed ${money(PRO.annual)} a year</span><em>Go annual</em></button>
           <button class="pro-plan" data-k="monthly"><span class="pro-tag"></span><b>${money(PRO.monthly)}<small>/month</small></b><span>Cancel any time</span><em>Go monthly</em></button>
-        </div><p class="small muted">Secure payment with Stripe. Card or Apple Pay. Cancel any time from your profile.</p>`
+        </div><p class="small muted">Renews automatically until you cancel, any time from your profile. Secure payment with Stripe. <a href="info.html#pro" target="_blank" rel="noopener">Terms</a></p>`
       : (canTrial || pass) ? '' : '<p class="pro-status">Pro opens soon.</p>'}
       ${packsOpen() ? `<p class="small muted pro-packs">${active || pass ? 'Running low?' : 'Just want the tutor?'} <button class="link small" data-k="packs">Buy tutor messages</button> from A$4.99. They never expire.</p>` : ''}
       ${link ? `<div class="pro-ref">
@@ -4422,7 +4560,7 @@
       const { level } = await myLevel(), pr = myProfile();
       if (pr.seen == null) {   // first visit since levels arrived: no fanfare for old levels, just point them at their profile
         await saveProfile({ seen: level });
-        if (!pr.pet) toast(`<b>New:</b> pick a pet and level it up. <a href="#profile">Your profile</a>`, 7000);
+        if (!pr.pet && $('subj-modal').hidden && !state.tourOn && flag('tour_done')) toast(`<b>New:</b> pick a pet and level it up. <a href="#profile">Your profile</a>`, 7000);
         return;
       }
       if (level <= pr.seen) return;
@@ -4819,7 +4957,6 @@
   // ---------- spotlight tour for new students: they tap each lit-up control for real ----------
   const TOUR = [
     { el: '#nav a[data-nav="papers"]', text: 'Tap Papers. Every past paper lives here.' },
-    { el: '#nav a[data-nav="progress"]', text: 'Tap Progress. This shows where you lose marks.' },
     { el: '#nav a[data-nav="practise"]', text: 'Tap Practise. Pick any topics to drill.' },
     { el: '#nav a[data-nav="home"]', text: 'Tap Home to come back.' },
     { el: null, text: "You're all good to go.", last: true },
@@ -5482,7 +5619,8 @@
     [['Quiz me on my weak spots', () => { tu.topic = ''; go('quiz'); }],
      ['Teach me a topic', () => pickTopic('teach')],
      ["I'm stuck on a question", () => go('stuck', true)],
-     ['Check my work', () => { tu.topic = ''; go('check'); }]].forEach(([l, f]) => { const b = mk('button', 'tu-start-chip', esc(l)); b.type = 'button'; b.onclick = f; box.appendChild(b); });
+     ['Check my work', () => { tu.topic = ''; go('check'); }],
+     ['Make me a practice paper', () => { tu.msgs.push({ role: 'tutor', text: "What's it on? Give me the topics and how long, or send a photo of the notification." }); tuDraw(); $('tu-text').focus(); }]].forEach(([l, f]) => { const b = mk('button', 'tu-start-chip', esc(l)); b.type = 'button'; b.onclick = f; box.appendChild(b); });
     async function pickTopic(mode) {
       const subj = tuSubject();
       const { data: tc } = await sb.from('topic_counts').select('topic, n, type').eq('subject', subj);
@@ -5743,6 +5881,7 @@
     tu.msgs.forEach((m, i) => {
       if (m.sys) { th.appendChild(mk('div', 'tu-sys', esc(m.text.replace(/^\(|\)$/g, '')))); return; }
       if (m.role === 'offer') { th.appendChild(tuOfferCard(m, i)); return; }
+      if (m.role === 'paper') { th.appendChild(paperCard(m.paper)); return; }
       if (m.role === 'result') { const w = mk('div', 'tu-msg tutor tu-marked'); w.appendChild(ownResult(m.rec)); th.appendChild(w); return; }
       const el = mk('div', 'tu-msg ' + m.role + (m.error ? ' err' : ''));
       if (m.thumbs?.length) { const ph = mk('div', 'tu-pics'); m.thumbs.forEach(u => { const im = mk('img'); im.src = u; im.alt = 'Your working'; ph.appendChild(im); }); el.appendChild(ph); }
@@ -5857,7 +5996,7 @@
   }
   async function tuSend(text) {
     if (tu.busy) return;
-    let study = null;
+    let study = null, paper = null;
     text = (text || '').trim();
     if (text && /\b20[0-3]\d\b/.test(text)) {   // they named a question: switch to it
       const f = await tuFind(text, tuSubject()).catch(() => null);
@@ -5896,12 +6035,14 @@
       if (data.flagged && !tu.flagged) { tu.flagged = true; tu.msgs.push({ sys: true, text: 'The tutor flagged this question so it gets fixed.' }); }
       if (data.done && !tu.done) await tuFinish(data);
       if (data.study) study = data.study;
+      if (data.paper) paper = data.paper;
     } catch (err) {
       tu.msgs.push({ role: 'tutor', error: true, text: err.message || String(err), buy: !!err.out });
     } finally {
       tu.busy = false; tuDraw(); tuSave(); drawTuRecent();
     }
-    if (study) await tuStudy(study);
+    if (paper) await tuPaper(paper);
+    else if (study) await tuStudy(study);
   }
   // "teach me method of sections": switch to that subject and to Teach me, drop any past question, and leave where their class
   // is up to alone. The tutor's own made-up warm-up questions follow in the chat; Next question afterwards picks real ones on the topic.

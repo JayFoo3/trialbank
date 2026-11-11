@@ -94,6 +94,9 @@ button:hover, .button:hover { border-color: var(--rule-strong); text-decoration:
 .wide { width: 100%; }
 .big { width: 100%; padding: 14px; font-size: 1.05rem; }
 .link { background: none; border: none; padding: 0; color: var(--biro); cursor: pointer; font: inherit; font-weight: 500; display: inline; }
+/* contrast (WCAG AA): links on the dark theme, and links inside sentences are underlined */
+:where(:root[data-theme="dark"]) a, :where(:root[data-theme="dark"]) .link { color: color-mix(in srgb, var(--biro) 60%, #fff); }
+p.muted a, .auth-card p a { text-decoration: underline; }
 .link:hover { text-decoration: underline; }
 button:disabled { opacity: .5; cursor: default; }
 label { display: block; margin: 12px 0; font-size: .9rem; color: var(--muted); }
@@ -1326,7 +1329,8 @@ html[data-vt="fade"]::view-transition-old(root), html[data-vt="fade"]::view-tran
 .view-as-row select { font: inherit; padding: .15em .4em; border-radius: var(--r-sm); border: 1px solid var(--rule-strong); background: var(--paper); color: inherit; }
 
 /* sign-in: say plainly that signing up is free */
-.auth-free { display: inline-block; margin-top: 4px; padding: .35em .85em; border-radius: 999px; background: var(--good-soft); color: var(--good-dark); font-size: .95rem; }
+.auth-free { display: inline-block; margin-top: 4px; padding: .35em .85em; border-radius: 999px; background: var(--good-soft); color: #0f5c31; font-size: .95rem; }
+:root[data-theme="dark"] .auth-free { color: #8be0ad; }
 
 /* made by JAI-OPS: like "Claude by Anthropic" */
 .auth-by { margin: -6px 0 16px; }
@@ -3298,3 +3302,53 @@ svg.cf.icon { margin-right: 8px; }
 .lay li span { color: var(--muted); font-size: .9rem; }
 /* dark theme: the question card stays light paper, so typed questions (quick questions, induction drills) need dark ink on it */
 :root[data-theme="dark"] .card.question .ol-prompt { color: #1f2329; }
+
+
+/* ---------- UX pass, Nov 2026 ---------- */
+/* phones: the header always fits; the subject name shortens before anything is pushed off screen */
+@media (max-width: 480px) {
+  .top-in { gap: 6px; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .brand { font-size: 1.25rem; flex: none; }
+  .top-right { flex: 1 1 0; min-width: 0; justify-content: flex-end; gap: 5px; }
+  .top-right .subject { flex: 0 1 auto; min-width: 0; }
+  .top-right .subject .subj-btn { max-width: 100%; flex-shrink: 1; overflow: hidden; }
+  .top-right .subject .subj-l { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .top-right .tools, .top-right .account { flex: none; }
+}
+/* marking yourself: one even row of marks, never a lone button on its own line */
+#self-mark { display: grid; grid-template-columns: repeat(auto-fit, minmax(52px, 1fr)); gap: 8px; }
+#self-mark button { min-width: 0; padding-left: 0; padding-right: 0; }
+/* nothing but the question while you're in a set or an exam */
+body.focus footer { display: none; }
+/* solutions: tap to zoom in, tap again to zoom out */
+#sol-img { cursor: zoom-in; display: block; width: 100%; }
+.card.scroll.zoom { overflow-x: auto; }
+.card.scroll.zoom #sol-img { width: 200%; max-width: none; cursor: zoom-out; }
+/* phones: messages sit above the tab bar, not on top of it */
+@media (max-width: 720px) { body:not(.focus) .toast { bottom: calc(84px + env(safe-area-inset-bottom)); } }
+
+/* ---------- navigation pass, Nov 2026 ---------- */
+h1[tabindex="-1"]:focus { outline: none; }
+.back { display: inline-flex; align-items: center; gap: 4px; margin: 0 0 8px -8px; padding: 6px 10px; border-radius: 999px; color: var(--muted); font-weight: 700; text-decoration: none; }
+.back:hover { background: var(--hover); color: var(--ink); text-decoration: none; }
+.back.feature-off { display: none; }
+/* phone tab bar: five equal targets, and the tab you're on is unmistakable */
+@media (max-width: 640px) {
+  .mainnav a { flex: 1 1 0; min-width: 0; min-height: 52px; justify-content: center; padding: 4px 2px; border: 0; font-weight: 700; }
+  .mainnav a svg { box-sizing: content-box; padding: 3px 16px; border-radius: 999px; transition: background .2s, transform .3s cubic-bezier(.3,1.8,.5,1); }
+  .mainnav a.on svg { background: var(--biro-soft); }
+  .mainnav a span { white-space: nowrap; }
+}
+@media (orientation: landscape) and (max-height: 500px) { .mainnav a svg { padding: 0; background: none !important; } }
+
+/* practice papers made by the tutor: one row each, Start is the thing to press */
+.tp-mine { margin-top: 18px; display: grid; gap: 8px; }
+.tp-h { font-size: 1rem; margin: 0 0 2px; }
+.tp-card { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 16px; border-radius: var(--r); background: var(--paper); box-shadow: var(--shadow); }
+.tu-thread .tp-card { align-self: stretch; }
+.tp-info { display: grid; gap: 1px; flex: 1 1 180px; min-width: 0; }
+.tp-info b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-acts { display: flex; align-items: center; gap: 8px; }
+.tp-acts .secondary { min-width: 58px; }
+.tp-del { color: var(--muted); padding: 4px 6px; }
+.tp-card .error { flex-basis: 100%; margin: 0; }

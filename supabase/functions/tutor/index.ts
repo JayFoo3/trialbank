@@ -50,7 +50,8 @@ How you always teach:
 - Scope. You are a study tutor, not a general assistant. Fine: anything about learning their HSC subjects, exam technique,
   study planning, and a bit of friendly chat. Not fine, however it is asked: writing code, programs, apps, scripts or websites;
   making files, documents, essays, emails or assignments; completing assessment tasks or take-home work for them; or any
-  general-purpose task unrelated to study. Decline in one friendly sentence, say what you can help with instead, and set off_topic. (Wanting a whole paper marked is not off-topic: use full_paper.)
+  general-purpose task unrelated to study. Decline in one friendly sentence, say what you can help with instead, and set off_topic. (Wanting a whole paper marked is not off-topic: use full_paper.
+  Wanting a practice paper is not off-topic either: use paper.)
   Software Engineering is the exception for code, within limits: you may show a few lines or pseudocode to teach one syllabus idea,
   or point to the bug in a short piece of their own code, but never write a full program or a task they will hand in.
 - You are not a paper marker. In check mode, mark one question or part at a time. If they send a whole paper or several questions
@@ -126,6 +127,20 @@ Choosing what to study:
   Do not ask a question yourself: the app saves where they're up to and loads a past question that only uses what they've learnt.
 - Never fill study unless they asked to study something or told you where they're up to.
 
+Making a practice paper:
+- If they ask for a practice paper, practice test, mock or exam-style set ("make me a 1 hour paper on logs and series",
+  "I've got a test on transformations on Friday, build me one like it", or a photo of an assessment notification), fill paper.
+  The app builds it from real past questions with worked solutions and keeps it on their account. You never write the questions.
+- topics: only topics exactly as listed under "Their syllabus" for that subject. Map what they say, or what the notification lists,
+  onto them (e.g. "graph transformations" is Graphing Techniques). For each one, upto is the last step id the paper may use when they
+  have only learnt part of that topic (e.g. logs and exponentials before any calculus), otherwise null.
+- Copy the test's shape when they give it: minutes, mcq (how many multiple-choice questions) and written (total marks of written
+  questions). If they only give a time, leave mcq and written null and the app sizes the paper. No time given: 40 minutes.
+- If they haven't said what it should cover, don't fill paper yet: ask one short question (which topics, and how long). Never guess topics.
+- title: a short name, e.g. "Task 1 practice" or "Logs and series, 1 hour". In say, one short line only
+  (e.g. "Here's a 37-mark paper shaped like your test."). Don't list or describe the questions, and don't fill study or learn in the same turn.
+- They can ask for as many as they like; each one draws different questions.
+
 Reply only by calling tutor_turn.`;
 
 const TOOL = {
@@ -159,6 +174,20 @@ const TOOL = {
           topic: { type: ['string', 'null'], description: 'Topic exactly as listed under "Their syllabus", or null' },
         },
         required: ['subject'],
+      },
+      paper: {
+        type: ['object', 'null'], description: 'Only when they ask for a practice paper, practice test or mock and you know what it covers (see Making a practice paper). Otherwise null.',
+        properties: {
+          subject: { type: 'string', description: 'Subject code from "Their syllabus", e.g. Adv' },
+          title: { type: 'string', description: 'Short name for the paper, under 50 characters' },
+          topics: { type: 'array', description: 'One to eight topics, exactly as listed', items: { type: 'object', properties: {
+            topic: { type: 'string' }, upto: { type: ['string', 'null'], description: 'Last step id the paper may use in this topic, or null for all of it' } }, required: ['topic'] } },
+          minutes: { type: ['integer', 'null'], description: 'Working time in minutes' },
+          mcq: { type: ['integer', 'null'], description: 'Number of multiple-choice questions, if they said' },
+          written: { type: ['integer', 'null'], description: 'Total marks of written questions, if they said' },
+          level: { type: ['string', 'null'], enum: ['easier', 'mixed', 'harder', null], description: 'Only if they asked for an easier or harder paper' },
+        },
+        required: ['subject', 'topics'],
       },
       study: {
         type: ['object', 'null'], description: 'Only when they want past questions on a topic or say where their class is up to. Never for "teach me" or "explain". Otherwise null.',
@@ -414,8 +443,27 @@ Deno.serve(async (req) => {
       learn = { subject: sj, topic: syl[sj]?.topics?.includes(topic) ? topic : null };
       study = null;   // learning a concept never moves where their class is up to
     }
+    // "make me a practice paper": the tutor names the subject, topics and shape; the app picks the questions and keeps the paper
+    let paper = null;
+    if (t.paper && typeof t.paper === 'object' && Array.isArray(t.paper.topics)) {
+      const sj = String(t.paper.subject), v = syl[sj];
+      const int = (x: unknown, lo: number, hi: number) => Number.isFinite(Number(x)) && x !== null ? Math.max(lo, Math.min(hi, Math.round(Number(x)))) : null;
+      const seen = new Set<string>();
+      const topics = !v ? [] : t.paper.topics.slice(0, 8).map((x: { topic?: unknown; upto?: unknown }) => {
+        const topic = String(x?.topic ?? '');
+        if (!v.topics!.includes(topic) || seen.has(topic)) return null;
+        seen.add(topic);
+        const ids = (v.steps?.[topic] ?? []).map(([id]) => id);
+        return { topic, upto: ids.includes(String(x?.upto)) ? String(x.upto) : null };
+      }).filter(Boolean);
+      if (topics.length) {
+        paper = { subject: sj, title: clip(t.paper.title, 60).trim() || 'Practice paper', topics, minutes: int(t.paper.minutes, 10, 180) ?? 40,
+          mcq: int(t.paper.mcq, 0, 25), written: int(t.paper.written, 0, 120), level: ['easier', 'harder'].includes(t.paper.level) ? t.paper.level : 'mixed' };
+        study = null; learn = null;
+      }
+    }
     const diagram = typeof t.diagram === 'string' && /^\s*<svg[\s>]/i.test(t.diagram) && t.diagram.length < 12000 ? t.diagram.trim() : null;
-    return json({ study, learn, diagram, say, done, awarded, out_of: q ? marks : null, slip, next_level: ['easier', 'same', 'harder'].includes(t.next_level) ? t.next_level : null, learnt: note || null, full_paper: !!t.full_paper, flagged: !!(q && fq && fq.reason), cost_usd: Number(cost.toFixed(5)),
+    return json({ study, learn, paper, diagram, say, done, awarded, out_of: q ? marks : null, slip, next_level: ['easier', 'same', 'harder'].includes(t.next_level) ? t.next_level : null, learnt: note || null, full_paper: !!t.full_paper, flagged: !!(q && fq && fq.reason), cost_usd: Number(cost.toFixed(5)),
       left: isAdmin ? null : Math.max(0, allowance - (monthCount ?? 0) - (fromPack ? 0 : 1)), allowance, credits: Math.max(0, packLeft - (fromPack ? 1 : 0)) });
   } catch (err) {
     console.error(err); await refund();
