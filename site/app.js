@@ -142,6 +142,8 @@
     const mine = mySubjects() || Object.keys(C.subjects);
     if (!mine.includes(state.subject)) state.subject = mine[0];
     { const np = $('nav-poems'); if (np) np.hidden = !(window.Poems && Poems.has(state.subject)); }   // Poems shows for the English subjects
+    { const hb = $('diff-hsc'), maths = ['Ext1', 'Ext2', 'Adv', 'Std2'].includes(state.subject);   // maths can practise from real HSC exams only
+      if (hb) { hb.hidden = !maths; if (!maths && state.opts.diff === 'HSC') { state.opts.diff = 'all'; hb.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === 'all')); } } }
     const names = chosenNames() || Object.values(C.subjects);
     const btn = mk('button', 'subj-btn', `<span class="subj-l">${esc(shortName(C.subjects[state.subject]))}</span><span class="caret" aria-hidden="true"></span>`);
     btn.title = C.subjects[state.subject]; btn.setAttribute('aria-haspopup', 'true'); btn.setAttribute('aria-expanded', 'false');
@@ -1216,7 +1218,7 @@
     const dots = [...state.steps.values()].reduce((a, x) => a + x.size, 0);
     $('start-summary').textContent = n ? `${o.count}${type} questions · ${dots ? `${dots} dot point${dots === 1 ? '' : 's'}` : `${n} topic${n === 1 ? '' : 's'}`}` : 'Tick a topic to start';
     const names = [...state.topics].map(topicName).sort();
-    $('pr-picked').textContent = !n ? '' : (names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`) + (o.diff !== 'all' ? ` · ${o.diff.toLowerCase()} papers` : '');
+    $('pr-picked').textContent = !n ? '' : (names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`) + (o.diff === 'HSC' ? ' · HSC exams only' : o.diff !== 'all' ? ` · ${o.diff.toLowerCase()} papers` : '');
     $('start').disabled = !n;
     $('pr-bar').classList.toggle('ready', !!n);
     $('topics-none').hidden = !n;
@@ -1291,7 +1293,7 @@
       if (de) console.warn('induction drills', de.message);
       else data = data.concat(drills.map(d => ({ ...d, _drill: true })));
     }
-    if (!data.length) throw new Error(o.type === 'quick' ? `No ${QFMT_NAME[qf]} quick questions on those topics yet. Try another format or other topics.` : 'No questions match that. Widen the filters.');
+    if (!data.length) throw new Error(o.type === 'quick' ? `No ${QFMT_NAME[qf]} quick questions on those topics yet. Try another format or other topics.` : o.diff === 'HSC' ? 'No HSC exam questions on those topics in the bank yet. Set Difficulty back to Any to include trial papers.' : 'No questions match that. Widen the filters.');
 
     await loadStepBlock(); const tooHard = blockedQs();
     let pool = data.filter(x => !tooHard.has(x.id) && !x.syllabus_note && hasKey(x));
@@ -1409,7 +1411,7 @@
       im.onload = () => {
         try {
           const cv = trimCanvas(im);
-          if (cv.height >= im.naturalHeight - 6) return done(x.imageUrl);
+          if (cv.height >= im.naturalHeight - 6 && cv.width >= im.naturalWidth - 6) return done(x.imageUrl);
           cv.toBlob(b => done(b ? URL.createObjectURL(b) : x.imageUrl), 'image/png');
         } catch { done(x.imageUrl); }
       };
@@ -2455,8 +2457,15 @@
     if (y0 >= h) return cv;                       // blank image: leave it
     while (y1 > y0 && !inked(y1)) y1--;
     y0 = Math.max(0, y0 - 12); y1 = Math.min(h - 1, y1 + 12);
-    const out = document.createElement('canvas'); out.width = w; out.height = y1 - y0 + 1;
-    out.getContext('2d').drawImage(cv, 0, y0, w, out.height, 0, 0, w, out.height);
+    let x0 = 0, x1 = w - 1;
+    if (window.TBDevice === 'phone') {   // a phone is narrow: cut the blank margins off the sides too, so the writing is as big as it can be
+      const inkedCol = (x) => { for (let y = y0; y <= y1; y++) { const i = (y * w + x) * 4; if (d[i] + d[i + 1] + d[i + 2] < 690) return true; } return false; };
+      while (x0 < w - 1 && !inkedCol(x0)) x0++;
+      while (x1 > x0 && !inkedCol(x1)) x1--;
+      x0 = Math.max(0, x0 - 14); x1 = Math.min(w - 1, x1 + 14);
+    }
+    const out = document.createElement('canvas'); out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+    out.getContext('2d').drawImage(cv, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
     return out;
   }
   function trimImg(im) {
@@ -2464,7 +2473,7 @@
     im.dataset.trimmed = '1';
     try {
       const cv = trimCanvas(im);
-      if (cv.height >= im.naturalHeight - 6) return;
+      if (cv.height >= im.naturalHeight - 6 && cv.width >= im.naturalWidth - 6) return;
       cv.toBlob(b => { if (b) im.src = URL.createObjectURL(b); }, 'image/png');
     } catch (e) { /* tainted canvas or decode problem: keep the original */ }
   }

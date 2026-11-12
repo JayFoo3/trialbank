@@ -36,7 +36,7 @@
     order() { return this; }
     upsert(rows) { (Array.isArray(rows) ? rows : [rows]).forEach(r => { const i = this.rows.findIndex(x => x.key ? x.key === r.key : x.email === r.email); i >= 0 ? Object.assign(this.rows[i], r) : this.rows.push(r); }); return Promise.resolve({ data: null, error: null }); }
     delete() { const self = this; return { eq(k, v) { const i = self.rows.findIndex(r => r[k] === v); if (i >= 0) self.rows.splice(i, 1); return Promise.resolve({ data: null, error: null }); } }; }
-    insert(row) { attempts.push({ ...row, created_at: new Date().toISOString() }); return Promise.resolve({ data: null, error: null }); }
+    insert(row) { const saved = { id: 'a' + attempts.length, ...row, created_at: new Date().toISOString() }; attempts.push(saved); const done = Promise.resolve({ data: saved, error: null }); const chain = { select: () => chain, single: () => done, maybeSingle: () => done, then: (a, b) => done.then(a, b) }; return chain; }
     then(res, rej) { return Promise.resolve({ data: this.rows.map(r => ({ ...r })), error: null, count: this.rows.length }).then(res, rej); }
   }
   function get(r, k) { return k.includes('.') ? k.split('.').reduce((o, p) => (o || {})[p], r) : r[k]; }
