@@ -7,6 +7,10 @@
   const allowedEmails = [{ email: 'demo@example.com' }];
   const user = { id: 'demo-user', email: 'demo@example.com' };
   const listeners = [];
+  // one row per paper, built from the questions (the real site has a papers table)
+  const papers = Object.values(D.questions.reduce((m, q) => { const slug = q.id.split('/')[0]; if (!m[slug]) m[slug] = { id: slug, slug, subject: q.papers.subject, school: q.papers.school, year: q.papers.year, difficulty: q.papers.difficulty, title: `${q.papers.school} ${q.papers.year}`, n_questions: 0, marks: 0 }; m[slug].n_questions++; m[slug].marks += q.marks || 0; return m; }, {}));
+  D.questions.forEach(q => { const slug = q.id.split('/')[0]; q.paper_id = q.paper_id || slug; q.papers = { id: slug, slug, ...q.papers }; });
+  const chan = () => { const c = { on: () => c, subscribe: (f) => { if (f) setTimeout(() => f('SUBSCRIBED'), 0); return c; }, track: () => Promise.resolve(), untrack: () => Promise.resolve(), send: () => Promise.resolve(), unsubscribe: () => Promise.resolve(), presenceState: () => ({}) }; return c; };
 
   class Query {
     constructor(rows) { this.rows = rows; }
@@ -19,11 +23,21 @@
     lte(k, v) { this.rows = this.rows.filter(r => get(r, k) <= v); return this; }
     gte(k, v) { this.rows = this.rows.filter(r => get(r, k) >= v); return this; }
     limit(n) { this.rows = this.rows.slice(0, n); return this; }
+    range(a, b) { this.rows = this.rows.slice(a, b + 1); return this; }
+    neq(k, v) { this.rows = this.rows.filter(r => get(r, k) != v); return this; }
+    is(k, v) { this.rows = this.rows.filter(r => (get(r, k) ?? null) === v); return this; }
+    gt(k, v) { this.rows = this.rows.filter(r => get(r, k) > v); return this; }
+    lt(k, v) { this.rows = this.rows.filter(r => get(r, k) < v); return this; }
+    ilike(k, pat) { const re = new RegExp('^' + pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*') + '$', 'i'); this.rows = this.rows.filter(r => re.test(String(get(r, k) ?? ''))); return this; }
+    contains() { return this; } overlaps() { return this; } filter() { return this; } match() { return this; } abortSignal() { return this; }
+    update() { return this; }
+    single() { return Promise.resolve({ data: this.rows[0] ? { ...this.rows[0] } : null, error: null }); }
+    maybeSingle() { return this.single(); }
     order() { return this; }
     upsert(rows) { (Array.isArray(rows) ? rows : [rows]).forEach(r => { const i = this.rows.findIndex(x => x.key ? x.key === r.key : x.email === r.email); i >= 0 ? Object.assign(this.rows[i], r) : this.rows.push(r); }); return Promise.resolve({ data: null, error: null }); }
     delete() { const self = this; return { eq(k, v) { const i = self.rows.findIndex(r => r[k] === v); if (i >= 0) self.rows.splice(i, 1); return Promise.resolve({ data: null, error: null }); } }; }
     insert(row) { attempts.push({ ...row, created_at: new Date().toISOString() }); return Promise.resolve({ data: null, error: null }); }
-    then(res) { res({ data: this.rows.map(r => ({ ...r })), error: null }); }
+    then(res, rej) { return Promise.resolve({ data: this.rows.map(r => ({ ...r })), error: null, count: this.rows.length }).then(res, rej); }
   }
   function get(r, k) { return k.includes('.') ? k.split('.').reduce((o, p) => (o || {})[p], r) : r[k]; }
 
@@ -50,6 +64,7 @@
         },
         from(table) {
           if (table === 'questions') return new Query(D.questions);
+          if (table === 'papers') return new Query(papers);
           if (table === 'topic_counts') return new Query(D.topic_counts);
           if (table === 'attempts') return new Query(attempts);
           if (table === 'my_topic_stats') return new Query(topicStats(true));
@@ -66,6 +81,8 @@
           if (name === 'cohort_topic_stats') return Promise.resolve({ data: topicStats(false).filter(r => r.subject === args.subj), error: null });
           return Promise.resolve({ data: [], error: null });
         },
+        functions: { invoke: () => Promise.resolve({ data: null, error: { message: 'Demo mode: this needs the real site.' } }) },
+        channel: chan, removeChannel: () => Promise.resolve(), getChannels: () => [],
         storage: { from: () => ({ createSignedUrls: (paths) => Promise.resolve({ data: paths.map(p => ({ path: p, signedUrl: 'demo/' + p })), error: null }) }) },
       };
     },

@@ -1,5 +1,5 @@
 /* poems.js - the prescribed poems for English: a guide to each poem, a quote bank with recall practice,
-   quick checks marked on the spot, and essay questions. Shown under Poems for English Standard and Advanced.
+   quick checks marked on the spot, and a step-by-step paragraph writer. Shown under Poems for English Standard and Advanced.
    No poem text lives in this file (the poems are in copyright): each evidence row says what to find in the
    student's own copy, and the quote they type in is kept on their device and reused by the drill and the model paragraph.
    To add a collection, add an entry to SETS in the same shape. */
@@ -347,22 +347,14 @@
     drawThread(set.threads[0]);
 
     const qs = mk('div', 'card', `<h2>Essay questions on the whole collection</h2>`);
-    qs.appendChild(questionList(set.questions, null, set));
+    qs.appendChild(questionList(set.questions));
     root.appendChild(qs);
     root.appendChild(mk('p', 'small muted po-foot', esc(set.poetFacts.join(' · '))));
   }
 
-  function questionList(list, p, set) {
+  function questionList(list) {
     const ol = mk('ol', 'po-qs');
-    list.forEach(q => {
-      const li = mk('li', '', `<span>${esc(q)}</span>`);
-      if (ctx.askTutor) {
-        const b = mk('button', 'ghost small', 'Plan it with the tutor'); b.type = 'button';
-        b.onclick = () => ctx.askTutor(`I'm studying ${set.poet}'s ${set.title} for the Common Module (Texts and Human Experiences)${p ? `, the poem "${p.title}"` : ''}. Help me plan an essay for this question, one step at a time, starting with my thesis. Ask me for my own ideas and quotes first. Question: ${q}`);
-        li.appendChild(b);
-      }
-      ol.appendChild(li);
-    });
+    list.forEach(q => ol.appendChild(mk('li', '', esc(q))));
     return ol;
   }
 
@@ -372,14 +364,14 @@
     root.appendChild(mk('a', 'back small', `‹ ${esc(set.title)}`)).href = '#poems';
     root.appendChild(mk('h1', '', esc(p.title)));
     const tabs = mk('div', 'tabs'); tabs.setAttribute('role', 'tablist');
-    [['guide', 'Guide'], ['quotes', 'Quotes'], ['check', 'Quick check'], ['essay', 'Essay']].forEach(([id, label]) => {
+    [['guide', 'Guide'], ['quotes', 'Quotes'], ['check', 'Quick check'], ['write', 'Write']].forEach(([id, label]) => {
       const b = mk('button', id === tab ? 'on' : '', label); b.type = 'button'; b.setAttribute('role', 'tab');
       b.onclick = () => { tab = id; drill = null; poem(set, p); };
       tabs.appendChild(b);
     });
     root.appendChild(tabs);
     const pane = mk('div', 'po-pane'); root.appendChild(pane);
-    ({ guide, quotes, check, essay })[tab](pane, set, p);
+    ({ guide, quotes, check, write })[tab](pane, set, p);
     const i = set.poems.indexOf(p), next = set.poems[(i + 1) % set.poems.length];
     root.appendChild(mk('a', 'po-next', `Next poem: <b>${esc(next.title)}</b> ›`)).href = `#poems/${next.id}`;
   }
@@ -490,19 +482,126 @@
     });
   }
 
-  function essay(pane, set, p) {
-    const d = store();
-    const qs = mk('div', 'card', '<h2>Questions <span class="small muted">20 marks, 40 minutes</span></h2>');
-    qs.appendChild(questionList(p.questions, p, set)); pane.appendChild(qs);
+  // ---- Write: one guided paragraph, a step at a time (question, idea, point, evidence, effect, link, paragraph) ----
+  const STEPS = ['Question', 'Idea', 'Point', 'Evidence', 'Effect', 'Link', 'Paragraph'];
+  const RUBRIC = [['paradox', 'paradox'], ['anomaly', 'anomal'], ['inconsistency', 'inconsisten'], ['assumptions', 'assum'], ['individual', 'individual'], ['collective', 'collective'], ['challenges', 'challeng'], ['invites', 'invit'], ['human experience', 'human experience']];
+  const STOP = new Set(['watson', 'watsons', 'extent', 'explore', 'explores', 'analyse', 'discuss', 'reference', 'represent', 'represents', 'suggest', 'suggests', 'through', 'within', 'about', 'which', 'their', 'shape', 'shapes', 'your', 'does', 'what', 'with', 'that', 'this', 'from', 'more', 'agree', 'poem', 'poetry', 'understanding']);
+  const words = (s) => (s.trim().match(/\S+/g) || []).length;
+  const lower1 = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+  function write(pane, set, p) {
+    const d = store(); d.w = d.w || {};
+    const w = d.w[p.id] || { step: 0, ev: [], eff: {} };
+    const keep = () => { const s = store(); s.w = s.w || {}; s.w[p.id] = w; save(s); };
+    const go = (n) => { w.step = n; keep(); poem(set, p); };
+    const titleWords = new Set(norm(p.title).split(' '));
+    const keys = w.q != null ? [...new Set(norm(p.questions[w.q]).split(' ').filter(x => x.length > 4 && !STOP.has(x) && !titleWords.has(x)))] : [];
+    const hasKey = (t) => { const n = norm(t); return keys.some(k => n.includes(k.slice(0, Math.max(5, k.length - 2)))); };
+    const rows = w.idea != null ? rowsOf(p).filter(r => r.i === w.idea) : [];
+    const picked = () => w.ev.map(k => rows.find(r => r.k === k)).filter(Boolean);
+
+    const dots = mk('div', 'po-steps');
+    STEPS.forEach((s, i) => { const b = mk('button', i === w.step ? 'on' : i < w.step ? 'done' : '', `<span>${esc(s)}</span>`); b.type = 'button'; b.disabled = i > w.step; b.title = s; b.onclick = () => go(i); dots.appendChild(b); });
+    pane.appendChild(dots);
+    const card = mk('div', 'card po-step'); pane.appendChild(card);
+    const head = (h, sub) => { card.appendChild(mk('h2', '', esc(h))); if (sub) card.appendChild(mk('p', 'po-sub', esc(sub))); };
+    const foot = (ok, onNext, label) => {
+      const bar = mk('div', 'po-bar');
+      if (w.step > 0) { const b = mk('button', 'ghost', 'Back'); b.type = 'button'; b.onclick = () => go(w.step - 1); bar.appendChild(b); }
+      const n = mk('button', 'primary', label || 'Next'); n.type = 'button'; n.disabled = !ok(); n.onclick = () => { if (onNext) onNext(); go(w.step + 1); };
+      bar.appendChild(n); card.appendChild(bar);
+      return () => { n.disabled = !ok(); };
+    };
+    const area = (val, ph, rowsN) => { const t = mk('textarea', 'po-ta'); t.rows = rowsN || 3; t.placeholder = ph; t.value = val || ''; return t; };
+    const ticks = (items) => { const ul = mk('ul', 'po-ticks'); const draw = () => { ul.innerHTML = items.map(([l, f]) => `<li class="${f() ? 'on' : ''}">${esc(l)}</li>`).join(''); }; draw(); card.appendChild(ul); return draw; };
+
+    if (w.step === 0) {
+      head('Pick a question');
+      p.questions.forEach((q, i) => { const b = mk('button', 'po-opt' + (w.q === i ? ' sel' : ''), esc(q)); b.type = 'button'; b.onclick = () => { w.q = i; go(1); }; card.appendChild(b); });
+    } else if (w.step === 1) {
+      head('Which idea answers it best?', p.questions[w.q]);
+      p.ideas.forEach((idea, i) => { const b = mk('button', 'po-opt' + (w.idea === i ? ' sel' : ''), `<b>${esc(idea[0])}</b><span>${esc(idea[1])}</span>`); b.type = 'button'; b.onclick = () => { if (w.idea !== i) { w.idea = i; w.ev = []; w.eff = {}; } go(2); }; card.appendChild(b); });
+      if (w.step > 0) { const bar = mk('div', 'po-bar'); const b = mk('button', 'ghost', 'Back'); b.type = 'button'; b.onclick = () => go(0); bar.appendChild(b); card.appendChild(bar); }
+    } else if (w.step === 2) {
+      head('Make your point', p.questions[w.q]);
+      const t = area(w.point, 'One sentence that answers the question'); card.appendChild(t);
+      const st = mk('button', 'ghost small', 'Give me a starter'); st.type = 'button';
+      st.onclick = () => { t.value = `In ${p.title}, Watson shows that ${lower1(p.ideas[w.idea][1])}`; t.dispatchEvent(new Event('input')); t.focus(); };
+      card.appendChild(st);
+      const draw = ticks([['Names the poem or Watson', () => /watson/i.test(t.value) || norm(t.value).includes(norm(p.short || p.title).split(' ')[0])], ['Uses a word from the question', () => hasKey(t.value)], ['A full sentence', () => words(t.value) >= 8]]);
+      const upd = foot(() => words(t.value) >= 8, () => { w.point = t.value.trim(); });
+      t.oninput = () => { w.point = t.value; keep(); draw(); upd(); };
+      setTimeout(() => t.focus(), 0);
+    } else if (w.step === 3) {
+      head('Pick two pieces of evidence', p.ideas[w.idea][0]);
+      let upd = () => {};
+      rows.forEach(r => {
+        const box = mk('div', 'po-pick' + (w.ev.includes(r.k) ? ' sel' : ''), `<p class="po-find">${esc(r.find)}</p><p class="po-tech">${esc(r.tech)}</p>`);
+        const inp = quoteBox(p, r, d, () => upd()); inp.onclick = (e) => e.stopPropagation(); inp.oninput = () => { const s = store(); s.q[r.k] = inp.value.trim(); save(s); upd(); };
+        box.appendChild(inp);
+        box.onclick = () => { if (w.ev.includes(r.k)) w.ev = w.ev.filter(k => k !== r.k); else { if (w.ev.length >= 2) w.ev.shift(); w.ev.push(r.k); } keep(); card.querySelectorAll('.po-pick').forEach((b, bi) => b.classList.toggle('sel', w.ev.includes(rows[bi].k))); upd(); };
+        card.appendChild(box);
+      });
+      upd = foot(() => { const s = store(); return w.ev.length === 2 && w.ev.every(k => (s.q[k] || '').trim()); });
+      card.appendChild(mk('p', 'small muted po-note', 'Tap two, and type each quote from your copy.'));
+    } else if (w.step === 4) {
+      head('Say what each one does');
+      const s = store(); let upd = () => {};
+      const tas = picked().map(r => {
+        const stem = `The ${r.tech.split(',')[0].toLowerCase()} in “${s.q[r.k]}” `;
+        const t = area(w.eff[r.k] || stem, 'Finish the sentence: what does the reader see or feel?', 3);
+        const hint = mk('button', 'ghost small', 'Hint'); hint.type = 'button';
+        const h = mk('p', 'po-hintline small'); h.hidden = true; h.textContent = r.effect; hint.onclick = () => { h.hidden = false; hint.hidden = true; };
+        t.oninput = () => { w.eff[r.k] = t.value; keep(); upd(); };
+        card.append(t, hint, h);
+        return [t, stem];
+      });
+      upd = foot(() => tas.every(([t, stem]) => words(t.value) >= words(stem) + 6), () => { tas.forEach(([t], i) => { w.eff[w.ev[i]] = t.value.trim(); }); });
+      setTimeout(() => { const t = tas[0] && tas[0][0]; if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 0);
+    } else if (w.step === 5) {
+      head('Link back to the question', p.questions[w.q]);
+      const t = area(w.link, 'One sentence: so what does Watson show us?'); card.appendChild(t);
+      const chips = mk('div', 'chips po-rub');
+      RUBRIC.forEach(([word]) => { const b = mk('button', '', esc(word)); b.type = 'button'; b.onclick = () => { t.value = (t.value && !/\s$/.test(t.value) ? t.value + ' ' : t.value) + word; t.dispatchEvent(new Event('input')); t.focus(); }; chips.appendChild(b); });
+      card.appendChild(chips);
+      const draw = ticks([['Uses a word from the question', () => hasKey(t.value)], ['Uses the module\'s language', () => RUBRIC.some(([, stem]) => t.value.toLowerCase().includes(stem))]]);
+      const upd = foot(() => words(t.value) >= 8, () => { w.link = t.value.trim(); if (!w.final) w.final = [w.point, ...w.ev.map(k => w.eff[k]), w.link].map(x => (x || '').trim()).map(x => /[.!?]$/.test(x) ? x : x + '.').join(' '); }, 'Build my paragraph');
+      t.oninput = () => { w.link = t.value; keep(); draw(); upd(); };
+      setTimeout(() => t.focus(), 0);
+    } else {
+      head('Your paragraph', p.questions[w.q]);
+      const s = store();
+      const t = area(w.final, '', 9); card.appendChild(t);
+      const count = mk('p', 'po-count small muted'); card.appendChild(count);
+      const draw = ticks([
+        ['Answers the question', () => hasKey(t.value)],
+        ['Two quotes', () => w.ev.every(k => norm(t.value).includes(norm(s.q[k] || '\u0000')))],
+        ['Names each technique', () => picked().every(r => t.value.toLowerCase().includes(r.tech.split(',')[0].toLowerCase()))],
+        ['Uses the module\'s language', () => RUBRIC.some(([, stem]) => t.value.toLowerCase().includes(stem))],
+        ['120 to 250 words', () => words(t.value) >= 120 && words(t.value) <= 250],
+      ]);
+      const cnt = () => { count.textContent = `${words(t.value)} words`; }; cnt();
+      t.oninput = () => { w.final = t.value; keep(); draw(); cnt(); };
+      const bar = mk('div', 'po-bar');
+      const again = mk('button', 'ghost', 'Start another'); again.type = 'button'; again.onclick = () => { const st = store(); if (st.w) delete st.w[p.id]; save(st); poem(set, p); };
+      const copy = mk('button', ctx.askTutor ? '' : 'primary', 'Copy'); copy.type = 'button';
+      copy.onclick = async () => { try { await navigator.clipboard.writeText(t.value); copy.textContent = 'Copied'; } catch { t.select(); } };
+      bar.append(again, copy);
+      if (ctx.askTutor) {
+        const m = mk('button', 'primary', 'Mark it with the tutor'); m.type = 'button';
+        m.onclick = () => ctx.askTutor(`Mark this Common Module (Texts and Human Experiences) body paragraph on ${set.poet}'s "${p.title}" the way an HSC marker would. Give me a mark out of 5, what works, and the one change that would lift it most. Do not rewrite it for me. Question: ${p.questions[w.q]} Paragraph: ${t.value}`);
+        bar.appendChild(m);
+      }
+      card.appendChild(bar);
+    }
+
     const html = esc(p.para).replace(/\{(\d)\.(\d)\}/g, (m, i, j) => {
       const row = p.ideas[+i][3][+j], q = (d.q[qKey(p, +i, +j)] || '').trim();
-      return q ? `<mark class="po-fill">“${esc(q)}”</mark>` : `<span class="po-slot" title="Add this quote in the Guide tab">${esc(row[0].charAt(0).toLowerCase() + row[0].slice(1))}</span>`;
+      return q ? `<mark class="po-fill">“${esc(q)}”</mark>` : `<span class="po-slot">${esc(lower1(row[0]))}</span>`;
     });
-    const missing = /po-slot/.test(html);
-    pane.appendChild(mk('div', 'card po-para', `<h2>Model paragraph</h2><p>${html}</p>${missing ? '<p class="small muted">Dashed parts fill in with your own quotes as you add them.</p>' : ''}`));
+    pane.appendChild(mk('details', 'card po-para po-model', `<summary>See a model paragraph</summary><p>${html}</p>`));
     const pairs = set.threads.filter(t => t[2].includes(p.id));
     if (pairs.length) {
-      const pc = mk('div', 'card', '<h2>Pairs well with</h2>');
+      const pc = mk('details', 'card po-model', '<summary>Poems to pair it with</summary>');
       pairs.forEach(t => { pc.appendChild(mk('p', 'po-pair', `<b>${esc(t[0])}</b> ${t[2].filter(id => id !== p.id).map(id => { const o = set.poems.find(x => x.id === id); return `<a href="#poems/${id}">${esc(o.short || o.title)}</a>`; }).join(' · ')}`)); });
       pane.appendChild(pc);
     }
@@ -517,7 +616,7 @@
       const parts = (location.hash || '').slice(1).split('/');
       const p = set.poems.find(x => x.id === parts[1]);
       if (!p) { lastPoem = null; return hub(set); }
-      if (lastPoem !== p.id) { tab = ['guide', 'quotes', 'check', 'essay'].includes(parts[2]) ? parts[2] : 'guide'; drill = null; lastPoem = p.id; }
+      if (lastPoem !== p.id) { tab = ['guide', 'quotes', 'check', 'write'].includes(parts[2]) ? parts[2] : 'guide'; drill = null; lastPoem = p.id; }
       poem(set, p);
     },
   };

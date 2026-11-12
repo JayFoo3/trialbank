@@ -1,0 +1,19 @@
+/* polish.css - calmer motion and small touch fixes. Loaded last, so removing its <link> in index.html undoes all of it. */
+
+/* buttons sit still until pressed: no breathing glow on the main button, no bounce after a tap */
+.primary.wide, #next:not([hidden]), #check-online:not([hidden]) { animation: none; }
+button, .button, a.other, .ol-opt, .pa, .ptile { transition: transform .12s ease-out, box-shadow .12s ease-out, background-color .2s, border-color .2s; }
+.chip.on, .chips button.tagged { animation: none; }
+
+/* empty-state headlines match the weight of every other heading */
+.hsc-big, .pg-big { font-weight: 800; }
+.hsc-big.muted { font-size: clamp(30px, 6vw, 44px); }
+
+/* phone: all five profile tabs fit without a hidden scroll */
+@media (max-width: 640px) { .pf-tabs button { padding: 9px 8px; font-size: .88rem; } }
+
+/* touch screens: the small text buttons get a finger-sized hit area */
+@media (pointer: coarse) {
+  #fr-open, .daily-mode, #pr-opts-btn, #pred-reset, #tu-end, .atar-x { display: inline-flex; align-items: center; min-height: 40px; }
+  #view-practise .tp-more { min-height: 40px; }
+}
