@@ -1216,7 +1216,7 @@
     const n = state.topics.size, o = state.opts;
     const type = { all: '', mcq: ' multiple choice', short: ' written', quick: ` quick ${QFMT_NAME[o.qfmt || 'mcq']}` }[o.type] || '';
     const dots = [...state.steps.values()].reduce((a, x) => a + x.size, 0);
-    $('start-summary').textContent = n ? `${o.count}${type} questions · ${dots ? `${dots} dot point${dots === 1 ? '' : 's'}` : `${n} topic${n === 1 ? '' : 's'}`}` : 'Tick a topic to start';
+    $('start-summary').textContent = n ? `${o.count}${type} questions${o.pace ? ', timed' : ''} · ${dots ? `${dots} dot point${dots === 1 ? '' : 's'}` : `${n} topic${n === 1 ? '' : 's'}`}` : 'Tick a topic to start';
     const names = [...state.topics].map(topicName).sort();
     $('pr-picked').textContent = !n ? '' : (names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`) + (o.diff === 'HSC' ? ' · HSC exams only' : o.diff !== 'all' ? ` · ${o.diff.toLowerCase()} papers` : '');
     $('start').disabled = !n;
@@ -1262,13 +1262,14 @@
   }
   async function startSet(qs, urls) {
     await attachUrls(qs, urls);
-    state.set = { qs, i: 0, results: [] };
+    state.set = { qs, i: 0, results: [], pace: !!state.paceNext }; state.paceNext = false;
     window.Juice && Juice.resetCombo();
     renderQuestion();
     location.hash = '#set';
   }
   async function buildSet(over = {}) {
     const o = { ...state.opts, ...over };
+    state.paceNext = !!o.pace && !('diff' in over);   // the speed timer is for sets built from the Practise page's own options
     if (![...state.topics].some(t => o.allowSkipped || !skipped().has(t))) throw new Error('Those topics are all marked as not learnt yet.');
     const qf = o.type === 'quick' ? (o.qfmt || 'mcq') : null, worked = qf && qf !== 'mcq';
     let q = sb.from('questions').select(worked ? QCOLS.replace('content, ', '') : QCOLS)   // worked answers carry big model answers: fetched for the chosen few only
@@ -1321,7 +1322,7 @@
       qs.forEach(x => { if (x._drill) x.content = byId[x.id]; });
     }
     await attachUrls(qs);
-    state.set = { qs, i: 0, results: [] };
+    state.set = { qs, i: 0, results: [], pace: !!state.paceNext }; state.paceNext = false;
     window.Juice && Juice.resetCombo();
     renderQuestion();
   }
@@ -1398,6 +1399,7 @@
       $('next').hidden = false; $('skip').hidden = true;
     }
     drawSheetBtns(); keepSet();
+    if (window.Pace) Pace.show(s.pace && !s.duel && !s.results[s.i] ? x : null, x.papers?.subject || state.subject);   // speed timer: this question's share of the exam's time
     if (s.duel) { $('ask-tutor').hidden = true; s.shownAt = Date.now(); duelStrip(); duelSave(); if (s.i === s.qs.length - 1 && s.qs.length > 1 && !s.finalShown) { s.finalShown = true; setTimeout(() => duelCall('Final question', 'final'), 250); } } else $('duel-strip').hidden = true;
     prepQ(s.qs[s.i + 1]); prepQ(s.qs[s.i + 2]);              // the next two are downloaded and trimmed while you work on this one
     if (x.solutionUrl) { const sol = new Image(); sol.src = x.solutionUrl; }   // so Show solution is instant too
@@ -1571,7 +1573,9 @@
     if (state.preview) previewFlags.attempted = 1;
     const s = state.set, x = s.qs[s.i];
     if (group) { group.querySelectorAll('button').forEach(o => { o.disabled = true; }); btn?.classList.add('picked'); }
-    s.results[s.i] = { q: x, score, outOf, ...(ai ? { lost: ai.lost || [], ai: true } : {}) }; keepSet();
+    s.results[s.i] = { q: x, score, outOf, ...(ai ? { lost: ai.lost || [], ai: true } : {}) };
+    if (window.Pace) { const pv = Pace.stop(); if (pv) s.results[s.i].pace = pv; }
+    keepSet();
     $('auto-mark').hidden = true;
     if (window.Juice) { if (outOf && score >= outOf) Juice.reward(outOf); else if (score > 0) Juice.partial(score); else Juice.miss(); }
     if (x.type === 'short' && !(x.content && Online.objective(x))) verdict(ai ? `${score}/${outOf}. ${ai.feedback || ''}`.trim() : score === outOf ? 'Full marks.' : score === 0 ? 'Mark it, move on. It will come back around.' : `${score}/${outOf}.`, score === outOf ? 'good' : score === 0 ? 'bad' : 'warn');
@@ -1765,6 +1769,15 @@
     const byTopic = {};
     rs.forEach(r => { const t = byTopic[r.q.topic] = byTopic[r.q.topic] || { score: 0, out_of: 0 }; t.score += r.score; t.out_of += r.outOf; });
     bars($('summary-topics'), Object.entries(byTopic).map(([topic, v]) => ({ topic: topicName(topic), ...v })));
+    const timed = rs.filter(r => r.pace), sp = $('summary-pace');   // speed timer: how the set went against exam pace
+    if (sp) {
+      sp.hidden = !timed.length || !window.Pace;
+      if (!sp.hidden) {
+        const pm = Pace.perMark(timed[0].q.papers?.subject || state.subject), used = timed.reduce((a, r) => a + r.pace.used, 0), marks = timed.reduce((a, r) => a + r.pace.allowed, 0) / pm;
+        const onPace = timed.filter(r => r.pace.used <= r.pace.allowed).length;
+        sp.innerHTML = `<b>${onPace} of ${timed.length}</b> inside the time · <b>${Pace.fmt(used / marks)}</b> a mark <span class="muted">(exam pace ${Pace.fmt(pm)})</span>`;
+      }
+    }
   }
 
   // ---------- progress ----------
