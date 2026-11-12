@@ -25,7 +25,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { storage: durable, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
-  const views = ['duel', 'auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile', 'hsc', 'study'];
+  const views = ['duel', 'auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile', 'hsc', 'study', 'poems'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(slug, subject, school, year, difficulty), level';
 
   document.title = C.name;
@@ -41,10 +41,10 @@
   };
 
   // ---------- routing ----------
-  const NAV = { duel: 'practise', tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'home', examrun: 'papers', hsc: 'home', profile: 'home', study: 'home' };   // Progress, HSC, Profile and Study together all hang off Home
-  const NAV_TITLES = { home: 'Home', practise: 'Practise', set: 'Practise', summary: 'Results', papers: 'Papers', paper: 'Paper', examrun: 'Exam', progress: 'Progress', hsc: 'HSC estimate', profile: 'Profile', tutor: 'Tutor', mark: 'Marking', study: 'Study together', duel: 'Battle', admin: 'Admin' };
+  const NAV = { duel: 'practise', tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'home', examrun: 'papers', hsc: 'home', profile: 'home', study: 'home', poems: 'poems' };   // Progress, HSC, Profile and Study together all hang off Home
+  const NAV_TITLES = { poems: 'Poems', home: 'Home', practise: 'Practise', set: 'Practise', summary: 'Results', papers: 'Papers', paper: 'Paper', examrun: 'Exam', progress: 'Progress', hsc: 'HSC estimate', profile: 'Profile', tutor: 'Tutor', mark: 'Marking', study: 'Study together', duel: 'Battle', admin: 'Admin' };
   // page transitions: iOS-style push going deeper, pop going back, a quick fade between tabs
-  const DEPTH = { duel: 1, tutor: 0, mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, profile: 1, paper: 1, set: 2, examrun: 2, summary: 3 };
+  const DEPTH = { poems: 0, duel: 1, tutor: 0, mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, profile: 1, paper: 1, set: 2, examrun: 2, summary: 3 };
   const canVT = !!document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (canVT) document.documentElement.classList.add('has-vt');
   let shown = null;
@@ -117,6 +117,7 @@
       if (h === 'summary' && state.set) return show('summary');
       if (h === 'papers') { flag('seen_papers', 1); show('papers'); await renderPapers(); return; }
       if (h === 'mark') { show('mark'); await renderMark(); return; }
+      if (h === 'poems' && window.Poems && Poems.has(state.subject)) { show('poems'); Poems.render($('view-poems'), state.subject, { uid: state.user.id, askTutor: tutorUsable() ? askTutorText : null }); return; }   // prescribed poems: guides, quote bank, quick checks (poems.js)
       if (h === 'tutor' && tutorUsable()) { show('tutor'); await renderTutor(); return; }
       if (h === 'tutor' && proOpen()) { show('tutor'); renderTutorIntro(); return; }   // not Pro: show what the tutor is, then the ways in
       if (h === 'paper' && arg) { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); return; }
@@ -140,6 +141,7 @@
     const el = $('subject-switch'); el.innerHTML = '';
     const mine = mySubjects() || Object.keys(C.subjects);
     if (!mine.includes(state.subject)) state.subject = mine[0];
+    { const np = $('nav-poems'); if (np) np.hidden = !(window.Poems && Poems.has(state.subject)); }   // Poems shows for the English subjects
     const names = chosenNames() || Object.values(C.subjects);
     const btn = mk('button', 'subj-btn', `<span class="subj-l">${esc(shortName(C.subjects[state.subject]))}</span><span class="caret" aria-hidden="true"></span>`);
     btn.title = C.subjects[state.subject]; btn.setAttribute('aria-haspopup', 'true'); btn.setAttribute('aria-expanded', 'false');
@@ -5603,6 +5605,11 @@
     drawTuModes();
     $('tu-start').hidden = tu.active; $('tu-session').hidden = !tu.active; $('tu-end').hidden = !tu.active;
     if (tu.handoff) { const q = tu.handoff; tu.handoff = null; tuStart(false, q); return; }
+    if (tu.ask) {   // sent over with a typed request and no bank question (e.g. an essay question from Poems)
+      const ask = tu.ask; tu.ask = null;
+      try { await tuLoad(null); await tuSend(ask); } catch (err) { $('tu-error').textContent = err.message || String(err); $('tu-error').hidden = false; }
+      return;
+    }
     if (tu.active) { tuDraw(); drawTuRecent(); return; }
     if (!tu.restoreTried) { tu.restoreTried = true; try { if (await tuRestore()) { drawTuRecent(); return; } } catch (err) { console.warn('tutor restore', err); } }
     await tuBlank();
@@ -6452,6 +6459,7 @@
   };
   stBindDraw();
   addEventListener('resize', () => { if (location.hash.startsWith('#study/')) stResize(); });
+  function askTutorText(text) { tu.ask = text; if (location.hash === '#tutor') renderTutor(); else location.hash = '#tutor'; }
   function askTutor(q) {
     if (location.hash.startsWith('#set')) return openDock(q);   // in a set: a chat box on top, the set stays where it is
     tu.handoff = q; if (location.hash === '#tutor') renderTutor(); else location.hash = '#tutor';
