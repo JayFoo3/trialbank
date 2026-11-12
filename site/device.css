@@ -1,0 +1,13 @@
+/* device.css - fits the site to the device device.js found. iPad (tablet) is the full site, so it has no rules here. */
+
+/* Laptop: a reference. No drawing with a mouse; the solution comes first, marking is by uploading paper working. */
+[data-device="laptop"] .ann-btn, [data-device="laptop"] .ann-bar { display: none !important; }
+[data-device="laptop"] #short-controls:not([hidden]) { display: flex; flex-direction: column; gap: 10px; }
+[data-device="laptop"] #show-sol { order: -1; background: var(--biro); border-color: var(--biro); color: #fff; box-shadow: 0 4px 0 var(--biro-dark); font-weight: 700; }
+[data-device="laptop"] #auto-mark { background: var(--paper); border-color: var(--rule); color: var(--ink); box-shadow: 0 4px 0 var(--rule); animation: none; }
+[data-device="laptop"] #auto-mark:hover { background: var(--soft); filter: none; }
+
+/* Phone: quick practice. No drawing on a small screen, no full timed papers, no paper builder. */
+[data-device="phone"] .ann-btn, [data-device="phone"] .ann-bar { display: none !important; }
+[data-device="phone"] #paper-exam, [data-device="phone"] #cp-card { display: none !important; }
+[data-device="phone"] .keys { display: none; }

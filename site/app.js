@@ -3781,7 +3781,10 @@
   function firstHint(x) {
     const k = x.type === 'mcq' ? 'hint_mcq' : 'hint_short', el = $('set-hint');
     if (flag(k)) { el.hidden = true; return; }
-    el.textContent = x.type === 'mcq' ? 'Tap an answer. You find out straight away.' : 'Write your working on the question (or on paper), then tap Mark my working.';
+    el.textContent = x.type === 'mcq' ? 'Tap an answer. You find out straight away.'
+      : window.TBDevice === 'laptop' ? 'Work it out on paper, then check the solution. Upload a photo of your working to have it marked.'
+      : window.TBDevice === 'phone' ? 'Work it out on paper, then tap Mark my working to take a photo of it.'
+      : 'Write your working on the question (or on paper), then tap Mark my working.';
     el.hidden = false; flag(k, 1);
   }
 

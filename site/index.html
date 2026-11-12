@@ -23,6 +23,8 @@
 <link rel="stylesheet" href="style.css?v=dev">
 <link rel="stylesheet" href="poems.css?v=dev">
 <link rel="stylesheet" href="polish.css?v=dev">
+<link rel="stylesheet" href="device.css?v=dev">
+<script src="device.js?v=dev"></script>
 <script>/* apply the student's saved look before anything paints */
 try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = document.documentElement;
   r.dataset.theme = p.theme === 'dark' || (p.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
@@ -67,6 +69,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
             <p class="menu-label">Settings</p>
             <button class="menu-item" id="open-me">Theme and background</button>
             <button class="menu-item" id="sound-toggle">Sounds: On</button>
+            <label class="menu-item view-as-row">Layout <select id="device-pick"><option value="">Auto</option><option value="laptop">Laptop</option><option value="tablet">iPad</option><option value="phone">Phone</option></select></label>
           </div>
           <div class="menu-sec menu-admin">
             <p class="menu-label">Admin</p>
