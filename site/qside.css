@@ -1,0 +1,14 @@
+/* qside.css - the question kept beside (or above) your working while you annotate. See qside.js. */
+.qside { position: fixed; z-index: 1050; background: #fff; color: #1f2329; border: 2px solid var(--rule); box-shadow: 0 8px 28px var(--shadow); overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.qside-in { padding: 10px; }
+.qside-pic { display: block; width: 100%; height: auto; }
+@media (min-width: 900px) {
+  .qside { top: 72px; right: 12px; max-height: calc(100vh - 168px); width: calc(40vw - 24px); border-radius: var(--r-lg); }
+  body.ann-full .qside { max-height: calc(100vh - 108px); }
+  body.ann-full .qside { top: 12px; }
+  body.qside-on main { max-width: none; margin: 0 40vw 0 0; }
+}
+@media (max-width: 899px) {
+  .qside { top: 0; left: 0; right: 0; max-height: 34vh; border-width: 0 0 2px; border-radius: 0 0 var(--r-lg) var(--r-lg); transform: translateY(-105%); transition: transform .18s ease-out; }
+  .qside.peek { transform: none; }
+}
