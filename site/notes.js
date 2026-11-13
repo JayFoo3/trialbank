@@ -8,9 +8,11 @@
   const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const mk = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
   const ASK = 'Notes check. This is a page of my own notes, not a finished answer. The RED writing is the question I copied down; everything else is my working so far (some of it may be pasted in from another app), and I am still going. '
-    + 'Do not mark it and do not give me the answer or the next step. Start your reply with exactly "ON TRACK:" if everything written so far is correct and heading the right way, '
-    + 'or exactly "CHECK THIS:" if something is wrong or I am heading the wrong way. Then, in one to three short sentences, say which line you mean and why, with a nudge so I can fix it myself. '
-    + 'If you cannot read the question or there is no working yet, start with "CHECK THIS:" and say so.';
+    + 'Do not mark it, do not explain, and do not give me the answer or the next step. Reply in exactly one of these two forms and nothing else. '
+    + 'If everything written so far is correct and heading the right way, reply with only: ON TRACK '
+    + 'Otherwise reply with exactly two lines. Line one: WHERE: the first place it goes wrong, as the line number of my working plus the few symbols I wrote there (for example: Line 3, where you wrote 12 x 0.4). '
+    + 'Line two: WRONG: what is wrong there, in one plain sentence of at most 15 words. '
+    + 'If you cannot read the question, or there is no working yet, use WHERE: and WRONG: to say that.';
   let H = null, root = null, data = null, note = null, cv = null, ctx = null, W = 0, tool = 'q', cur = null, undone = [], busy = false, idleT = null, lastSent = '', lastAt = 0, session = Date.now().toString(36), nUp = 0;
   const key = () => 'tb_notes_' + H.uid;
   const load = () => { try { return JSON.parse(localStorage.getItem(key())) || null; } catch { return null; } };
@@ -72,22 +74,42 @@
     note.strokes = note.strokes.filter(s => { if (s.i) return true; for (let i = 0; i < s.p.length; i += 2) if (Math.hypot(s.p[i] - x, s.p[i + 1] - y) < r) return false; return true; });
     if (note.strokes.length !== n) paint();
   }
+  // Once a Pencil has been used here, the page stops scrolling under it: the Pencil only writes, a resting palm does nothing,
+  // and two fingers scroll. With Finger on, one finger writes and two scroll. Until then a finger scrolls the ordinary way.
+  const fingers = new Map(); let lastPen = 0;
+  const manual = () => !!(data.pen || data.finger);
   function bind() {
+    fingers.clear();
+    cv.addEventListener('touchstart', (ev) => { if ([...ev.changedTouches].some(t => t.touchType === 'stylus')) ev.preventDefault(); }, { passive: false });
     cv.addEventListener('pointerdown', (ev) => {
-      if (ev.pointerType === 'touch' && !data.finger) return;   // fingers scroll the page unless Fingers draw is on
-      ev.preventDefault(); cv.setPointerCapture(ev.pointerId); clearTimeout(idleT);
-      const [x, y] = pos(ev);
-      if (tool === 'e') { cur = { erase: true, p: [] }; eraseAt(x, y); return; }
-      cur = { c: tool, p: [x, y] }; undone = []; paint();
+      if (ev.pointerType === 'pen') { lastPen = Date.now(); if (!data.pen) { data.pen = true; save(); drawBar(); } }
+      if (ev.pointerType === 'touch') {
+        if (!manual()) return;                                   // no Pencil seen and Finger off: the browser scrolls
+        try { cv.setPointerCapture(ev.pointerId); } catch { /* fine */ }
+        fingers.set(ev.pointerId, ev.clientY);
+        if (fingers.size >= 2) { if (cur && cur.touch) { cur = null; paint(); } return; }   // second finger down: scrolling, not writing
+        if (!data.finger || cur || Date.now() - lastPen < 800) return;                       // a palm beside the Pencil
+      }
+      if (cur) return;
+      ev.preventDefault(); try { cv.setPointerCapture(ev.pointerId); } catch { /* fine */ } clearTimeout(idleT);
+      const [x, y] = pos(ev), touch = ev.pointerType === 'touch';
+      if (tool === 'e') { cur = { erase: true, p: [], id: ev.pointerId, touch }; eraseAt(x, y); return; }
+      cur = { c: tool, p: [x, y], id: ev.pointerId, touch }; undone = []; paint();
     });
     cv.addEventListener('pointermove', (ev) => {
-      if (!cur) return;
+      if (ev.pointerType === 'pen') lastPen = Date.now();
+      if (fingers.has(ev.pointerId)) {
+        if (fingers.size >= 2 && !(cur && !cur.touch) && Date.now() - lastPen > 500) window.scrollBy(0, -(ev.clientY - fingers.get(ev.pointerId)) / fingers.size);
+        fingers.set(ev.pointerId, ev.clientY);
+      }
+      if (!cur || cur.id !== ev.pointerId) return;
       const evs = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev];
       for (const e of (evs.length ? evs : [ev])) { const [x, y] = pos(e); if (cur.erase) eraseAt(x, y); else cur.p.push(x, y); }
       if (!cur.erase) paint();
     });
-    const end = () => {
-      if (!cur) return;
+    const end = (ev) => {
+      fingers.delete(ev.pointerId);
+      if (!cur || cur.id !== ev.pointerId) return;
       if (!cur.erase) note.strokes.push({ c: cur.c, p: cur.p.map(v => Math.round(v * 1e4) / 1e4) });
       cur = null; note.at = Date.now(); save(); paint(); drawBar(); queue();
     };
@@ -118,12 +140,13 @@
       const path = `${H.uid}/notes-${session}/p${String(++nUp).padStart(3, '0')}.jpg`;
       const up = await H.sb.storage.from('submissions').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
       if (up.error) throw up.error;
-      const past = note.checks.filter(c => !c.local && !c.error).slice(-2).flatMap(c => [{ role: 'student', text: '(An earlier check of this same page.)', images: [] }, { role: 'tutor', text: (c.ok ? 'ON TRACK: ' : 'CHECK THIS: ') + c.text, images: [] }]);
+      const past = note.checks.filter(c => !c.local && !c.error).slice(-2).flatMap(c => [{ role: 'student', text: '(An earlier check of this same page.)', images: [] }, { role: 'tutor', text: c.ok ? 'ON TRACK' : c.text, images: [] }]);
       const { data: out, error } = await H.sb.functions.invoke('tutor', { body: { subject: note.subject, mode: 'check', question_id: null, syllabus: H.syllabus ? H.syllabus() : undefined,
         messages: [...past, { role: 'student', text: ASK, images: [path] }] } });
       if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch { /* keep */ } throw new Error(msg); }
-      const raw = String(out?.say || '').trim(), ok = /^\s*\**\s*ON TRACK/i.test(raw);
-      say({ ok, text: raw.replace(/^\s*\**\s*(ON TRACK|CHECK THIS)\s*:?\s*\**\s*/i, '') || (ok ? 'Looks right so far.' : 'Have another look.'), auto: !!auto });
+      const raw = String(out?.say || '').replace(/\*\*/g, '').trim(), ok = /^\s*ON TRACK/i.test(raw);
+      const where = (raw.match(/WHERE\s*:\s*([\s\S]+?)(?=\s*(?:WRONG|WHAT)\s*:|$)/i) || [])[1], what = (raw.match(/(?:WRONG|WHAT)\s*:\s*([\s\S]+)$/i) || [])[1];
+      say({ ok, where: ok ? '' : (where || '').trim(), what: ok ? '' : (what || '').trim(), text: ok ? '' : raw.replace(/^\s*CHECK THIS\s*:?\s*/i, ''), auto: !!auto });
     } catch (err) { say({ ok: false, error: true, text: err.message || String(err) }); }
     finally { busy = false; drawCoach(); drawBar(); }
   }
@@ -134,7 +157,7 @@
     const last = note.checks[note.checks.length - 1];
     const rich = (t) => { try { return H.rich ? H.rich(t) : esc(t); } catch { return esc(t); } };
     box.innerHTML = busy ? '<div class="nt-say busy"><b>Reading your page</b><span class="nt-dots"><i></i><i></i><i></i></span></div>'
-      : last ? `<div class="nt-say ${last.error ? 'err' : last.ok ? 'ok' : 'off'}"><b>${last.error ? 'Could not check' : last.ok ? 'On track' : 'Check this'}</b><div class="nt-text">${last.error || last.local ? esc(last.text) : rich(last.text)}</div></div>`
+      : last ? `<div class="nt-say ${last.error ? 'err' : last.ok ? 'ok' : 'off'}"><b>${last.error ? 'Could not check' : last.ok ? 'On track' : 'Check this'}</b>${last.error || last.local ? `<div class="nt-text">${esc(last.text)}</div>` : last.ok ? '' : last.where || last.what ? `<dl class="nt-fix">${last.where ? `<dt>Where</dt><dd>${rich(last.where)}</dd>` : ''}${last.what ? `<dt>What</dt><dd>${rich(last.what)}</dd>` : ''}</dl>` : `<div class="nt-text">${rich(last.text)}</div>`}</div>`
       : '<div class="nt-say"><b>Question in red, working in black</b></div>';
   }
   function drawBar() {
@@ -143,7 +166,7 @@
     bar.querySelector('[data-a=undo]').disabled = !note.strokes.length;
     bar.querySelector('[data-a=redo]').disabled = !undone.length;
     const c = bar.querySelector('[data-a=check]'); c.disabled = busy; c.textContent = busy ? 'Checking' : 'Check';
-    cv.style.touchAction = data.finger ? 'none' : 'pan-y';
+    cv.style.touchAction = manual() ? 'none' : 'pan-y';
   }
   function open(n) { note = n; data.cur = n.id; undone = []; lastSent = ''; save(); draw(); }
   function draw() {
@@ -162,7 +185,7 @@
         <button type="button" class="nt-ic" data-a="paste" title="Paste handwriting or a picture" aria-label="Paste"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="16" rx="2.5"/><path d="M9 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M12 10v7M9 14l3 3 3-3"/></svg></button>
         <input class="nt-file" type="file" accept="image/*" hidden>
         <label class="nt-tog" title="Check by itself a few seconds after you stop writing"><input type="checkbox" data-a="auto"${data.auto ? ' checked' : ''}><span>As I go</span></label>
-        <label class="nt-tog" title="Let a finger draw (otherwise fingers scroll and only the Pencil or mouse draws)"><input type="checkbox" data-a="finger"${data.finger ? ' checked' : ''}><span>Finger</span></label>
+        <label class="nt-tog" title="Let one finger write. Two fingers always scroll"><input type="checkbox" data-a="finger"${data.finger ? ' checked' : ''}><span>Finger</span></label>
         <button type="button" class="nt-check" data-a="check">Check</button>
       </div>`;
     cv = root.querySelector('.nt-cv'); bind(); size(); drawCoach(); drawBar();

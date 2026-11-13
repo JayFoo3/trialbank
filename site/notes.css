@@ -43,3 +43,6 @@
   .nt-say { padding: 10px 14px; box-shadow: 0 8px 24px var(--shadow); max-height: 30vh; overflow: auto; }
   .nt-pen span { display: none; } .nt-tog span { font-size: .78rem; }
 }
+.nt-fix { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: baseline; }
+.nt-fix dt { font-size: .78rem; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.nt-fix dd { margin: 0; font-weight: 700; line-height: 1.4; } .nt-fix dd p { margin: 0; }
