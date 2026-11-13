@@ -7,7 +7,8 @@
   const HL = 'rgba(255, 210, 63, 0.42)';
   const SIZES = [['thin', 1.7], ['med', 2.6], ['thick', 4.2]];
   let active = null;                     // the one page being annotated right now
-  let bar = null, clearArmed = 0;
+  let last = { kind: null, pop: null, colour: null };   // what the bar showed last time it was drawn, so only what changed animates
+  let bar = null, clearArmed = 0, pop = null;   // pop: which little menu is open above the bar ('pen' options, 'more', or none)
   const tool = { kind: 'pen', colour: COLOURS[0][0], size: 'med', touch: 'scroll' };   // touch: scroll | pencil (fingers ignored) | draw
   try { Object.assign(tool, JSON.parse(localStorage.getItem('tb_ann_tool') || '{}')); } catch { /* defaults */ }
   if (tool.finger === true) { tool.touch = 'draw'; delete tool.finger; }
@@ -296,6 +297,7 @@
     unfull: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
   };
   const svg = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+  document.addEventListener('pointerdown', (ev) => { if (pop && active && !(ev.target.closest && ev.target.closest('.ann-bar'))) { pop = null; showBar(); } }, true);
   const isFull = () => document.body.classList.contains('ann-full');
   function setFull(on) {
     document.body.classList.toggle('ann-full', on);
@@ -307,10 +309,12 @@
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && isFull() && !active) setFull(false); });
 
   // the tools stand in a tray like real ones: the one in your hand lifts up, and the pen's tip and band take its colour
+  // shaded like the real things: a pencil whose lead and band take your colour, a chisel-tip highlighter, a pink eraser
+  const SHADE = (id) => `<defs><linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="#d9dce3"/><stop offset=".35" stop-color="#fff"/><stop offset="1" stop-color="#c9cdd6"/></linearGradient><linearGradient id="${id}w" x1="0" x2="1"><stop offset="0" stop-color="#e7d2b0"/><stop offset=".4" stop-color="#f6e7cd"/><stop offset="1" stop-color="#d4bd97"/></linearGradient></defs>`;
   const TOOLS = {
-    pen: (c) => `<svg viewBox="0 0 30 64" aria-hidden="true"><path class="tb" d="M7 22 15 3l8 19v42H7z"/><path class="tc" d="M7 22 15 3l8 19z"/><path d="M12.6 8.6 15 3l2.4 5.6z" fill="${c}"/><rect x="7" y="31" width="16" height="5" fill="${c}"/></svg>`,
-    hl: () => `<svg viewBox="0 0 30 64" aria-hidden="true"><path class="tb" d="M6 24h18v40H6z"/><path class="tc" d="M6 24 9 11h12l3 13z"/><path d="M10 11l1.5-7h7L20 11z" fill="#f2c94c"/><rect x="6" y="32" width="18" height="5" fill="#f2c94c" opacity=".85"/></svg>`,
-    eraser: () => `<svg viewBox="0 0 30 64" aria-hidden="true"><rect class="tb" x="6" y="8" width="18" height="56" rx="6"/><path d="M6 14a6 6 0 0 1 6-6h6a6 6 0 0 1 6 6v8H6z" fill="#ef9a9a"/><rect x="6" y="22" width="18" height="3" fill="#c9ccd3"/></svg>`,
+    pen: (c) => `<svg viewBox="0 0 30 74" aria-hidden="true">${SHADE('annp')}<path d="M8 26h14v48H8z" fill="url(#annp)"/><path d="M8 26l5.2-17h3.6L22 26z" fill="url(#annpw)"/><path d="M13.2 9 15 2.5 16.8 9z" fill="${c}"/><rect x="8" y="30" width="14" height="6" fill="${c}"/><rect x="8" y="30" width="14" height="6" fill="url(#annp)" opacity=".18"/></svg>`,
+    hl: () => `<svg viewBox="0 0 30 74" aria-hidden="true">${SHADE('annh')}<path d="M5.5 28h19v46h-19z" fill="url(#annh)"/><path d="M5.5 28l3-12h13l3 12z" fill="#dfe2e8"/><path d="M9.5 16l1.2-9 9-3-.2 12z" fill="#ffd23f"/><rect x="5.5" y="32" width="19" height="6" fill="#ffd23f"/></svg>`,
+    eraser: () => `<svg viewBox="0 0 30 74" aria-hidden="true">${SHADE('anne')}<path d="M6.5 24h17v50h-17z" fill="url(#anne)"/><path d="M6.5 24v-9a8.5 8.5 0 0 1 17 0v9z" fill="#f49aa0"/><path d="M6.5 15a8.5 8.5 0 0 1 6-8v17h-6z" fill="#f7b4b8"/><rect x="6.5" y="24" width="17" height="4" fill="#b9bdc7"/></svg>`,
   };
   function showBar() {
     if (!bar) {
@@ -318,37 +322,46 @@
       document.body.appendChild(bar);
     }
     const tools = [['pen', 'Pen'], ['hl', 'Highlighter'], ['eraser', 'Eraser']].map(([k, n]) =>
-      `<button class="ann-tool${tool.kind === k ? ' on' : ''}" data-k="${k}" title="${n}" aria-label="${n}" aria-pressed="${tool.kind === k}">${TOOLS[k](tool.colour)}</button>`).join('');
+      `<button class="ann-tool${tool.kind === k ? ' on' : ''}${last.kind && last.kind !== tool.kind ? (k === tool.kind ? ' rise' : k === last.kind ? ' drop' : '') : ''}" data-k="${k}" title="${n}" aria-label="${n}" aria-pressed="${tool.kind === k}">${TOOLS[k](tool.colour)}</button>`).join('');
     const sizes = SIZES.map(([k]) => `<button class="ann-dot${tool.size === k ? ' on' : ''}" data-s="${k}" title="${{ thin: 'Fine', med: 'Medium', thick: 'Bold' }[k]} line" aria-label="${{ thin: 'Fine', med: 'Medium', thick: 'Bold' }[k]} line"><i class="sz-${k}"></i></button>`).join('');
-    const sw = COLOURS.map(([c, n]) => `<button class="ann-sw${tool.colour === c ? ' on' : ''}" data-c="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('');
+    const sw = COLOURS.map(([c, n]) => `<button class="ann-sw${tool.colour === c ? ' on' : ''}${tool.colour === c && last.colour && last.colour !== c ? ' pulse' : ''}" data-c="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('');
     const armed = clearArmed > Date.now();
-    bar.innerHTML = `<div class="ann-tray">${tools}</div>
-      <div class="ann-group ann-sizes">${sizes}</div>
-      <div class="ann-group ann-cols">${sw}</div>
+    // the bar itself stays small: tools, undo and redo, a More menu, Done. Thickness and colour open above the pen when you
+    // tap it a second time (or tap the colour dot); Clear, touch mode and full screen live under More.
+    const penPop = pop === 'pen' ? `<div class="ann-pop${last.pop !== 'pen' ? ' in' : ''}" role="group" aria-label="Pen thickness and colour"><div class="ann-group ann-sizes">${sizes}</div><div class="ann-group ann-cols">${sw}</div></div>` : '';
+    const morePop = pop === 'more' ? `<div class="ann-pop ann-menu${last.pop !== 'more' ? ' in' : ''}" role="menu">
+        <button class="ann-row${armed ? ' armed' : ''}" data-a="clear" role="menuitem">${svg('clear')}<span>${armed ? 'Tap again to clear all' : 'Clear this page'}</span></button>
+        <button class="ann-row" data-a="touch" role="menuitem" title="${TOUCH[tool.touch][1]}">${svg(tool.touch === 'draw' ? 'hand' : tool.touch === 'pencil' ? 'pen' : 'scroll')}<span>${TOUCH[tool.touch][0]}</span></button>
+        ${active?.full ? `<button class="ann-row" data-a="full" role="menuitem">${svg(isFull() ? 'unfull' : 'full')}<span>${isFull() ? 'Exit full screen' : 'Full screen'}</span></button>` : ''}
+      </div>` : '';
+    bar.innerHTML = `${penPop}${morePop}<div class="ann-tray">${tools}</div>
+      <button class="ann-sw ann-cur${pop === 'pen' ? ' on' : ''}${last.colour && last.colour !== tool.colour ? ' pulse' : ''}" data-a="opts" style="--c:${tool.colour}" title="Thickness and colour" aria-label="Thickness and colour" aria-expanded="${pop === 'pen'}"></button>
       <div class="ann-group ann-acts">
         <button class="ann-ic" data-a="undo" title="Undo" aria-label="Undo">${svg('undo')}</button>
         <button class="ann-ic" data-a="redo" title="Redo" aria-label="Redo">${svg('redo')}</button>
-        <button class="ann-ic${armed ? ' armed' : ''}" data-a="clear" title="Clear this page" aria-label="Clear this page">${armed ? '<span class="ann-sure">Clear all?</span>' : svg('clear')}</button>
-        <button class="ann-ic${tool.touch !== 'scroll' ? ' lit' : ''}" data-a="touch" title="${TOUCH[tool.touch][0]}: ${TOUCH[tool.touch][1]}" aria-label="${TOUCH[tool.touch][0]}">${svg(tool.touch === 'draw' ? 'hand' : tool.touch === 'pencil' ? 'pen' : 'scroll')}</button>
-        ${active?.full ? `<button class="ann-ic" data-a="full" title="${isFull() ? 'Exit full screen' : 'Full screen'}" aria-label="Full screen">${svg(isFull() ? 'unfull' : 'full')}</button>` : ''}
+        <button class="ann-ic${pop === 'more' ? ' lit' : ''}" data-a="more" title="More" aria-label="More" aria-expanded="${pop === 'more'}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></svg></button>
       </div>
       <button class="ann-done" data-a="done">Done</button>`;
     bar.onclick = (ev) => {
       const b = ev.target.closest('button'); if (!b || !active) return;
       if (b.dataset.c) { tool.colour = b.dataset.c; if (tool.kind !== 'pen') tool.kind = 'pen'; }
-      else if (b.dataset.k) tool.kind = b.dataset.k;
+      else if (b.dataset.k) { if (b.dataset.k === 'pen' && tool.kind === 'pen') pop = pop === 'pen' ? null : 'pen'; else { tool.kind = b.dataset.k; pop = null; } }
       else if (b.dataset.s) { tool.size = b.dataset.s; if (tool.kind === 'eraser') tool.kind = 'pen'; }
+      else if (b.dataset.a === 'opts') { pop = pop === 'pen' ? null : 'pen'; if (pop) tool.kind = 'pen'; }
+      else if (b.dataset.a === 'more') pop = pop === 'more' ? null : 'more';
       else if (b.dataset.a === 'touch') { tool.touch = { scroll: 'pencil', pencil: 'draw', draw: 'scroll' }[tool.touch] || 'scroll'; hint(`${TOUCH[tool.touch][0]}. ${TOUCH[tool.touch][1]}`); document.querySelectorAll('.ann-live').forEach(c => { c.style.touchAction = tool.touch === 'scroll' ? 'pan-y' : 'none'; }); }
-      else if (b.dataset.a === 'full') setFull(!isFull());
-      else if (b.dataset.a === 'done') { stop(); return; }
+      else if (b.dataset.a === 'full') { setFull(!isFull()); pop = null; }
+      else if (b.dataset.a === 'done') { pop = null; stop(); return; }
       else if (b.dataset.a === 'clear') {
-        if (!active.api.count()) return;
+        if (!active.api.count()) { pop = null; showBar(); return; }
         if (clearArmed < Date.now()) { clearArmed = Date.now() + 2500; showBar(); setTimeout(() => { if (active) showBar(); }, 2600); return; }   // tap twice to clear
-        clearArmed = 0; active.api.clear();
+        clearArmed = 0; active.api.clear(); pop = null;
       }
       else if (active.api[b.dataset.a]) active.api[b.dataset.a]();
       saveTool(); showBar();
     };
+    bar.classList.toggle('enter', !document.body.classList.contains('annotating'));   // slides up the first time it appears
+    last = { kind: tool.kind, pop, colour: tool.colour };
     bar.hidden = false;
     document.body.classList.add('annotating');
   }

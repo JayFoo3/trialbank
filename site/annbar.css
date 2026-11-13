@@ -1,0 +1,75 @@
+/* annbar.css - the slimmer annotation toolbar: tools, undo and redo, More, Done. Thickness and colour pop open above the
+   pen; Clear, touch mode and full screen sit under More. Loaded after style.css, which holds the older, wider bar. */
+.ann-bar { height: 54px; gap: 4px; padding: 0 8px 0 8px; border-radius: 20px; overflow: visible !important; max-width: calc(100vw - 12px); }
+.ann-tray { height: 54px; }
+.ann-tray { gap: 5px; padding: 0 4px; }
+.ann-bar .ann-tool { height: 74px; transform: translateY(29px); transition: transform .18s ease-out; }
+.ann-bar .ann-tool svg { height: 74px; stroke: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .18)); }
+.ann-bar .ann-tool:hover { transform: translateY(25px); }
+.ann-bar .ann-tool.on { transform: translateY(6px); }
+.ann-bar .ann-cur { margin: 0 2px 0 4px; }
+.ann-bar .ann-acts { padding: 0 4px; gap: 0; }
+.ann-bar .ann-done { margin-left: 2px; }
+.ann-pop { position: absolute; left: 50%; bottom: calc(100% + 10px); transform: translateX(-50%); display: flex; align-items: center; gap: 2px; padding: 8px 6px; border-radius: 18px; white-space: nowrap;
+  background: color-mix(in srgb, var(--paper) 90%, transparent); -webkit-backdrop-filter: blur(18px) saturate(1.6); backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid var(--tb-line); box-shadow: 0 12px 40px rgba(20, 24, 34, .18); animation: ann-pop .14s ease-out; }
+@keyframes ann-pop { from { opacity: 0; transform: translateX(-50%) translateY(6px); } }
+.ann-pop .ann-group:first-child { border-left: 0; }
+.ann-pop .ann-sizes { display: flex !important; }
+.ann-menu { flex-direction: column; align-items: stretch; gap: 0; padding: 6px; left: auto; right: 0; transform: none; }
+@keyframes ann-menu { from { opacity: 0; transform: translateY(6px); } }
+.ann-menu { animation-name: ann-menu; }
+.ann-bar .ann-row { display: flex; align-items: center; justify-content: flex-start; width: 100%; gap: 10px; height: 40px; padding: 0 14px 0 10px; border-radius: 12px; font: 700 .92rem var(--font); color: var(--ink); text-align: left; }
+.ann-bar .ann-row:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.ann-bar .ann-row svg { width: 19px; height: 19px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
+.ann-bar .ann-row.armed { background: var(--bad); color: #fff; }
+.ann-bar .ann-row.armed svg { color: #fff; }
+@media (max-width: 640px) { .ann-ic[data-a="redo"] { display: grid !important; } .ann-bar { padding: 0 6px; } }
+
+/* ---- look, feel and motion ---- */
+.ann-bar { height: 60px; padding: 0 10px; border-radius: 22px; gap: 4px;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .7) inset, 0 14px 34px rgba(20, 24, 34, .16), 0 2px 6px rgba(20, 24, 34, .08); }
+:root[data-theme="dark"] .ann-bar { box-shadow: 0 1px 0 rgba(255, 255, 255, .08) inset, 0 14px 34px rgba(0, 0, 0, .5); }
+.ann-bar.enter { animation: ann-enter .34s cubic-bezier(.2, .9, .3, 1.12) both; }
+@keyframes ann-enter { from { opacity: 0; transform: translateX(-50%) translateY(26px) scale(.95); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+
+/* tools: the resting ones sit low and a touch faded; the one you pick springs up, the one you put down settles back */
+.ann-tray { height: 60px; gap: 7px; padding: 0 6px 0 4px; }
+.ann-bar .ann-tool { transform: translateY(34px); transition: transform .16s ease-out; }
+.ann-bar .ann-tool svg { opacity: .88; transition: opacity .2s; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .16)); }
+.ann-bar .ann-tool:hover { transform: translateY(29px); }
+.ann-bar .ann-tool:active { transform: translateY(26px); }
+.ann-bar .ann-tool.on, .ann-bar .ann-tool.on:hover, .ann-bar .ann-tool.on:active { transform: translateY(9px); }
+.ann-bar .ann-tool.on svg { opacity: 1; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .22)); }
+.ann-bar .ann-tool.rise { animation: ann-rise .36s cubic-bezier(.3, 1.55, .5, 1) both; }
+.ann-bar .ann-tool.drop { animation: ann-drop .24s ease-out both; }
+@keyframes ann-rise { from { transform: translateY(34px); } to { transform: translateY(9px); } }
+@keyframes ann-drop { from { transform: translateY(9px); } to { transform: translateY(34px); } }
+
+/* the colour you're holding: a dot with a soft halo of itself */
+.ann-bar .ann-cur { margin: 0 4px 0 6px; border-radius: 50%; box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent) !important; transition: transform .12s ease-out, box-shadow .2s; }
+.ann-bar .ann-cur::before { width: 24px; height: 24px; }
+.ann-bar .ann-cur.on { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 38%, transparent) !important; }
+.ann-bar .ann-cur.on::before { width: 24px; height: 24px; }
+.ann-bar .pulse::before { animation: ann-pulse .32s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes ann-pulse { from { transform: scale(.55); } }
+
+/* every button gives a little under the finger */
+.ann-bar .ann-ic, .ann-bar .ann-sw, .ann-bar .ann-dot, .ann-bar .ann-row, .ann-bar .ann-done { transition: transform .12s ease-out, background-color .15s, color .15s; }
+.ann-bar .ann-ic:active:not(:disabled), .ann-bar .ann-sw:active, .ann-bar .ann-dot:active { transform: scale(.86) !important; }
+.ann-bar .ann-done:active:not(:disabled), .ann-bar .ann-row:active { transform: scale(.96) !important; }
+.ann-bar .ann-ic { border-radius: 12px; }
+.ann-bar .ann-done { border-radius: 14px; height: 38px; }
+
+/* the little menus grow out of the bar, once, when they open */
+.ann-pop { animation: none; transform-origin: 50% 100%; border-radius: 20px; padding: 8px; }
+.ann-pop.in { animation: ann-pop-in .2s cubic-bezier(.2, .9, .3, 1.18) both; }
+@keyframes ann-pop-in { from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(.9); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+.ann-menu { animation: none; transform-origin: 85% 100%; padding: 6px; }
+.ann-menu.in { animation: ann-menu-in .2s cubic-bezier(.2, .9, .3, 1.18) both; }
+@keyframes ann-menu-in { from { opacity: 0; transform: translateY(10px) scale(.9); } to { opacity: 1; transform: none; } }
+.ann-pop .ann-sw.on::before { width: 20px; height: 20px; }
+.ann-pop .ann-dot.on { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+
+@media (prefers-reduced-motion: reduce) { .ann-bar.enter, .ann-bar .ann-tool.rise, .ann-bar .ann-tool.drop, .ann-bar .pulse::before, .ann-pop.in, .ann-menu.in { animation: none; } }
