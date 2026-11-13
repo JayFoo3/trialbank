@@ -25,7 +25,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { storage: durable, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
-  const views = ['duel', 'auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile', 'hsc', 'study', 'poems'];
+  const views = ['duel', 'auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile', 'hsc', 'study', 'poems', 'notes'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(slug, subject, school, year, difficulty), level';
 
   document.title = C.name;
@@ -41,8 +41,8 @@
   };
 
   // ---------- routing ----------
-  const NAV = { duel: 'practise', tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'home', examrun: 'papers', hsc: 'home', profile: 'home', study: 'home', poems: 'poems' };   // Progress, HSC, Profile and Study together all hang off Home
-  const NAV_TITLES = { poems: 'Poems', home: 'Home', practise: 'Practise', set: 'Practise', summary: 'Results', papers: 'Papers', paper: 'Paper', examrun: 'Exam', progress: 'Progress', hsc: 'HSC estimate', profile: 'Profile', tutor: 'Tutor', mark: 'Marking', study: 'Study together', duel: 'Battle', admin: 'Admin' };
+  const NAV = { duel: 'practise', tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'home', examrun: 'papers', hsc: 'home', profile: 'home', study: 'home', poems: 'poems', notes: 'home' };   // Progress, HSC, Profile and Study together all hang off Home
+  const NAV_TITLES = { notes: 'Notes', poems: 'Poems', home: 'Home', practise: 'Practise', set: 'Practise', summary: 'Results', papers: 'Papers', paper: 'Paper', examrun: 'Exam', progress: 'Progress', hsc: 'HSC estimate', profile: 'Profile', tutor: 'Tutor', mark: 'Marking', study: 'Study together', duel: 'Battle', admin: 'Admin' };
   // page transitions: iOS-style push going deeper, pop going back, a quick fade between tabs
   const DEPTH = { poems: 0, duel: 1, tutor: 0, mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, profile: 1, paper: 1, set: 2, examrun: 2, summary: 3 };
   const canVT = !!document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -111,6 +111,7 @@
       if (h === 'profile') { show('profile'); await renderProfile(); return; }
       if (h === 'hsc') { show('hsc'); await renderHsc(); return; }
       if (h === 'study') { show('study'); await renderStudy(arg); return; }
+      if (h === 'notes' && adminOn() && window.Notes) { show('notes'); Notes.render($('view-notes'), { sb, uid: state.user.id, subject: tuSubject(), subjects: Object.fromEntries(tuSubjects().map(k => [k, C.subjects[k] || k])), rich: tuRich, loadKatex, syllabus: tuSyllabus }); return; }   // Notes: question in red, working in black, the tutor checks as you go (notes.js). Admin only for now
       if (h === 'duel') { show('duel'); await duelRoute(arg); return; }
       if (h === 'set' && state.set) return show('set');
       if (h === 'set' && duelSaved()) { location.hash = `#duel/${duelSaved().code}`; return; }   // reloaded mid-battle
@@ -5289,7 +5290,7 @@
   function drawAdminMenu() {
     const on = adminOn(), student = state.admin && state.viewAs === 'student';
     $('nav-admin').hidden = !on;
-    $('open-study').hidden = !on;   // Study together: admins host while it's in beta (anyone can join from a link)
+    $('open-study').hidden = !on; $('open-notes').hidden = !on;   // Study together: admins host while it's in beta (anyone can join from a link)
     $('preview-new').hidden = !on || state.preview;
     $('view-as-row').hidden = !on; $('view-as').value = state.viewAs && !student ? state.viewAs : '';
     $('student-mode').hidden = !on;
