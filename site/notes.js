@@ -159,8 +159,34 @@
   }
   function say(c) { note.checks.push({ ...c, at: Date.now() }); note.checks = note.checks.slice(-12); save(); drawCoach(); }
 
+  // talk to the tutor about the page: every message goes with a fresh picture of it, so "why is line 3 wrong?" just works
+  const TALK = '(Attached is my notes page as it is right now: the RED writing is the question, the rest is my working so far. Keep the reply short.) ';
+  let asking = false;
+  async function ask(text) {
+    note.chat = (note.chat || []).concat({ me: true, text }).slice(-30); asking = true; save(); drawChat();
+    try {
+      const images = [], blob = await picture();
+      if (blob) {
+        const path = `${H.uid}/notes-${session}/p${String(++nUp).padStart(3, '0')}.jpg`;
+        const up = await H.sb.storage.from('submissions').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+        if (up.error) throw up.error; images.push(path);
+      }
+      const past = note.chat.slice(-9, -1).filter(m => !m.error).map(m => ({ role: m.me ? 'student' : 'tutor', text: m.text, images: [] }));
+      const { data: out, error } = await H.sb.functions.invoke('tutor', { body: { subject: note.subject, mode: 'stuck', question_id: null, syllabus: H.syllabus ? H.syllabus() : undefined,
+        messages: [...past, { role: 'student', text: (blob ? TALK : '') + text, images }] } });
+      if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch { /* keep */ } throw new Error(msg); }
+      note.chat.push({ text: String(out?.say || '').trim() || 'No reply.' });
+    } catch (err) { note.chat.push({ error: true, text: err.message || String(err) }); }
+    asking = false; save(); drawChat();
+  }
+  function drawChat() {
+    const box = root.querySelector('.nt-thread'); if (!box) return;
+    const rich = (t) => { try { return H.rich ? H.rich(t) : esc(t); } catch { return esc(t); } };
+    box.innerHTML = (note.chat || []).map(m => `<div class="nt-msg ${m.me ? 'me' : m.error ? 'err' : 'tu'}">${m.me || m.error ? esc(m.text) : rich(m.text)}</div>`).join('') + (asking ? '<div class="nt-msg tu"><span class="nt-dots"><i></i><i></i><i></i></span></div>' : '');
+    box.hidden = !box.innerHTML; box.scrollTop = box.scrollHeight;
+  }
   function drawCoach() {
-    const box = root.querySelector('.nt-coach'); if (!box) return;
+    const box = root.querySelector('.nt-verdict'); if (!box) return;
     const last = note.checks[note.checks.length - 1];
     const rich = (t) => { try { return H.rich ? H.rich(t) : esc(t); } catch { return esc(t); } };
     box.innerHTML = busy ? '<div class="nt-say busy"><b>Reading your page</b><span class="nt-dots"><i></i><i></i><i></i></span></div>'
@@ -182,7 +208,7 @@
         <select class="nt-pick" aria-label="Page">${list.map((n, i) => `<option value="${n.id}"${n.id === note.id ? ' selected' : ''}>${esc(names[n.subject] || n.subject)} · ${new Date(n.at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}${list.filter(x => x.subject === n.subject && new Date(x.at).toDateString() === new Date(n.at).toDateString()).length > 1 ? ' · ' + (list.length - i) : ''}</option>`).join('')}</select>
         <select class="nt-subj" aria-label="Subject">${Object.keys(names).map(k => `<option value="${k}"${k === note.subject ? ' selected' : ''}>${esc(names[k])}</option>`).join('')}</select>
         <button class="nt-new" type="button">New page</button></div>
-      <div class="nt-body"><div class="nt-paper"><canvas class="nt-cv"></canvas><button class="nt-more" type="button">More space</button></div><aside class="nt-coach" aria-live="polite"></aside></div>
+      <div class="nt-body"><div class="nt-paper"><canvas class="nt-cv"></canvas><button class="nt-more" type="button">More space</button></div><aside class="nt-coach"><div class="nt-verdict" aria-live="polite"></div><div class="nt-thread" aria-live="polite"></div><form class="nt-ask"><input type="text" placeholder="Ask the tutor" aria-label="Ask the tutor" autocomplete="off" enterkeyhint="send"><button type="submit" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></form></aside></div>
       <div class="nt-bar" role="toolbar" aria-label="Notes tools">
         <button type="button" class="nt-pen q" data-t="q" title="Write the question"><i></i><span>Question</span></button>
         <button type="button" class="nt-pen w" data-t="w" title="Write your working"><i></i><span>Working</span></button>
@@ -195,7 +221,8 @@
         <label class="nt-tog" title="Let one finger write (two fingers scroll). Off: a finger scrolls and only the Pencil or mouse writes"><input type="checkbox" data-a="finger"${data.finger ? ' checked' : ''}><span>Finger</span></label>
         <button type="button" class="nt-check" data-a="check">Check</button>
       </div>`;
-    cv = root.querySelector('.nt-cv'); bind(); size(); drawCoach(); drawBar();
+    cv = root.querySelector('.nt-cv'); bind(); size(); drawCoach(); drawChat(); drawBar();
+    root.querySelector('.nt-ask').onsubmit = (e) => { e.preventDefault(); const i = e.target.querySelector('input'), t = i.value.trim(); if (!t || asking) return; i.value = ''; ask(t); };
     root.querySelector('.nt-pick').onchange = (e) => open(data.notes.find(n => n.id === e.target.value));
     root.querySelector('.nt-subj').onchange = (e) => { note.subject = e.target.value; data.subject = note.subject; save(); draw(); };
     root.querySelector('.nt-new').onclick = () => { if (!note.strokes.length) return; const n = blank(note.subject); data.notes.push(n); data.notes = data.notes.sort((a, b) => b.at - a.at).slice(0, 40); tool = 'q'; open(n); };
@@ -224,7 +251,7 @@
   window.Notes = {
     render(el, hooks) {
       root = el; H = hooks; root.classList.add('nt');
-      if (H.loadKatex) { try { H.loadKatex().then(() => drawCoach()).catch(() => {}); } catch { /* maths shows as typed */ } }
+      if (H.loadKatex) { try { H.loadKatex().then(() => { drawCoach(); drawChat(); }).catch(() => {}); } catch { /* maths shows as typed */ } }
       data = load() || { notes: [], auto: true, finger: false, subject: null };
       const first = data.subject || (H.subjects && H.subjects.Eng ? 'Eng' : H.subject);
       if (!data.notes.length) data.notes.push(blank(first));

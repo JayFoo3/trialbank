@@ -8,7 +8,7 @@
 .nt-cv { display: block; width: 100%; touch-action: pan-y; cursor: crosshair;
   background-image: repeating-linear-gradient(transparent 0 33px, #e3e7ee 33px 34px); -webkit-user-select: none; user-select: none; }
 .nt-more { margin: 12px auto 14px; font-size: .9rem; padding: 6px 14px; border-radius: 999px; }
-.nt-coach { position: sticky; top: 76px; }
+.nt-coach { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 170px); }
 .nt-say { background: var(--paper); border: 2px solid var(--rule); border-radius: var(--r-lg); box-shadow: 0 3px 0 var(--rule); padding: 14px 16px; }
 .nt-say b { display: block; font-size: 1.15rem; font-weight: 900; }
 .nt-say .nt-text { margin-top: 6px; font-weight: 600; line-height: 1.5; }
@@ -40,9 +40,20 @@
 @media (max-width: 860px) {
   .nt-body { grid-template-columns: 1fr; padding-bottom: 150px; }
   .nt-coach { position: fixed; left: 8px; right: 8px; bottom: calc(84px + env(safe-area-inset-bottom)); top: auto; z-index: 890; }
-  .nt-say { padding: 10px 14px; box-shadow: 0 8px 24px var(--shadow); max-height: 30vh; overflow: auto; }
+  .nt-coach { max-height: 46vh; gap: 6px; } .nt-thread { max-height: 22vh; }
+  .nt-say { padding: 10px 14px; box-shadow: 0 8px 24px var(--shadow); max-height: 22vh; overflow: auto; }
   .nt-pen span { display: none; } .nt-tog span { font-size: .78rem; }
 }
 .nt-fix { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: baseline; }
 .nt-fix dt { font-size: .78rem; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .nt-fix dd { margin: 0; font-weight: 700; line-height: 1.4; } .nt-fix dd p { margin: 0; }
+.nt-thread { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; padding: 2px; }
+.nt-thread[hidden] { display: none; }
+.nt-msg { max-width: 92%; padding: 8px 12px; border-radius: 14px; font-weight: 600; line-height: 1.45; background: var(--paper); border: 2px solid var(--rule); align-self: flex-start; overflow-wrap: anywhere; }
+.nt-msg p { margin: 0 0 6px; } .nt-msg p:last-child { margin: 0; }
+.nt-msg.me { align-self: flex-end; background: var(--biro); border-color: var(--biro); color: #fff; }
+.nt-msg.err { color: var(--bad); }
+.nt-ask { display: flex; gap: 6px; margin: 0; }
+.nt-ask input { flex: 1; min-width: 0; margin: 0; padding: 9px 14px; border-radius: 999px; background: var(--paper); }
+.nt-ask button { flex: none; width: 40px; height: 40px; min-width: 0; padding: 0; border-radius: 50%; background: var(--biro); border: 0; box-shadow: none; display: grid; place-items: center; }
+.nt-ask button svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
