@@ -74,58 +74,52 @@
     note.strokes = note.strokes.filter(s => { if (s.i) return true; for (let i = 0; i < s.p.length; i += 2) if (Math.hypot(s.p[i] - x, s.p[i + 1] - y) < r) return false; return true; });
     if (note.strokes.length !== n) paint();
   }
-  // Once a Pencil has been used here the page handles touches itself, so the Pencil only ever writes: a finger scrolls the page (with a
-  // little glide), and a palm resting beside the Pencil does nothing. With Finger on, one finger writes and two scroll.
-  // Until a Pencil is seen and with Finger off, a finger scrolls the browser's ordinary way.
-  const fingers = new Map(); let lastPen = 0, glide = 0;
-  const manual = () => !!(data.pen || data.finger);
+  // Touch works the same way as annotating a question (annotate.js): the canvas lets Safari scroll it (pan-y), so a finger scrolls
+  // the ordinary way with momentum, and the touch events are cancelled whenever the Pencil is involved, so the Pencil only writes and
+  // a palm resting beside it does nothing. With Finger on, one finger writes and two fingers scroll.
+  const fingers = new Map(); let lastPen = 0;
+  const PALM = 700;   // ms after the Pencil was last on the glass during which a touch counts as a resting hand
   function bind() {
     fingers.clear();
-    cv.addEventListener('touchstart', (ev) => { if ([...ev.changedTouches].some(t => t.touchType === 'stylus')) ev.preventDefault(); }, { passive: false });
+    const own = (ev) => {
+      if (!ev.cancelable) return;
+      const stylus = [...ev.touches, ...ev.changedTouches].some(t => t.touchType === 'stylus');
+      if (stylus || data.finger || (cur && !cur.touch) || performance.now() - lastPen < PALM) ev.preventDefault();
+    };
+    for (const t of ['touchstart', 'touchmove', 'touchend']) cv.addEventListener(t, own, { passive: false });
+    const capture = (ev) => { try { cv.setPointerCapture(ev.pointerId); } catch { /* pointer already gone */ } };
     cv.addEventListener('pointerdown', (ev) => {
-      cancelAnimationFrame(glide);
-      if (ev.pointerType === 'pen') { lastPen = Date.now(); fingers.forEach(f => { f.palm = true; }); if (!data.pen) { data.pen = true; save(); drawBar(); } }
+      if (ev.pointerType === 'pen') lastPen = performance.now();
       if (ev.pointerType === 'touch') {
-        if (!manual()) return;                                   // no Pencil seen and Finger off: the browser scrolls
-        try { cv.setPointerCapture(ev.pointerId); } catch { /* fine */ }
-        const palm = !!(cur && !cur.touch) || Date.now() - lastPen < 700 || ev.width > 60 || ev.height > 60;
-        const f = { y: ev.clientY, t: ev.timeStamp, palm, far: 0, v: 0 }; fingers.set(ev.pointerId, f);
-        if (cur && cur.touch) { cur = null; paint(); return; }   // a second finger while one is writing: both scroll instead
-        if (!data.finger || palm || fingers.size > 1) return;     // this finger scrolls (or is a palm)
+        if (!data.finger) return;                                 // a finger: Safari scrolls the page itself
+        if (cur && !cur.touch || performance.now() - lastPen < PALM) return;   // hand resting while the Pencil writes
+        capture(ev); fingers.set(ev.pointerId, ev.clientY);
+        if (fingers.size >= 2) { if (cur && cur.touch) { cur = null; paint(); } return; }   // second finger down: scrolling, not writing
       }
-      if (cur) return;
-      ev.preventDefault(); try { cv.setPointerCapture(ev.pointerId); } catch { /* fine */ } clearTimeout(idleT);
+      if (cur && ev.pointerType !== 'pen') return;
+      if (cur) finish();                                          // a stroke whose end never arrived: keep it
+      ev.preventDefault(); capture(ev); clearTimeout(idleT);
       const [x, y] = pos(ev), touch = ev.pointerType === 'touch';
       if (tool === 'e') { cur = { erase: true, p: [], id: ev.pointerId, touch }; eraseAt(x, y); return; }
       cur = { c: tool, p: [x, y], id: ev.pointerId, touch }; undone = []; paint();
     });
     cv.addEventListener('pointermove', (ev) => {
-      if (ev.pointerType === 'pen') lastPen = Date.now();
-      const f = fingers.get(ev.pointerId);
-      if (f && !(cur && cur.id === ev.pointerId)) {
-        const dy = ev.clientY - f.y, dt = Math.max(1, ev.timeStamp - f.t); f.y = ev.clientY; f.t = ev.timeStamp; f.far += Math.abs(dy);
-        if (!f.palm && !cur && Date.now() - lastPen > 500 && f.far > 8) {
-          const n = [...fingers.values()].filter(g => !g.palm).length || 1;
-          window.scrollBy(0, -dy / n); f.v = 0.6 * f.v + 0.4 * (dy / dt);
-        }
-        return;
+      if (ev.pointerType === 'pen' && (ev.buttons || ev.pressure > 0)) lastPen = performance.now();   // on the glass, not hovering above it
+      if (fingers.has(ev.pointerId)) {
+        if (fingers.size >= 2) window.scrollBy(0, -(ev.clientY - fingers.get(ev.pointerId)) / fingers.size);
+        fingers.set(ev.pointerId, ev.clientY);
       }
       if (!cur || cur.id !== ev.pointerId) return;
+      ev.preventDefault();
       const evs = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev];
       for (const e of (evs.length ? evs : [ev])) { const [x, y] = pos(e); if (cur.erase) eraseAt(x, y); else cur.p.push(x, y); }
       if (!cur.erase) paint();
     });
-    const end = (ev) => {
-      const f = fingers.get(ev.pointerId); fingers.delete(ev.pointerId);
-      if (f && !f.palm && !fingers.size && Math.abs(f.v) > 0.25 && ev.timeStamp - f.t < 80 && !(cur && cur.id === ev.pointerId)) {   // let go mid-flick: glide to a stop
-        let v = Math.max(-4, Math.min(4, f.v));
-        const step = () => { window.scrollBy(0, -v * 16); v *= 0.95; if (Math.abs(v) > 0.03) glide = requestAnimationFrame(step); };
-        glide = requestAnimationFrame(step);
-      }
-      if (!cur || cur.id !== ev.pointerId) return;
+    function finish() {
       if (!cur.erase) note.strokes.push({ c: cur.c, p: cur.p.map(v => Math.round(v * 1e4) / 1e4) });
       cur = null; note.at = Date.now(); save(); paint(); drawBar(); queue();
-    };
+    }
+    const end = (ev) => { fingers.delete(ev.pointerId); if (cur && cur.id === ev.pointerId) finish(); };   // cancelled strokes keep what was drawn
     cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
   }
   // "check as I go": once you've stopped writing for a few seconds, and not more than every 25 seconds
@@ -179,7 +173,7 @@
     bar.querySelector('[data-a=undo]').disabled = !note.strokes.length;
     bar.querySelector('[data-a=redo]').disabled = !undone.length;
     const c = bar.querySelector('[data-a=check]'); c.disabled = busy; c.textContent = busy ? 'Checking' : 'Check';
-    cv.style.touchAction = manual() ? 'none' : 'pan-y';
+    cv.style.touchAction = data.finger ? 'none' : 'pan-y';
   }
   function open(n) { note = n; data.cur = n.id; undone = []; lastSent = ''; save(); draw(); }
   function draw() {
