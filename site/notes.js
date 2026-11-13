@@ -74,21 +74,24 @@
     note.strokes = note.strokes.filter(s => { if (s.i) return true; for (let i = 0; i < s.p.length; i += 2) if (Math.hypot(s.p[i] - x, s.p[i + 1] - y) < r) return false; return true; });
     if (note.strokes.length !== n) paint();
   }
-  // Once a Pencil has been used here, the page stops scrolling under it: the Pencil only writes, a resting palm does nothing,
-  // and two fingers scroll. With Finger on, one finger writes and two scroll. Until then a finger scrolls the ordinary way.
-  const fingers = new Map(); let lastPen = 0;
+  // Once a Pencil has been used here the page handles touches itself, so the Pencil only ever writes: a finger scrolls the page (with a
+  // little glide), and a palm resting beside the Pencil does nothing. With Finger on, one finger writes and two scroll.
+  // Until a Pencil is seen and with Finger off, a finger scrolls the browser's ordinary way.
+  const fingers = new Map(); let lastPen = 0, glide = 0;
   const manual = () => !!(data.pen || data.finger);
   function bind() {
     fingers.clear();
     cv.addEventListener('touchstart', (ev) => { if ([...ev.changedTouches].some(t => t.touchType === 'stylus')) ev.preventDefault(); }, { passive: false });
     cv.addEventListener('pointerdown', (ev) => {
-      if (ev.pointerType === 'pen') { lastPen = Date.now(); if (!data.pen) { data.pen = true; save(); drawBar(); } }
+      cancelAnimationFrame(glide);
+      if (ev.pointerType === 'pen') { lastPen = Date.now(); fingers.forEach(f => { f.palm = true; }); if (!data.pen) { data.pen = true; save(); drawBar(); } }
       if (ev.pointerType === 'touch') {
         if (!manual()) return;                                   // no Pencil seen and Finger off: the browser scrolls
         try { cv.setPointerCapture(ev.pointerId); } catch { /* fine */ }
-        fingers.set(ev.pointerId, ev.clientY);
-        if (fingers.size >= 2) { if (cur && cur.touch) { cur = null; paint(); } return; }   // second finger down: scrolling, not writing
-        if (!data.finger || cur || Date.now() - lastPen < 800) return;                       // a palm beside the Pencil
+        const palm = !!(cur && !cur.touch) || Date.now() - lastPen < 700 || ev.width > 60 || ev.height > 60;
+        const f = { y: ev.clientY, t: ev.timeStamp, palm, far: 0, v: 0 }; fingers.set(ev.pointerId, f);
+        if (cur && cur.touch) { cur = null; paint(); return; }   // a second finger while one is writing: both scroll instead
+        if (!data.finger || palm || fingers.size > 1) return;     // this finger scrolls (or is a palm)
       }
       if (cur) return;
       ev.preventDefault(); try { cv.setPointerCapture(ev.pointerId); } catch { /* fine */ } clearTimeout(idleT);
@@ -98,9 +101,14 @@
     });
     cv.addEventListener('pointermove', (ev) => {
       if (ev.pointerType === 'pen') lastPen = Date.now();
-      if (fingers.has(ev.pointerId)) {
-        if (fingers.size >= 2 && !(cur && !cur.touch) && Date.now() - lastPen > 500) window.scrollBy(0, -(ev.clientY - fingers.get(ev.pointerId)) / fingers.size);
-        fingers.set(ev.pointerId, ev.clientY);
+      const f = fingers.get(ev.pointerId);
+      if (f && !(cur && cur.id === ev.pointerId)) {
+        const dy = ev.clientY - f.y, dt = Math.max(1, ev.timeStamp - f.t); f.y = ev.clientY; f.t = ev.timeStamp; f.far += Math.abs(dy);
+        if (!f.palm && !cur && Date.now() - lastPen > 500 && f.far > 8) {
+          const n = [...fingers.values()].filter(g => !g.palm).length || 1;
+          window.scrollBy(0, -dy / n); f.v = 0.6 * f.v + 0.4 * (dy / dt);
+        }
+        return;
       }
       if (!cur || cur.id !== ev.pointerId) return;
       const evs = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev];
@@ -108,7 +116,12 @@
       if (!cur.erase) paint();
     });
     const end = (ev) => {
-      fingers.delete(ev.pointerId);
+      const f = fingers.get(ev.pointerId); fingers.delete(ev.pointerId);
+      if (f && !f.palm && !fingers.size && Math.abs(f.v) > 0.25 && ev.timeStamp - f.t < 80 && !(cur && cur.id === ev.pointerId)) {   // let go mid-flick: glide to a stop
+        let v = Math.max(-4, Math.min(4, f.v));
+        const step = () => { window.scrollBy(0, -v * 16); v *= 0.95; if (Math.abs(v) > 0.03) glide = requestAnimationFrame(step); };
+        glide = requestAnimationFrame(step);
+      }
       if (!cur || cur.id !== ev.pointerId) return;
       if (!cur.erase) note.strokes.push({ c: cur.c, p: cur.p.map(v => Math.round(v * 1e4) / 1e4) });
       cur = null; note.at = Date.now(); save(); paint(); drawBar(); queue();
@@ -185,7 +198,7 @@
         <button type="button" class="nt-ic" data-a="paste" title="Paste handwriting or a picture" aria-label="Paste"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="16" rx="2.5"/><path d="M9 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M12 10v7M9 14l3 3 3-3"/></svg></button>
         <input class="nt-file" type="file" accept="image/*" hidden>
         <label class="nt-tog" title="Check by itself a few seconds after you stop writing"><input type="checkbox" data-a="auto"${data.auto ? ' checked' : ''}><span>As I go</span></label>
-        <label class="nt-tog" title="Let one finger write. Two fingers always scroll"><input type="checkbox" data-a="finger"${data.finger ? ' checked' : ''}><span>Finger</span></label>
+        <label class="nt-tog" title="Let one finger write (two fingers scroll). Off: a finger scrolls and only the Pencil or mouse writes"><input type="checkbox" data-a="finger"${data.finger ? ' checked' : ''}><span>Finger</span></label>
         <button type="button" class="nt-check" data-a="check">Check</button>
       </div>`;
     cv = root.querySelector('.nt-cv'); bind(); size(); drawCoach(); drawBar();
@@ -217,7 +230,7 @@
   window.Notes = {
     render(el, hooks) {
       root = el; H = hooks; root.classList.add('nt');
-      if (H.loadKatex) { try { H.loadKatex().catch(() => {}); } catch { /* maths shows as typed */ } }
+      if (H.loadKatex) { try { H.loadKatex().then(() => drawCoach()).catch(() => {}); } catch { /* maths shows as typed */ } }
       data = load() || { notes: [], auto: true, finger: false, subject: null };
       const first = data.subject || (H.subjects && H.subjects.Eng ? 'Eng' : H.subject);
       if (!data.notes.length) data.notes.push(blank(first));
