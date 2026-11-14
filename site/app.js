@@ -94,13 +94,54 @@
   }
   // an invite link (#friend=ABC123): keep the code until they're signed in, then add them
   { const m = location.hash.match(/^#friend=([A-Za-z0-9]{4,10})$/); if (m) { try { localStorage.setItem('tb_invite', JSON.stringify(m[1])); } catch {} history.replaceState(null, '', location.pathname + location.search + '#home'); } }
+  // ---------- guests: browse papers with no account ----------
+  let guestCache = null;
+  async function guestOk() {
+    if (guestCache === null) { try { const { data } = await sb.rpc('guest_papers_on'); guestCache = data === true; } catch { guestCache = false; } }
+    return guestCache;
+  }
+  function drawGuest() {
+    const g = !!state.guest && !state.user;
+    $('guest-top').hidden = !g; $('guest-cta').hidden = !g;
+    document.documentElement.classList.toggle('is-guest', g);
+    const pt = document.querySelector('#paper-tabs [data-tab="practise"]'); if (pt) pt.hidden = g;
+    if (!g) return;
+    const sel = $('guest-subj');
+    if (!sel.options.length) {
+      sel.innerHTML = Object.entries(C.subjects).map(([k, n]) => `<option value="${k}">${esc(shortName(n))}</option>`).join('');
+      sel.onchange = () => { state.subject = sel.value; try { localStorage.setItem('tb_subject', sel.value); } catch {} if (location.hash.startsWith('#paper/')) location.hash = '#papers'; else route(); };
+    }
+    if (!C.subjects[state.subject]) state.subject = Object.keys(C.subjects)[0];
+    sel.value = state.subject;
+  }
+  function guestJoin(signup) {
+    state.guest = false; location.hash = '#home';
+    setTimeout(() => { if (signup === ($('auth-title').textContent.trim() === 'Sign in')) $('auth-toggle').click(); }, 50);
+  }
+  $('guest-in').onclick = () => guestJoin(false);
+  $('guest-join').onclick = () => guestJoin(true);
+  $('guest-cta-go').onclick = () => guestJoin(true);
+  guestOk().then(ok => { $('auth-guest').hidden = !ok; });
   async function route() {
     if (window.Annotate) Annotate.stop();
     if (!(location.hash || '').startsWith('#set')) closeDock();
     setTimeout(drawSheetBtns, 0);
     const [h, arg] = (location.hash || '#home').slice(1).split('/');
     if (h !== 'study' && st.ch) stLeave();   // left a study session
-    if (!state.user) return show('auth');
+    if (!state.user) {
+      // no account: the Papers page and a paper's PDF are open to guests (when settings.guest_papers is on); everything else asks them to sign in
+      if ((h === 'papers' || (h === 'paper' && arg)) && await guestOk()) {
+        state.guest = true; drawGuest();
+        return busy(async () => {
+          try {
+            if (h === 'papers') { show('papers'); await renderPapers(); }
+            else { $('paper-error').hidden = true; show('paper'); await renderPaper(decodeURIComponent(arg)); }
+          } catch (err) { console.error(err); toast(`That page didn't load properly: ${esc(err?.message || String(err))}`, 8000); }
+        });
+      }
+      state.guest = false; drawGuest(); return show('auth');
+    }
+    state.guest = false; drawGuest();
     if (!stBooted && !state.preview) { stBooted = true; loadFriends().catch(() => {}); }   // friends can see you online (and invite you) from any page
     drawSubject();
     if (!state.preview) sb.rpc('log_visit', { v: h || 'home' }).then(() => {}, () => {});   // engagement stats for the Admin page
@@ -2976,7 +3017,7 @@
   function drawLevelChips(papers, best) {
     const el = $('papers-levels'); el.innerHTML = '';
     const count = (k) => papers.filter(p => k === 'all' || (k === 'todo' ? best[p.id] == null : levelOf(p) === k)).length;
-    const keys = ['all', 'hsc', 'easy', 'medium', 'hard', 'impossible', 'todo'].filter(k => k === 'all' || count(k));
+    const keys = ['all', 'hsc', 'easy', 'medium', 'hard', 'impossible', 'todo'].filter(k => k === 'all' || (count(k) && !(k === 'todo' && state.guest)));
     if (!keys.includes(paperLevel)) paperLevel = 'all';
     keys.forEach(k => {
       const b = mk('button', 'chip' + (k === paperLevel ? ' on' : ''),
@@ -3144,7 +3185,7 @@
       try { localStorage.setItem('tb_subject', p.subject); } catch { /* blocked */ }
       drawSubject();
     }
-    const { data: qs, error } = await sb.from('questions').select(QCOLS).eq('paper_id', p.id).limit(300);
+    const { data: qs, error } = state.guest ? { data: [], error: null } : await sb.from('questions').select(QCOLS).eq('paper_id', p.id).limit(300);   // guests: the PDF only
     if (error) { box.innerHTML = `<p class="error">${esc(error.message)}</p>`; return; }
     qs.sort(byOrder);
     const urls = await signed(qs.flatMap(q => [q.image_path, q.solution_path]));
@@ -3216,6 +3257,36 @@
     $('exam-note').textContent = 'Upload your written paper below and it will be marked for you.';
   }
   let homePapers = [];
+  // ---------- last week, in one card: shown from Monday until it's closed ----------
+  function weekStart(d = new Date()) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+  async function drawWeekCard() {
+    const card = $('wk-card'); if (!card) return;
+    card.hidden = true;
+    if (state.preview) return;
+    const thisWk = weekStart(), lastWk = new Date(thisWk - 7 * 864e5), prevWk = new Date(thisWk - 14 * 864e5);
+    const key = `wk_${state.subject}_${thisWk.toISOString().slice(0, 10)}`;
+    if (flag(key)) return;
+    const { data, error } = await sb.from('attempts').select('score, out_of, created_at, questions!inner(topic, papers!inner(subject))')
+      .eq('user_id', state.user.id).eq('questions.papers.subject', state.subject).gte('created_at', prevWk.toISOString()).lt('created_at', thisWk.toISOString()).limit(3000);
+    if (error || !data) return;
+    const last = data.filter(a => new Date(a.created_at) >= lastWk), before = data.filter(a => new Date(a.created_at) < lastWk);
+    if (!last.length) return;
+    const pct = (rows) => { const o = rows.reduce((t, a) => t + (a.out_of || 0), 0); return o ? Math.round(100 * rows.reduce((t, a) => t + (a.score || 0), 0) / o) : null; };
+    const p1 = pct(last), p0 = pct(before);
+    const by = {}; last.forEach(a => { const t = a.questions?.topic; if (!t) return; (by[t] = by[t] || { s: 0, o: 0 }); by[t].s += a.score || 0; by[t].o += a.out_of || 0; });
+    const tops = Object.entries(by).filter(([, v]) => v.o >= 3).map(([t, v]) => [t, v.s / v.o]).sort((a, b) => a[1] - b[1]);
+    const trend = p1 == null || p0 == null ? '' : p1 > p0 ? `<span class="wk-up">▲ ${p1 - p0}</span>` : p1 < p0 ? `<span class="wk-down">▼ ${p0 - p1}</span>` : '<span class="muted">same</span>';
+    $('wk-stats').innerHTML = `<div><b>${last.length}</b><span>question${last.length === 1 ? '' : 's'}</span></div>`
+      + (p1 == null ? '' : `<div><b>${p1}%</b><span>of marks ${trend}</span></div>`)
+      + (tops.length ? `<div><b class="wk-t">${esc(topicName(tops[0][0]))}</b><span>needs the most work</span></div>` : '');
+    card.hidden = false;
+    $('wk-go').hidden = !tops.length;
+    $('wk-go').onclick = async () => {
+      try { state.topics = new Set([tops[0][0]]); await buildSet({ count: 10, type: 'all', diff: 'all', fresh: 0 }); location.hash = '#set'; }
+      catch (err) { reviewError(err.message); }
+    };
+    $('wk-x').onclick = () => { flag(key, 1); card.hidden = true; };
+  }
   async function renderHome() {
     if (!$('next-mascot').firstChild) $('next-mascot').innerHTML = Mascot('wave');
     const em = state.user.email || '';
@@ -3228,6 +3299,7 @@
     // an exam left running or unmarked
     const saved = state.preview ? null : lsGet(saveKey());
     $('resume-banner').hidden = true;
+    drawWeekCard().catch(err => console.warn('week card', err));
     const [, { data: papers }] = await Promise.all([
       renderReview(),
       sb.from('papers').select('*').eq('subject', state.subject).order('school').order('year', { ascending: false }),
@@ -3729,10 +3801,47 @@
     $('exam-history').classList.toggle('is-empty', !(ex && ex.length));
     $('drill-weak').classList.toggle('is-empty', !state.weak.length);
     $('drill-wrong').classList.toggle('is-empty', !state.attempted);
+    drawFixRow();
     $('drill-stars').classList.toggle('is-empty', !(stars || []).length);
     $('drill-weak').parentElement.classList.toggle('is-empty', !state.weak.length && !state.attempted && !(stars || []).length);
   }
   function reviewError(msg) { $('review-error').textContent = msg; $('review-error').hidden = false; }
+  // ---------- fix my mistakes: a question you get wrong comes back 2 days later, then 7, then 21; a slip starts it over ----------
+  const FIX_GAPS = [2, 7, 21];
+  async function mistakeQueue() {
+    const { data, error } = await sb.from('attempts').select('question_id, score, out_of, created_at, questions!inner(papers!inner(subject))')
+      .eq('user_id', state.user.id).eq('questions.papers.subject', state.subject).order('created_at', { ascending: true }).limit(5000);
+    if (error) throw error;
+    const s = {};
+    (data || []).forEach(a => {
+      if (!(a.out_of > 0)) return;
+      const t = new Date(a.created_at).getTime(), x = s[a.question_id];
+      if (a.score < a.out_of) s[a.question_id] = { stage: 0, at: t };
+      else if (x && x.stage < FIX_GAPS.length && t >= x.at + FIX_GAPS[x.stage] * 864e5 - 6 * 36e5) { x.stage++; x.at = t; }   // right, once it was due
+    });
+    const now = Date.now(), due = [], later = [];
+    Object.entries(s).forEach(([id, x]) => {
+      if (x.stage >= FIX_GAPS.length) return;   // right three times in a row, spaced out: fixed
+      const when = x.at + FIX_GAPS[x.stage] * 864e5;
+      (when <= now ? due : later).push({ id, when });
+    });
+    due.sort((a, b) => a.when - b.when); later.sort((a, b) => a.when - b.when);
+    return { due: due.map(d => d.id), next: later[0]?.when || null, waiting: later.length };
+  }
+  function fixWhen(ts) {
+    const d = new Date(ts), t = new Date(); t.setHours(0, 0, 0, 0);
+    const days = Math.round((new Date(d).setHours(0, 0, 0, 0) - t) / 864e5);
+    return days <= 0 ? 'later today' : days === 1 ? 'tomorrow' : `on ${d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}`;
+  }
+  function drawFixRow() {
+    if (state.preview || !state.attempted) return;
+    mistakeQueue().then(m => {
+      $('wrong-sub').textContent = m.due.length ? `${m.due.length} ready to redo${m.waiting ? ` · ${m.waiting} coming back later` : ''}`
+        : m.waiting ? `Next one comes back ${fixWhen(m.next)}` : 'Nothing to fix. Clean sheet.';
+      $('drill-wrong').classList.toggle('is-empty', !m.due.length && !m.waiting);
+      $('drill-wrong').classList.toggle('fix-due', !!m.due.length);
+    }).catch(err => console.warn('fix queue', err));
+  }
   async function setFromIds(ids, n) {
     if (!ids.length) return false;
     const { data, error } = await sb.from('questions').select(QCOLS).in('id', ids.slice(0, 100)).eq('papers.subject', state.subject).or('image_path.not.is.null,content.not.is.null');
@@ -3754,11 +3863,9 @@
   $('drill-wrong').onclick = async () => {
     $('review-error').hidden = true;
     try {
-      const { data: att, error } = await sb.from('attempts').select('question_id, score, out_of, created_at').eq('user_id', state.user.id).order('created_at', { ascending: false }).limit(1000);
-      if (error) throw error;
-      const seen = new Set(), wrong = [];
-      (att || []).forEach(a => { if (seen.has(a.question_id)) return; seen.add(a.question_id); if (a.score < a.out_of) wrong.push(a.question_id); });
-      if (!(await setFromIds(wrong, 15))) reviewError('Nothing to redo in this subject. Clean sheet.');
+      const m = await mistakeQueue();
+      if (!m.due.length) return reviewError(m.waiting ? `Nothing to redo yet. The next one comes back ${fixWhen(m.next)}.` : 'Nothing to fix in this subject. Clean sheet.');
+      if (!(await setFromIds(m.due, 15))) reviewError('Nothing to redo in this subject right now.');
     } catch (err) { reviewError(err.message); }
   };
   $('drill-stars').onclick = async () => {

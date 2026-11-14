@@ -59,6 +59,11 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <a href="#tutor" data-nav="tutor" id="nav-tutor" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10h6"/></svg><span>Tutor</span></a>
       <a href="#mark" data-nav="mark" title="Marking"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="m8 14 3 3 5-6"/></svg><span>Marking</span><b class="nav-badge" id="nav-marks" hidden></b></a>
     </nav>
+    <div class="guest-top" id="guest-top" hidden>
+      <select id="guest-subj" aria-label="Subject"></select>
+      <button class="link" id="guest-in">Sign in</button>
+      <button class="primary" id="guest-join">Create free account</button>
+    </div>
     <div class="top-right" id="top-right" hidden>
       <div class="subject" id="subject-switch" role="group" aria-label="Subject"></div>
       <div class="tools" role="group" aria-label="Tools"><button class="calc-btn" id="sheet-btn" data-sheet title="Formula sheet" aria-label="Formula sheet" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 11.5h2.5M9.5 15.5h6M13.8 10.2l1.4 2.6M15.2 10.2l-1.4 2.6"/></svg></button><button class="calc-btn" id="calc-btn" title="Calculator" aria-label="Calculator"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 15.5h.01M12 15.5h.01M15.5 15.5h.01M8.5 18.5h.01M12 18.5h3.5"/></svg></button>
@@ -180,6 +185,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
           <p class="small center muted" id="auth-agree" hidden>By creating an account you agree to the <a href="info.html#terms" target="_blank" rel="noopener">terms</a> and <a href="info.html#privacy" target="_blank" rel="noopener">privacy policy</a>.</p>
         </form>
         <p class="small center"><button class="link" id="auth-toggle">New here? Create a free account</button></p>
+        <p class="small center" id="auth-guest" hidden><a href="#papers">Browse past papers first, no account needed</a></p>
         <p class="small center muted">Optional marking packs: <a href="info.html#pricing">see pricing</a></p>
       </div>
     </div>
@@ -209,6 +215,13 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div id="resume-banner" hidden><span id="resume-title"></span><span id="resume-sub"></span><button id="resume-btn"></button></div>
     </section>
 
+    <!-- last week in one card, from Monday until closed -->
+    <div class="wk-card" id="wk-card" hidden>
+      <div class="wk-head"><h2 class="sec">Last week</h2><button class="wk-x" id="wk-x" aria-label="Close">&times;</button></div>
+      <div class="wk-stats" id="wk-stats"></div>
+      <button class="secondary" id="wk-go">Work on it</button>
+    </div>
+
     <!-- removed from the dashboard (timed papers live on each paper's page); kept in the page because the code still wires these controls -->
     <div class="others" style="display:none" aria-hidden="true">
       <details class="other" data-feature="exam">
@@ -237,7 +250,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
     </div>
     <div class="list" id="weak-rows" data-feature="weak">
       <button class="li" id="drill-weak"><span><strong>Weakest topics</strong><span class="small muted" id="weak-list"></span></span><span class="go" aria-hidden="true">›</span></button>
-      <button class="li" id="drill-wrong"><span><strong>Got wrong</strong><span class="small muted" id="wrong-sub"></span></span><span class="go" aria-hidden="true">›</span></button>
+      <button class="li" id="drill-wrong"><span><strong>Fix my mistakes</strong><span class="small muted" id="wrong-sub"></span></span><span class="go" aria-hidden="true">›</span></button>
       <button class="li" id="drill-stars"><span><strong>Starred</strong><span class="small muted" id="star-count"></span></span><span class="go" aria-hidden="true">›</span></button>
     </div>
     <p class="error" id="review-error" hidden></p>
@@ -582,6 +595,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <button role="tab" data-tab="practise">Practise</button>
     </div>
     <p class="error" id="paper-error" hidden></p>
+    <div class="guest-cta" id="guest-cta" hidden><span>Make a free account to practise these questions one at a time, sit the paper on the clock and get your working marked.</span><button class="primary" id="guest-cta-go">Create free account</button></div>
     <div class="tabpane" id="tab-paper">
       <div class="pdfbar"><div class="pdfnav"><button class="pgbtn" data-go="-1" aria-label="Previous page">‹</button><span class="pgnum" id="pdf-pages"></span><button class="pgbtn" data-go="1" aria-label="Next page">›</button></div><button class="primary" id="paper-pdf">Download PDF</button></div>
       <div class="pdfview" id="pdf-view"></div>

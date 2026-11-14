@@ -17,3 +17,25 @@ button, .button, a.other, .ol-opt, .pa, .ptile { transition: transform .12s ease
   #fr-open, .daily-mode, #pr-opts-btn, #pred-reset, #tu-end, .atar-x { display: inline-flex; align-items: center; min-height: 40px; }
   #view-practise .tp-more { min-height: 40px; }
 }
+
+/* last week card */
+.wk-card { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 18px 20px; margin: 16px 0; }
+.wk-head { display: flex; align-items: center; justify-content: space-between; }
+.wk-head .sec { margin: 0; }
+.wk-x { background: none; border: 0; font-size: 1.5rem; line-height: 1; color: var(--muted, #888); cursor: pointer; padding: 4px 8px; min-height: 0; box-shadow: none; }
+.wk-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 14px; margin: 12px 0 14px; }
+.wk-stats b { display: block; font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+.wk-stats b.wk-t { font-size: 1.05rem; line-height: 1.25; }
+.wk-stats span { font-size: .85rem; color: var(--muted, #777); }
+.wk-up { color: #1e8e5a; font-weight: 700; }
+.wk-down { color: #c0392b; font-weight: 700; }
+/* fix my mistakes: draw the eye when something is due */
+#drill-wrong.fix-due #wrong-sub { color: var(--accent, #e8590c); font-weight: 600; }
+
+/* guests browsing papers with no account */
+.guest-top { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.guest-top select { padding: 7px 10px; border-radius: 10px; border: 1px solid var(--rule); background: var(--paper); font: inherit; max-width: 46vw; }
+.guest-top .primary, .guest-top .link { padding: 8px 14px; white-space: nowrap; }
+.guest-cta { display: flex; align-items: center; justify-content: space-between; gap: 14px; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 14px 16px; margin: 12px 0; }
+.guest-cta span { font-size: .95rem; }
+@media (max-width: 640px) { .guest-cta { flex-direction: column; align-items: stretch; } .guest-top #guest-in { display: none; } }

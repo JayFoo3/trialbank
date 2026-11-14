@@ -1,5 +1,5 @@
 // Trialbank: a short-lived link to a paper PDF stored in Backblaze B2 (private bucket).
-// The student must be signed in and allowed to see that paper (the papers table's own rules decide).
+// The student (or a guest, when settings.guest_papers is on) must be allowed to see that paper: the papers table's own rules decide.
 // Secrets: B2_KEY_ID, B2_APP_KEY, B2_BUCKET, B2_ENDPOINT (e.g. s3.us-west-004.backblazeb2.com)
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 import { AwsClient } from 'npm:aws4fetch@1.0.20';
@@ -30,12 +30,13 @@ Deno.serve(async (req) => {
   const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
     global: { headers: { Authorization: auth } }, auth: { persistSession: false },
   });
-  const { data: u } = await sb.auth.getUser(auth.replace(/^Bearer\s+/i, ''));
-  if (!u?.user) return json({ error: 'Please sign in again.' }, 401);
-  const { data: rows, error } = await sb.from('papers').select('id')
+  const { data: u } = await sb.auth.getUser(auth.replace(/^Bearer\s+/i, '')).catch(() => ({ data: { user: null } }));
+  // no user: ask as a plain guest, so the papers table's guest rule decides (settings.guest_papers and the public dial)
+  const db = u?.user ? sb : createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { auth: { persistSession: false } });
+  const { data: rows, error } = await db.from('papers').select('id')
     .or(`pdf_path.eq.${path},pdf_sol_path.eq.${path}`).limit(1);
   if (error) { console.error(error); return json({ error: 'Could not check that paper.' }, 500); }
-  if (!rows?.length) return json({ error: "That paper isn't open on your account." }, 403);
+  if (!rows?.length) return json({ error: u?.user ? "That paper isn't open on your account." : 'Sign in to open this paper.' }, 403);
 
   const region = endpoint.split('.')[1] ?? 'us-west-004';          // s3.<region>.backblazeb2.com
   const url = new URL(`https://${endpoint}/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`);

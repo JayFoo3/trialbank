@@ -13,7 +13,8 @@ verify_jwt = false
 
 # signed-in students only: hands out short-lived B2 links to paper PDFs
 [functions.pdf-url]
-verify_jwt = true
+# off so guests (no sign-in) can ask; the function checks the papers table's own rules itself
+verify_jwt = false
 
 # admins only: switch into, or reset, the test account
 [functions.test-account]
