@@ -25,7 +25,7 @@
   const sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { storage: durable, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   try { navigator.storage?.persist?.(); } catch { /* not supported */ }
   const $ = (id) => document.getElementById(id);
-  const views = ['duel', 'auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile', 'hsc', 'study', 'poems', 'notes'];
+  const views = ['duel', 'auth', 'home', 'practise', 'set', 'summary', 'progress', 'admin', 'papers', 'paper', 'examrun', 'mark', 'tutor', 'profile', 'hsc', 'study', 'poems', 'notes', 'settings'];
   const QCOLS = 'id, qid, number, part, type, marks, topic, answer, answer_source, image_path, solution_path, coarse, syllabus_note, pages, content, papers!inner(slug, subject, school, year, difficulty), level';
 
   document.title = C.name;
@@ -41,10 +41,10 @@
   };
 
   // ---------- routing ----------
-  const NAV = { duel: 'practise', tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'home', examrun: 'papers', hsc: 'home', profile: 'home', study: 'home', poems: 'poems', notes: 'home' };   // Progress, HSC, Profile and Study together all hang off Home
-  const NAV_TITLES = { notes: 'Notes', poems: 'Poems', home: 'Home', practise: 'Practise', set: 'Practise', summary: 'Results', papers: 'Papers', paper: 'Paper', examrun: 'Exam', progress: 'Progress', hsc: 'HSC estimate', profile: 'Profile', tutor: 'Tutor', mark: 'Marking', study: 'Study together', duel: 'Battle', admin: 'Admin' };
+  const NAV = { duel: 'practise', tutor: 'tutor', mark: 'mark', home: 'home', practise: 'practise', set: 'practise', summary: 'practise', papers: 'papers', paper: 'papers', progress: 'home', examrun: 'papers', hsc: 'home', profile: 'home', study: 'home', poems: 'poems', notes: 'home', settings: 'home' };   // Progress, HSC, Profile and Study together all hang off Home
+  const NAV_TITLES = { settings: 'Settings', notes: 'Notes', poems: 'Poems', home: 'Home', practise: 'Practise', set: 'Practise', summary: 'Results', papers: 'Papers', paper: 'Paper', examrun: 'Exam', progress: 'Progress', hsc: 'HSC estimate', profile: 'Profile', tutor: 'Tutor', mark: 'Marking', study: 'Study together', duel: 'Battle', admin: 'Admin' };
   // page transitions: iOS-style push going deeper, pop going back, a quick fade between tabs
-  const DEPTH = { poems: 0, duel: 1, tutor: 0, mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, profile: 1, paper: 1, set: 2, examrun: 2, summary: 3 };
+  const DEPTH = { poems: 0, duel: 1, tutor: 0, mark: 0, auth: 0, home: 0, practise: 0, papers: 0, progress: 0, admin: 0, profile: 1, settings: 1, paper: 1, set: 2, examrun: 2, summary: 3 };
   const canVT = !!document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (canVT) document.documentElement.classList.add('has-vt');
   let shown = null;
@@ -73,7 +73,7 @@
     document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === NAV[name]));
     document.body.classList.toggle('focus', name === 'set' || (name === 'examrun' && state.exam && state.exam.phase !== 'marking'));
     duelMode(name === 'duel' || (name === 'set' && !!state.set?.duel));
-    $('account-menu').hidden = true; $('account-btn').setAttribute('aria-expanded', false);
+    $('account-menu').hidden = name !== 'settings'; $('account-btn').setAttribute('aria-expanded', false);   // on the Settings page the menu is the page
     document.title = NAV_TITLES[name] && state.user ? `${NAV_TITLES[name]} · ${C.name}` : C.name;   // tabs and the back-button list say where you are
     window.scrollTo(0, showNow.y || 0);
     if (name !== showNow.last) {   // keyboards and screen readers start at the new page's heading, not back up in the header
@@ -122,6 +122,19 @@
   $('guest-join').onclick = () => guestJoin(true);
   $('guest-cta-go').onclick = () => guestJoin(true);
   guestOk().then(ok => { $('auth-guest').hidden = !ok; });
+  // ---------- Settings: a page of its own (the same controls as the old account dropdown, moved onto the page) ----------
+  const menuSpot = { parent: null, next: null };
+  function menuHome() {
+    const m = $('account-menu');
+    if (menuSpot.parent && m.parentNode !== menuSpot.parent) { menuSpot.parent.insertBefore(m, menuSpot.next); m.classList.remove('as-page'); }
+  }
+  function renderSettings() {
+    const m = $('account-menu'), host = $('settings-host');
+    if (!menuSpot.parent) { menuSpot.parent = m.parentNode; menuSpot.next = m.nextSibling; }
+    if (m.parentNode !== host) host.appendChild(m);
+    m.classList.add('as-page'); m.hidden = false;
+  }
+  window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#settings')) menuHome(); });
   async function route() {
     if (window.Annotate) Annotate.stop();
     if (!(location.hash || '').startsWith('#set')) closeDock();
@@ -151,6 +164,7 @@
       if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
       if (h === 'admin' && adminOn()) { show('admin'); await renderAdmin(); adminTabs(); return; }
       if (h === 'profile') { show('profile'); await renderProfile(); return; }
+      if (h === 'settings') { show('settings'); renderSettings(); return; }
       if (h === 'hsc') { show('hsc'); await renderHsc(); return; }
       if (h === 'study') { show('study'); await renderStudy(arg); return; }
       if (h === 'notes' && adminOn() && window.Notes) { show('notes'); Notes.render($('view-notes'), { sb, uid: state.user.id, subject: tuSubject(), subjects: Object.fromEntries(tuSubjects().map(k => [k, C.subjects[k] || k])), rich: tuRich, loadKatex, syllabus: tuSyllabus }); return; }   // Notes: question in red, working in black, the tutor checks as you go (notes.js). Admin only for now
@@ -297,7 +311,7 @@
   // account menu
   $('account-btn').onclick = (ev) => {
     ev.stopPropagation();
-    if (!state.user || state.preview || !window.__openPlayer) { const m = $('account-menu'); m.hidden = !m.hidden; $('account-btn').setAttribute('aria-expanded', !m.hidden); return; }
+    if (!state.user || state.preview || !window.__openPlayer) { menuHome(); const m = $('account-menu'); m.hidden = !m.hidden; $('account-btn').setAttribute('aria-expanded', !m.hidden); return; }
     $('account-menu').hidden = true; window.__openPlayer('me');
   };
   document.addEventListener('click', (ev) => { if (!ev.target.closest('.account')) $('account-menu').hidden = true; });
@@ -6937,7 +6951,7 @@ void main() {
     const wire = () => {
       m.querySelectorAll('[data-go]').forEach(a => a.onclick = () => { pfTab = a.dataset.go; close(); if (location.hash === '#profile') renderProfile(); });
       m.querySelectorAll('a.pc-act:not([data-go])').forEach(a => a.onclick = () => close());
-      const mb = m.querySelector('[data-menu]'); if (mb) mb.onclick = (ev) => { ev.stopPropagation(); close(); const mm = $('account-menu'); mm.hidden = false; $('account-btn').setAttribute('aria-expanded', true); };
+      const mb = m.querySelector('[data-menu]'); if (mb) mb.onclick = (ev) => { ev.stopPropagation(); close(); location.hash = '#settings'; };
       const tt = m.querySelector('[data-tt]'); if (tt) tt.onclick = () => { titlesOpen = !titlesOpen; draw(); };
       m.querySelectorAll('.pc-t').forEach(b => b.onclick = async () => {
         if (b.classList.contains('locked')) { fx().sfx?.bad?.(); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); return toast(`Unlocks at ${esc(b.title)}.`); }

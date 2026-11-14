@@ -39,3 +39,12 @@ button, .button, a.other, .ol-opt, .pa, .ptile { transition: transform .12s ease
 .guest-cta { display: flex; align-items: center; justify-content: space-between; gap: 14px; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 14px 16px; margin: 12px 0; }
 .guest-cta span { font-size: .95rem; }
 @media (max-width: 640px) { .guest-cta { flex-direction: column; align-items: stretch; } .guest-top #guest-in { display: none; } }
+
+/* Settings page: the account menu laid out as a page instead of a dropdown */
+#account-menu.as-page { position: static; display: block; min-width: 0; max-width: 560px; box-shadow: none; animation: none; border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 10px 14px; margin-top: 8px; }
+#account-menu.as-page .menu-sec { padding: 10px 0; }
+#account-menu.as-page .menu-label { margin: 2px 4px 6px; }
+#account-menu.as-page .menu-item { padding: 12px 10px; font-size: 1rem; }
+#account-menu.as-page .menu-email { margin: 4px 4px 8px; }
+#account-menu.as-page .menu-email:empty { display: none; }
+#account-menu.as-page .menu-email:empty + .menu-sec { border-top: 0; }

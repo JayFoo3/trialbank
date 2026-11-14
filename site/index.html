@@ -632,6 +632,12 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
 
   <!-- ===== admin ===== -->
   <!-- ===== profile: pet, banner, border, level, friends ===== -->
+  <section id="view-settings" class="view" hidden>
+    <a class="back small" href="#home" onclick="if (history.length > 1) { history.back(); return false; }">‹ Back</a>
+    <h1>Settings</h1>
+    <div id="settings-host"></div>
+  </section>
+
   <section id="view-profile" class="view" hidden>
     <div id="profile-body"></div>
     <input type="file" id="pf-photo-file" accept="image/*" hidden>
