@@ -7,11 +7,16 @@ VAR = "font-family=\"'Times New Roman',Times,serif\" font-style=\"italic\" " + H
 TXT = "font-family=\"Nunito,system-ui,sans-serif\" " + HALO
 
 
+_N = 0
+
+
 class Plot:
     def __init__(s, xmin, xmax, ymin, ymax, w=440, h=None, pad=30):
         s.a, s.b, s.c, s.d, s.w, s.pad = xmin, xmax, ymin, ymax, w, pad
         s.h = h or round((w - 2 * pad) * (ymax - ymin) / (xmax - xmin) + 2 * pad)
-        s.el, s.id = [], 'c' + str(abs(hash((xmin, xmax, ymin, ymax, w))) % 10**8)
+        global _N
+        _N += 1
+        s.el, s.id = [], 'c%d_%d' % (_N, abs(hash((xmin, xmax, ymin, ymax, w))) % 10**6)
 
     def X(s, x): return round(s.pad + (x - s.a) / (s.b - s.a) * (s.w - 2 * s.pad), 1)
     def Y(s, y): return round(s.h - s.pad - (y - s.c) / (s.d - s.c) * (s.h - 2 * s.pad), 1)
