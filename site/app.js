@@ -2952,7 +2952,7 @@
     if (papers) papers.splice(0, papers.length, ...papers.filter(seePaper));
     const best = {};
     (exams || []).forEach(e => { if (e.out_of) best[e.paper_id] = Math.max(best[e.paper_id] || 0, Math.round(100 * e.score / e.out_of)); });
-    const thumbs = await thumbUrls((papers || []).filter(p => !isHsc(p)).map(p => `${p.slug}/thumb.webp`)).catch(() => ({}));
+    const thumbs = await thumbUrls((papers || []).map(p => `${p.slug}/thumb.webp`)).catch(() => ({}));
     papersData = { papers: papers || [], sum: Object.fromEntries((sums || []).map(s => [s.paper_id, s])), best, thumbs };
     drawPapers();
   }
@@ -2984,6 +2984,8 @@
       el.appendChild(b);
     });
   }
+  // an HSC exam's tile when its cover picture is missing: a drawn exam front page (year, course, the usual blocks of small print)
+  const hscCover = (p) => `<div class="hcov" aria-hidden="true"><b class="hcov-y">${esc(p.year)}</b><i class="hcov-k">Higher School Certificate</i><strong class="hcov-s">${esc(C.subjects[p.subject] || p.subject)}</strong><span class="hcov-l"><u></u><u></u><u></u><u></u></span><span class="hcov-l two"><u></u><u></u><u></u></span></div>`;
   function drawPapers() {
     const { papers, sum, best } = papersData;
     const q = $('papers-filter').value.trim().toLowerCase();
@@ -3010,11 +3012,11 @@
         const a = mk('a', 'ptile');
         a.href = '#paper/' + encodeURIComponent(p.slug);
         a.title = `${p.school} ${p.year}`;
-        const url = isHsc(p) ? null : thumbs[`${p.slug}/thumb.webp`];   // no copies of NESA's cover pages
-        a.innerHTML = `<div class="pthumb${url ? ' loading' : ''}">${url ? `<img loading="lazy" decoding="async" alt="" src="${esc(url)}">` : `<span>${esc(p.school)}<br>${p.year}</span>`}${best[p.id] != null ? `<span class="tag">${best[p.id]}%</span>` : ''}</div>
+        const url = thumbs[`${p.slug}/thumb.webp`];
+        a.innerHTML = `<div class="pthumb${url ? ' loading' : ''}">${url ? `<img loading="lazy" decoding="async" alt="" src="${esc(url)}">` : (isHsc(p) ? hscCover(p) : `<span>${esc(p.school)}<br>${p.year}</span>`)}${best[p.id] != null ? `<span class="tag">${best[p.id]}%</span>` : ''}</div>
           <div class="pname"><strong>${esc(p.year)}</strong>${levelBadge(p, false)}</div>`;
         const im = a.querySelector('img');
-        if (im) { const done = () => im.parentNode?.classList.remove('loading'); im.onload = done; im.onerror = () => { done(); im.replaceWith(mk('span', '', `${esc(p.school)}<br>${esc(p.year)}`)); }; }
+        if (im) { const done = () => im.parentNode?.classList.remove('loading'); im.onload = done; im.onerror = () => { done(); if (isHsc(p)) im.outerHTML = hscCover(p); else im.replaceWith(mk('span', '', `${esc(p.school)}<br>${esc(p.year)}`)); }; }
         grid.appendChild(a);
       });
       sec.appendChild(grid);

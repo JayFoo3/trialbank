@@ -3363,3 +3363,14 @@ h1[tabindex="-1"]:focus { outline: none; }
 /* an official HSC paper: a single link to NESA's own copy (see nesa.js) */
 .nesa-go { display: grid; place-items: center; padding: 56px 0; }
 .nesa-go a { text-decoration: none; display: inline-block; padding: 12px 22px; }
+
+/* HSC exam tiles without a cover picture: a drawn exam front page (app.js hscCover) */
+.hcov { position: absolute; inset: 0; background: #fff; color: #1f2329; padding: 13% 11% 10%; display: flex; flex-direction: column; text-align: left; container-type: inline-size; }
+.hcov-y { font-size: 20cqw; font-weight: 900; line-height: 1; letter-spacing: -.02em; }
+.hcov-k { font-style: normal; font-size: 5.6cqw; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #8a6d00; margin-top: 5cqw; }
+.hcov-s { font-size: 9.5cqw; font-weight: 800; line-height: 1.15; margin-top: 2cqw; }
+.hcov-l { display: grid; gap: 3.2cqw; margin-top: auto; }
+.hcov-l.two { margin-top: 7cqw; }
+.hcov-l u { display: block; height: 2.2cqw; border-radius: 2cqw; background: #e6e8ec; text-decoration: none; }
+.hcov-l u:nth-child(2) { width: 82%; } .hcov-l u:nth-child(3) { width: 90%; } .hcov-l u:nth-child(4) { width: 58%; }
+.hcov-l.two u:nth-child(3) { width: 44%; }

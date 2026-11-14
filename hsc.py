@@ -146,7 +146,8 @@ def upload():
         if not os.path.exists(exam):
             print(slug, 'not downloaded, skipped'); continue
         raw = open(exam, 'rb').read()
-        # NESA's PDFs and cover pages are not hosted: the site links to NESA's own copy (site/nesa.js). Only the paper's row goes up.
+        # NESA's PDFs are not hosted: the site links to NESA's own copy (site/nesa.js). Only the paper's row and its small cover picture go up.
+        if os.path.exists(th): put(f'{slug}/thumb.webp', open(th, 'rb').read(), 'image/webp')
         row = dict(slug=slug, subject=s, school='HSC', year=y, difficulty='HSC', sha256=hashlib.sha256(raw).hexdigest(), pdf_path=None, pdf_sol_path=None)
         r = requests.post(f'{url}/rest/v1/papers?on_conflict=slug', headers={**H, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'}, data=json.dumps(row), timeout=60)
         if r.status_code >= 300: sys.exit(f'{slug}: {r.status_code} {r.text[:200]}')
@@ -154,8 +155,29 @@ def upload():
     print('done')
 
 
+def covers():
+    """Put each HSC paper's small cover picture (thumb.webp, made by `thumbs`) on the site for the Papers page."""
+    import requests
+    import keys  # noqa: F401
+    url = os.environ.get('SUPABASE_URL', '').rstrip('/'); key = os.environ.get('SUPABASE_SERVICE_KEY', '')
+    if not url or not key:
+        sys.exit('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
+    H = {'apikey': key, 'Authorization': f'Bearer {key}', 'Content-Type': 'image/webp', 'x-upsert': 'true'}
+    up = missing = 0
+    for s, y, _, _ in PAPERS:
+        slug = slug_of(s, y); th = os.path.join(OUT, slug, 'thumb.webp')
+        if not os.path.exists(th): missing += 1; print(slug, 'has no thumb.webp (run: python3 hsc.py thumbs)'); continue
+        for i in range(5):
+            r = requests.post(f'{url}/storage/v1/object/questions/{slug}/thumb.webp', headers=H, data=open(th, 'rb').read(), timeout=120)
+            if r.status_code < 300: up += 1; break
+            if r.status_code < 500 and r.status_code != 429: sys.exit(f'{slug}: {r.status_code} {r.text[:200]}')
+            time.sleep(3 * (i + 1))
+        else: sys.exit(f'{slug}: gave up')
+    print(f'{up} covers uploaded' + (f', {missing} missing' if missing else ''))
+
+
 def unhost():
-    """Take NESA's PDFs and cover pages off Trialbank's storage (the site links to NESA instead). Safe to run again."""
+    """Take NESA's PDFs off Trialbank's storage (the site links to NESA instead). Safe to run again."""
     import requests
     import keys  # noqa: F401
     url = os.environ.get('SUPABASE_URL', '').rstrip('/'); key = os.environ.get('SUPABASE_SERVICE_KEY', '')
@@ -167,7 +189,7 @@ def unhost():
     if r.status_code >= 300: sys.exit(f'papers: {r.status_code} {r.text[:200]}')
     slugs = sorted(p['slug'] for p in r.json())
     print(f'{len(slugs)} HSC papers no longer point at a hosted PDF')
-    names = [f'{s}/{n}' for s in slugs for n in ('paper.pdf', 'mg.pdf', 'thumb.webp')]
+    names = [f'{s}/{n}' for s in slugs for n in ('paper.pdf', 'mg.pdf')]   # the small cover pictures stay (python3 hsc.py covers)
     for i in range(0, len(names), 100):
         r = requests.delete(f'{url}/storage/v1/object/questions', headers={**H, 'Content-Type': 'application/json'}, data=json.dumps({'prefixes': names[i:i + 100]}), timeout=120)
         if r.status_code >= 300: print(f'Supabase storage: {r.status_code} {r.text[:200]}')
@@ -178,11 +200,14 @@ def unhost():
     gone = bad = 0
     for s in slugs:
         for n in ('paper.pdf', 'mg.pdf'):
-            try: b2.delete(f'{s}/{n}'); gone += 1
+            try:
+                r = b2._call('DELETE', f'{s}/{n}')   # b2.delete() ignores the reply, so check it here
+                if r.status_code < 300 or r.status_code == 404: gone += 1
+                else: bad += 1; err = f'{r.status_code} {r.text[:120]}'
             except SystemExit as ex: bad += 1; err = ex
             except Exception as ex: bad += 1; err = ex
-    print(f'Backblaze: {gone} removed' + (f', {bad} FAILED (last: {err}). Fix the Backblaze key in ~/.trialbank_keys and run this again.' if bad else ''))
+    print(f'Backblaze: {gone} removed or already gone' + (f', {bad} FAILED (last: {err}). Fix the Backblaze key in ~/.trialbank_keys and run this again.' if bad else ''))
 
 
 if __name__ == '__main__':
-    {'download': download, 'thumbs': thumbs, 'upload': upload, 'unhost': unhost}.get(sys.argv[1] if len(sys.argv) > 1 else '', lambda: sys.exit(__doc__))()
+    {'download': download, 'thumbs': thumbs, 'upload': upload, 'covers': covers, 'unhost': unhost}.get(sys.argv[1] if len(sys.argv) > 1 else '', lambda: sys.exit(__doc__))()
