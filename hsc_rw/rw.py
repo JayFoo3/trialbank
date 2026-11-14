@@ -7,7 +7,17 @@ A paper's file (ext1_2023.py ...) lists them by question id; every answer is wor
 Maths goes in \\( ... \\); render.js turns it into KaTeX HTML. Then: python3 upload_hsc_rw.py <slug>"""
 import json, os, random, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'quick', 'gen2'))
-from lib import plain, ln
+from lib import ln
+import html as _html, re as _re
+
+
+def plain(s):
+    """Text for the marker: maths without its \\( \\) and HTML tags removed. Only real tags (<b>, <br>, <svg ...>) are stripped, so a
+    '<' inside maths such as 0 < x < pi survives. Diagrams become [diagram]."""
+    s = _re.sub(r'<svg\b.*?</svg>', ' [diagram] ', s, flags=_re.S)
+    s = _re.sub(r'\\\((.+?)\\\)', lambda m: m.group(1), s, flags=_re.S)
+    s = _re.sub(r'</?[A-Za-z][^<>]*>', '', s)
+    return _html.unescape(s)
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out'); os.makedirs(OUT, exist_ok=True)
 
 
