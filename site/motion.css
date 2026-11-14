@@ -1,0 +1,73 @@
+/* motion.css - one calm, quick way of moving across the whole site. Loaded last, so removing its <link> in index.html undoes all of it.
+   Rules of thumb: things arrive with a short fade and a small drift (no big slides, no bounce past the target), feedback to a tap is
+   immediate, and nothing moves for people who ask their device for reduced motion. */
+:root { --mo-out: cubic-bezier(.2, .8, .2, 1); --mo-settle: cubic-bezier(.3, 1.25, .5, 1); }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* page changes: the old page fades and drifts a little, the new one settles in from the direction you went (was a full-width slide) */
+  /* the old page is mostly gone before the new one appears, so the two never show through each other */
+  ::view-transition-old(root) { animation: mo-out .12s ease-in both; }
+  ::view-transition-new(root) { animation: mo-in .26s var(--mo-out) .07s both; }
+  html[data-vt="forward"]::view-transition-old(root) { animation-name: mo-out-l; z-index: auto; }
+  html[data-vt="forward"]::view-transition-new(root) { animation-name: mo-in-r; }
+  html[data-vt="back"]::view-transition-old(root) { animation-name: mo-out-r; z-index: auto; }
+  html[data-vt="back"]::view-transition-new(root) { animation-name: mo-in-l; }
+  /* the header stays put during a page change, so the tab indicator can glide (motion.js) instead of flickering */
+  ::view-transition-old(tb-top) { display: none; }
+  ::view-transition-new(tb-top) { animation: none; }
+
+  /* the tab indicator glides between tabs */
+  .mo-pill { position: absolute; z-index: 0; left: 0; top: 0; border-radius: var(--r-sm); background: var(--paper); box-shadow: inset 0 0 0 2px var(--rule);
+    transition: transform .32s var(--mo-settle), width .32s var(--mo-settle), height .32s var(--mo-settle), opacity .2s; pointer-events: none; }
+  .mainnav.mo-has-pill { position: relative; }
+  .mainnav.mo-has-pill a { position: relative; z-index: 1; transition: color .2s; }
+  .mainnav.mo-has-pill a.on { background: none; box-shadow: none; border-color: transparent; }
+
+  /* lists arrive one after another, quickly (only the first dozen wait, so long lists never feel slow) */
+  .ptile, .tp-card, .pschool, .list > *, .pa, .chips > button { animation: mo-rise .32s var(--mo-out) backwards; }
+  .ptile:nth-child(2), .tp-card:nth-child(2), .pschool:nth-of-type(2), .list > :nth-child(2) { animation-delay: 25ms; }
+  .ptile:nth-child(3), .tp-card:nth-child(3), .pschool:nth-of-type(3), .list > :nth-child(3) { animation-delay: 50ms; }
+  .ptile:nth-child(4), .tp-card:nth-child(4), .pschool:nth-of-type(4), .list > :nth-child(4) { animation-delay: 75ms; }
+  .ptile:nth-child(5), .tp-card:nth-child(5), .pschool:nth-of-type(5), .list > :nth-child(5) { animation-delay: 100ms; }
+  .ptile:nth-child(6), .tp-card:nth-child(6), .pschool:nth-of-type(6), .list > :nth-child(6) { animation-delay: 120ms; }
+  .ptile:nth-child(7), .tp-card:nth-child(7), .list > :nth-child(7) { animation-delay: 140ms; }
+  .ptile:nth-child(n+8), .tp-card:nth-child(n+8), .list > :nth-child(n+8) { animation-delay: 160ms; }
+
+  /* the next question settles in rather than popping */
+  .card.question.enter, #q-online.enter { animation: mo-rise .3s var(--mo-out) backwards; }
+  .tabpane { animation: mo-fade .22s ease-out backwards; }
+
+  /* dialogs: a quick, small scale-up with no overshoot */
+  .modal { animation: mo-fade .18s ease-out backwards; }
+  .modal-card { animation: mo-pop .26s var(--mo-out) backwards; }
+
+  /* taps: press down instantly, spring back on release */
+  button, .button, a.other, .ol-opt, .pa, .ptile, .chip, .menu-item {
+    transition: transform .28s var(--mo-settle), box-shadow .18s var(--mo-out), background-color .18s, border-color .18s, color .18s, opacity .18s; }
+  button:active:not(:disabled), .button:active, a.other:active, .ol-opt:active:not(:disabled), .pa:active, .ptile:active { transition-duration: .06s; }
+
+  /* answer feedback: the right answer fills in, a wrong pick gives one short shake */
+  .ol-opt.right, .ol-opt.good, .ol-opt.correct { animation: mo-good .45s var(--mo-out); }
+  .ol-opt.wrong { animation: mo-no .32s ease-out; }
+  .ol-opt.picked .ol-box { animation: mo-tick .22s var(--mo-out); }
+
+  /* progress glides to where it's going */
+  #set-bar, .progress div { transition: width .5s var(--mo-out); }
+
+  /* menus and popovers drop in from where they were opened */
+  .menu:not([hidden]), .dropdown:not([hidden]), .pop:not([hidden]) { animation: mo-drop .18s var(--mo-out) backwards; }
+}
+
+@keyframes mo-out { to { opacity: 0; } }
+@keyframes mo-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes mo-out-l { to { opacity: 0; transform: translateX(-16px); } }
+@keyframes mo-in-r { from { opacity: 0; transform: translateX(22px); } }
+@keyframes mo-out-r { to { opacity: 0; transform: translateX(16px); } }
+@keyframes mo-in-l { from { opacity: 0; transform: translateX(-22px); } }
+@keyframes mo-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes mo-fade { from { opacity: 0; } }
+@keyframes mo-pop { from { opacity: 0; transform: translateY(6px) scale(.97); } }
+@keyframes mo-drop { from { opacity: 0; transform: translateY(-4px) scale(.98); } }
+@keyframes mo-good { 0% { transform: scale(1); } 35% { transform: scale(1.015); } 100% { transform: scale(1); } }
+@keyframes mo-tick { from { transform: scale(.82); } }
+@keyframes mo-no { 20% { transform: translateX(-4px); } 50% { transform: translateX(3px); } 80% { transform: translateX(-1px); } }
