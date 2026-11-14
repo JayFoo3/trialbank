@@ -1348,7 +1348,8 @@
     if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${s.sid}_${x.id}`, { scope: $('view-set'), full: true, ...inductionSpace(x) })); qcard.prepend(tb); }
     $('set-pos').innerHTML = `<b>${s.i + 1} of ${s.qs.length}</b><span>${esc(topicName(x.topic))}</span>`;
     firstHint(x);
-    $('set-meta').textContent = isProof(x) ? (x.content.format ? `Quick question · ${x.content.format === 'extended' ? 'Extended working' : 'Written'} · ${x.marks} mark${x.marks === 1 ? '' : 's'}` : `Induction drill · ${x.marks} marks`) : isQuick(x.papers) ? `Quick question · ${topicName(x.topic)}` : isBook(x.papers) ? `Margaret · ${bookLabel(x)}` : `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
+    $('set-meta').textContent = x.content?.own ? `${x.papers.school} ${x.papers.year} ${label(x)} · Trialbank version · ${x.marks} mark${x.marks === 1 ? '' : 's'}`   // our own version of an official HSC question (hsc_rw/)
+      : isProof(x) ? (x.content.format ? `Quick question · ${x.content.format === 'extended' ? 'Extended working' : 'Written'} · ${x.marks} mark${x.marks === 1 ? '' : 's'}` : `Induction drill · ${x.marks} marks`) : isQuick(x.papers) ? `Quick question · ${topicName(x.topic)}` : isBook(x.papers) ? `Margaret · ${bookLabel(x)}` : `${x.papers.school} ${x.papers.year} ${label(x)} · ${x.marks} mark${x.marks === 1 ? '' : 's'}`;
     $('set-bar').style.width = `${(s.i / s.qs.length) * 100}%`;
     const qi = $('q-img'); qi.crossOrigin = 'anonymous';
     if (x.content) qi.removeAttribute('src');
