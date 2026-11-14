@@ -2885,6 +2885,7 @@
   }
   // original PDF from the private bucket; falls back to a rebuilt PDF if the file isn't uploaded
   async function officialPdf(btn, p, key, opts, errEl) {
+    if (p && isHsc(p)) { window.open(NESA.link(p.slug, key === 'pdf_sol_path' ? 'mg' : 'exam'), '_blank', 'noopener'); return; }   // NESA's paper: send them to NESA's copy
     const path = p && p[key];
     if (!path) return pdfAction(btn, opts, errEl);
     const old = btn.textContent; btn.disabled = true; btn.textContent = 'Preparing…';
@@ -2951,7 +2952,7 @@
     if (papers) papers.splice(0, papers.length, ...papers.filter(seePaper));
     const best = {};
     (exams || []).forEach(e => { if (e.out_of) best[e.paper_id] = Math.max(best[e.paper_id] || 0, Math.round(100 * e.score / e.out_of)); });
-    const thumbs = await thumbUrls((papers || []).map(p => `${p.slug}/thumb.webp`)).catch(() => ({}));
+    const thumbs = await thumbUrls((papers || []).filter(p => !isHsc(p)).map(p => `${p.slug}/thumb.webp`)).catch(() => ({}));
     papersData = { papers: papers || [], sum: Object.fromEntries((sums || []).map(s => [s.paper_id, s])), best, thumbs };
     drawPapers();
   }
@@ -3009,7 +3010,7 @@
         const a = mk('a', 'ptile');
         a.href = '#paper/' + encodeURIComponent(p.slug);
         a.title = `${p.school} ${p.year}`;
-        const url = thumbs[`${p.slug}/thumb.webp`];
+        const url = isHsc(p) ? null : thumbs[`${p.slug}/thumb.webp`];   // no copies of NESA's cover pages
         a.innerHTML = `<div class="pthumb${url ? ' loading' : ''}">${url ? `<img loading="lazy" decoding="async" alt="" src="${esc(url)}">` : `<span>${esc(p.school)}<br>${p.year}</span>`}${best[p.id] != null ? `<span class="tag">${best[p.id]}%</span>` : ''}</div>
           <div class="pname"><strong>${esc(p.year)}</strong>${levelBadge(p, false)}</div>`;
         const im = a.querySelector('img');
@@ -3041,6 +3042,13 @@
   }
   async function showPdf(p, key, viewId, countId) {
     const view = $(viewId), id = p.slug + key;
+    const bar = view.closest('.tabpane').querySelector('.pdfbar'); if (bar) bar.hidden = isHsc(p);
+    if (isHsc(p)) {   // official HSC papers stay on NESA's site: one link, nothing hosted or shown here
+      const sol = key === 'pdf_sol_path';
+      view.dataset.for = id; pdfState[viewId] = null; view.style.height = ''; $(countId).textContent = '';
+      view.innerHTML = `<div class="nesa-go"><a class="button primary" href="${esc(NESA.link(p.slug, sol ? 'mg' : 'exam'))}" target="_blank" rel="noopener">${sol ? 'Marking guidelines on NESA' : 'Open the exam on NESA'}</a></div>`;
+      return;
+    }
     fitPdfView(view); requestAnimationFrame(() => fitPdfView(view));
     if (view.dataset.for === id) return drawPdfPage(viewId);       // already loaded: just refit
     view.dataset.for = id; pdfState[viewId] = null;
@@ -3157,7 +3165,7 @@
     $('paper-noq').hidden = hasQs; document.querySelector('#tab-practise .paper-actions').hidden = !hasQs;
     state.paperView = { p, qs };
     $('paper-pdf').textContent = p.pdf_path ? 'Download PDF' : 'Download';
-    paperTab(p.pdf_path || !qs.length ? 'paper' : 'practise');
+    paperTab((p.pdf_path && !isHsc(p)) || !qs.length ? 'paper' : 'practise');
     $('paper-meta').innerHTML = levelBadge(p) + ' ' + esc([C.subjects[p.subject] || p.subject, qs.length ? `${qs.length} questions` : null, total ? `${total} marks` : null, p.scanned ? 'scanned paper: whole pages' : null].filter(Boolean).join(' · '));
     $('paper-practise').onclick = async () => {
       const usable = qs.filter(q => q.image_path || q.content);

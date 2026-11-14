@@ -20,6 +20,12 @@ PAPERS = [
     ('Ext2', 2023, '2025-05/2023-hsc-maths-ext-2.pdf', '2025-05/2023-hsc-maths-ext-2-mg.pdf'),
     ('Ext2', 2024, '2025-05/2024-hsc-maths-ext-2.pdf', '2025-05/2024-hsc-maths-ext-2-mg.pdf'),
     ('Ext2', 2025, '2025-10/2025-hsc-maths-extension-2.pdf', '2025-11/2025-hsc-maths-extension-2-mg.pdf'),
+    # 2015-2019 are the last five papers of the previous Extension 1 syllabus (NESA's archive stops at 2015)
+    ('Ext1', 2015, '2025-05/2015-hsc-maths-ext1.pdf', '2025-05/2015-hsc-mg-maths-ext1.pdf'),
+    ('Ext1', 2016, '2025-05/2016-hsc-maths-ext-1.pdf', '2025-05/2016-hsc-mg-maths-ext-1.pdf'),
+    ('Ext1', 2017, '2025-05/2017-hsc-maths-ext-1.pdf', '2025-05/2017-hsc-mg-maths-ext-1.pdf'),
+    ('Ext1', 2018, '2025-05/2018-hsc-mathematics-ext-1.pdf', '2025-05/2018-hsc-maths-ext-1-mg.pdf'),
+    ('Ext1', 2019, '2025-05/2019-hsc-mathematics-extension-1.pdf', '2025-05/2019-hsc-maths-ext-1-mg.pdf'),
     ('Ext1', 2020, '2025-05/2020-hsc-mathematics-extension-1.pdf', '2025-05/2020-hsc-mathematics-ext-1-mg.pdf'),
     ('Ext1', 2021, '2025-05/2021-hsc-mathematics-extension-1.pdf', '2025-05/2021-hsc-maths-ext-1-mg.pdf'),
     ('Ext1', 2022, '2025-05/2022-hsc-mathematics-extension-1.pdf', '2025-05/2022-hsc-maths-ext-1-mg.pdf'),
@@ -116,6 +122,7 @@ def thumbs():
 
 def upload():
     import requests
+    import keys  # noqa: F401  (loads ~/.trialbank_keys, like upload.py)
     url = os.environ.get('SUPABASE_URL', '').rstrip('/'); key = os.environ.get('SUPABASE_SERVICE_KEY', '')
     if not url or not key:
         sys.exit('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
@@ -129,13 +136,7 @@ def upload():
             time.sleep(3 * (i + 1))
         sys.exit(f'{path}: gave up')
 
-    import b2
     only = sys.argv[2] if len(sys.argv) > 2 else None
-    if b2.ready(): print('PDFs -> Backblaze B2')
-
-    def put_pdf(path, data):
-        if b2.ready(): b2.put(path, data)
-        else: put(path, data, 'application/pdf')
 
     for s, y, _, _ in PAPERS:
         if only and s != only:
@@ -145,16 +146,43 @@ def upload():
         if not os.path.exists(exam):
             print(slug, 'not downloaded, skipped'); continue
         raw = open(exam, 'rb').read()
-        put_pdf(f'{slug}/paper.pdf', raw)
-        if os.path.exists(mg): put_pdf(f'{slug}/mg.pdf', open(mg, 'rb').read())
-        if os.path.exists(th): put(f'{slug}/thumb.webp', open(th, 'rb').read(), 'image/webp')
-        row = dict(slug=slug, subject=s, school='HSC', year=y, difficulty='HSC', sha256=hashlib.sha256(raw).hexdigest(),
-                   pdf_path=f'{slug}/paper.pdf', pdf_sol_path=f'{slug}/mg.pdf' if os.path.exists(mg) else None)
+        # NESA's PDFs and cover pages are not hosted: the site links to NESA's own copy (site/nesa.js). Only the paper's row goes up.
+        row = dict(slug=slug, subject=s, school='HSC', year=y, difficulty='HSC', sha256=hashlib.sha256(raw).hexdigest(), pdf_path=None, pdf_sol_path=None)
         r = requests.post(f'{url}/rest/v1/papers?on_conflict=slug', headers={**H, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'}, data=json.dumps(row), timeout=60)
         if r.status_code >= 300: sys.exit(f'{slug}: {r.status_code} {r.text[:200]}')
         print('uploaded', slug)
     print('done')
 
 
+def unhost():
+    """Take NESA's PDFs and cover pages off Trialbank's storage (the site links to NESA instead). Safe to run again."""
+    import requests
+    import keys  # noqa: F401
+    url = os.environ.get('SUPABASE_URL', '').rstrip('/'); key = os.environ.get('SUPABASE_SERVICE_KEY', '')
+    if not url or not key:
+        sys.exit('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
+    H = {'apikey': key, 'Authorization': f'Bearer {key}'}
+    r = requests.patch(f'{url}/rest/v1/papers?difficulty=eq.HSC', headers={**H, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+                       data=json.dumps({'pdf_path': None, 'pdf_sol_path': None}), timeout=60)
+    if r.status_code >= 300: sys.exit(f'papers: {r.status_code} {r.text[:200]}')
+    slugs = sorted(p['slug'] for p in r.json())
+    print(f'{len(slugs)} HSC papers no longer point at a hosted PDF')
+    names = [f'{s}/{n}' for s in slugs for n in ('paper.pdf', 'mg.pdf', 'thumb.webp')]
+    for i in range(0, len(names), 100):
+        r = requests.delete(f'{url}/storage/v1/object/questions', headers={**H, 'Content-Type': 'application/json'}, data=json.dumps({'prefixes': names[i:i + 100]}), timeout=120)
+        if r.status_code >= 300: print(f'Supabase storage: {r.status_code} {r.text[:200]}')
+    print('removed from Supabase storage')
+    import b2
+    if not b2.ready():
+        print('Backblaze keys not set: nothing removed there'); return
+    gone = bad = 0
+    for s in slugs:
+        for n in ('paper.pdf', 'mg.pdf'):
+            try: b2.delete(f'{s}/{n}'); gone += 1
+            except SystemExit as ex: bad += 1; err = ex
+            except Exception as ex: bad += 1; err = ex
+    print(f'Backblaze: {gone} removed' + (f', {bad} FAILED (last: {err}). Fix the Backblaze key in ~/.trialbank_keys and run this again.' if bad else ''))
+
+
 if __name__ == '__main__':
-    {'download': download, 'thumbs': thumbs, 'upload': upload}.get(sys.argv[1] if len(sys.argv) > 1 else '', lambda: sys.exit(__doc__))()
+    {'download': download, 'thumbs': thumbs, 'upload': upload, 'unhost': unhost}.get(sys.argv[1] if len(sys.argv) > 1 else '', lambda: sys.exit(__doc__))()

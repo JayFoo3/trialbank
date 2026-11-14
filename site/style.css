@@ -3359,3 +3359,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .pace.over { background: var(--bad-soft); color: var(--bad); }
 .pace.held:not(.over) { background: var(--good-soft); color: var(--good); }
 .summary-pace { margin: 6px 0 12px; font-weight: 600; }
+
+/* an official HSC paper: a single link to NESA's own copy (see nesa.js) */
+.nesa-go { display: grid; place-items: center; padding: 56px 0; }
+.nesa-go a { text-decoration: none; display: inline-block; padding: 12px 22px; }
