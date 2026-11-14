@@ -66,6 +66,7 @@
     r.toggleAttribute('data-duel', on);
   }
   function showNow(name) {
+    { const b = $('boot'); if (b && !b.classList.contains('gone')) { b.classList.add('gone'); setTimeout(() => b.remove(), 300); } }   // first page is ready: lift the loading screen
     $('preview-bar').hidden = !(state.preview && state.user); drawBars();
     views.forEach(v => $('view-' + v).hidden = v !== name);
     $('nav').hidden = !state.user; $('top-right').hidden = !state.user;

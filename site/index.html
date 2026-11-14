@@ -33,8 +33,20 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
   r.dataset.theme = p.theme === 'dark' || (p.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
   if (p.accent) r.dataset.accent = p.accent; const bg = p.bg || 'dots'; if (bg !== 'plain') r.dataset.bg = bg === 'photo' ? 'dots' : bg; } catch (e) {}
 </script>
+<style>/* the loading screen: shown from the first paint until the app has worked out which page to show (app.js showNow removes it) */
+#boot { position: fixed; inset: 0; z-index: 5000; display: grid; place-content: center; justify-items: center; gap: 18px; background: var(--bg, #fbfaf7); transition: opacity .25s ease-out; }
+#boot.gone { opacity: 0; pointer-events: none; }
+.boot-name { font: 900 2.1rem/1 Nunito, system-ui, sans-serif; letter-spacing: -.02em; color: var(--biro, #2f5be8); }
+.boot-bar { width: 132px; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--biro, #2f5be8) 16%, transparent); overflow: hidden; }
+.boot-bar i { display: block; width: 40%; height: 100%; border-radius: inherit; background: var(--biro, #2f5be8); animation: boot-run 1.1s cubic-bezier(.45, 0, .55, 1) infinite alternate; }
+@keyframes boot-run { from { transform: translateX(-20%); } to { transform: translateX(170%); } }
+.boot-late { font: 700 .95rem Nunito, system-ui, sans-serif; color: var(--muted, #6b7280); opacity: 0; animation: boot-late .3s 12s forwards; }
+@keyframes boot-late { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .boot-bar i { animation: none; width: 100%; opacity: .5; } }
+</style>
 </head>
 <body>
+<div id="boot" role="status" aria-label="Loading Trialbank"><span class="boot-name">Trialbank</span><span class="boot-bar"><i></i></span><a class="boot-late" href="">Taking a while. Tap to reload</a></div>
 <header class="top" id="top">
   <div class="top-in">
     <a class="brand" href="#home"><span id="brand">trialbank</span></a>
