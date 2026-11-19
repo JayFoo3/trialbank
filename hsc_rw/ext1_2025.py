@@ -265,7 +265,7 @@ while tested < 20:
     rts = [complex(r) for r in sp.Poly(x**3 + b0 * x**2 + c0 * x + b0 - math.sqrt(3) + math.sqrt(3) * c0, x).nroots()]
     if any(abs(r.imag) > 1e-9 for r in rts): continue
     s_ = sum(math.atan(r.real) for r in rts); assert abs(math.tan(s_) + math.sqrt(3)) < 1e-6 or abs(math.cos(s_)) < 1e-9; tested += 1
-P.W(')q14e', 3, "It is given that \\(\\tan\\alpha\\), \\(\\tan\\beta\\) and \\(\\tan\\gamma\\) are the three real roots of \\(x^3 + bx^2 + cx + b + \\sqrt{3}c - \\sqrt{3} = 0\\), where \\(b\\) and \\(c\\) are real numbers and \\(c \\ne 1\\). Find the smallest positive value of \\(\\alpha + \\beta + \\gamma\\).",
+P.W('q14e', 3, "It is given that \\(\\tan\\alpha\\), \\(\\tan\\beta\\) and \\(\\tan\\gamma\\) are the three real roots of \\(x^3 + bx^2 + cx + b + \\sqrt{3}c - \\sqrt{3} = 0\\), where \\(b\\) and \\(c\\) are real numbers and \\(c \\ne 1\\). Find the smallest positive value of \\(\\alpha + \\beta + \\gamma\\).",
     ["Let the roots be \\(p = \\tan\\alpha\\), \\(q = \\tan\\beta\\), \\(r = \\tan\\gamma\\). Then \\(p + q + r = -b\\), \\(pq + pr + qr = c\\) and \\(pqr = -(b + \\sqrt{3}c - \\sqrt{3})\\).",
      "\\(\\tan(\\alpha + \\beta + \\gamma) = \\dfrac{p + q + r - pqr}{1 - (pq + pr + qr)} = \\dfrac{-b + b + \\sqrt{3}c - \\sqrt{3}}{1 - c} = \\dfrac{\\sqrt{3}(c - 1)}{1 - c} = -\\sqrt{3}\\)",
      "So \\(\\alpha + \\beta + \\gamma = \\frac{2\\pi}{3} + n\\pi\\), and the smallest positive value is \\(\\frac{2\\pi}{3}\\)."],
