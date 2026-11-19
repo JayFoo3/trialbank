@@ -2,6 +2,7 @@
 // Secrets: ANTHROPIC_API_KEY (set in Supabase > Edge Functions > Secrets). SUPABASE_URL and
 // SUPABASE_SERVICE_ROLE_KEY are provided automatically.
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
+import { download } from '../_shared/images.ts';
 import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
 
 const MODEL = Deno.env.get('AUTOMARK_MODEL') ?? 'claude-sonnet-5-5';
@@ -212,7 +213,7 @@ Deno.serve(async (req) => {
   runId = Number(rv.id);
 
   const img = async (bucket: string, path: string) => {
-    const { data, error } = await admin.storage.from(bucket).download(path);
+    const { data, error } = await download(admin, bucket, path);
     if (error || !data) throw new Error('A page could not be read. Upload it again.');
     if (data.size > 4_500_000) throw new Error('A page image is too large.');
     return { type: 'image', source: { type: 'base64', media_type: mediaType(path, data.type), data: encodeBase64(new Uint8Array(await data.arrayBuffer())) } };

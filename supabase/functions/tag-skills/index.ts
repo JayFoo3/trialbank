@@ -3,6 +3,7 @@
 // and gets questions.skills = the step ids it needs. Students can then say how far into a topic their class is.
 // Secrets: ANTHROPIC_API_KEY. SUPABASE_URL and the service key are provided automatically.
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
+import { download } from '../_shared/images.ts';
 import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
 import jpeg from 'npm:jpeg-js@0.4.4';
 import { PNG } from 'npm:pngjs@7.0.0';
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
   let shrunk = 0, later = 0;
   await Promise.all(todo.map(async (q) => {
     try {
-      const { data: file, error: ferr } = await admin.storage.from('questions').download(q.image_path);
+      const { data: file, error: ferr } = await download(admin, 'questions', q.image_path);
       if (ferr || !file) throw new Error('missing image');
       let img: Uint8Array = new Uint8Array(await file.arrayBuffer()), type = mediaType(q.image_path, file.type);
       const d = dims(img);

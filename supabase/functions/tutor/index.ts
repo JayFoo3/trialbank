@@ -2,6 +2,7 @@
 // The tutor works one step at a time on a real past question, checks against the marking guidelines, notices slips,
 // and learns how each student likes to learn. Secrets: ANTHROPIC_API_KEY (shared with automark).
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
+import { download } from '../_shared/images.ts';
 import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
 
 const MODEL = Deno.env.get('TUTOR_MODEL') ?? 'claude-sonnet-5-5';
@@ -333,7 +334,7 @@ Deno.serve(async (req) => {
   };
 
   const img = async (bucket: string, path: string) => {
-    const { data, error } = await admin.storage.from(bucket).download(path);
+    const { data, error } = await download(admin, bucket, path);
     if (error || !data) throw new Error('A photo could not be read. Send it again.');
     if (data.size > 4_500_000) throw new Error('That photo is too large.');
     return { type: 'image', source: { type: 'base64', media_type: mediaType(path, data.type), data: encodeBase64(new Uint8Array(await data.arrayBuffer())) } };

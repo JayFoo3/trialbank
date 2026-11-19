@@ -2,6 +2,7 @@
 // marking guideline. Used in practice sets and 1v1 battles, where self-marking would be too easy to fudge.
 // Secrets: ANTHROPIC_API_KEY. SUPABASE_URL and the service key are provided automatically.
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
+import { download } from '../_shared/images.ts';
 import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
 
 const MODEL = Deno.env.get('QMARK_MODEL') ?? 'claude-sonnet-5-5';
@@ -167,7 +168,7 @@ Deno.serve(async (req) => {
   const fail = async (msg: string) => { await admin.from('question_marks').update({ cost_usd: 0, error: msg.slice(0, 200) }).eq('id', runId); };
 
   const img = async (bucket: string, path: string) => {
-    const { data, error } = await admin.storage.from(bucket).download(path);
+    const { data, error } = await download(admin, bucket, path);
     if (error || !data) throw new Error('could not be read');
     if (data.size > 4_500_000) throw new Error('too large');
     return { type: 'image', source: { type: 'base64', media_type: mediaType(path, data.type), data: encodeBase64(new Uint8Array(await data.arrayBuffer())) } };

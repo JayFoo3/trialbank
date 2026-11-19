@@ -386,7 +386,7 @@
   // ---------- NESA formula / reference sheet, beside the calculator ----------
   // one official sheet per course: the maths one holds Ext 2, Ext 1 and Advanced pages, so each course shows its own and the ones beneath it
   const SHEETS = { Adv: ['m3', 'm4'], Ext1: ['m2', 'm3', 'm4'], Ext2: ['m1', 'm2', 'm3', 'm4'], Physics: ['p1', 'p2', 'p3', 'p4'] };
-  const sheetSubj = () => { const s = (location.hash.startsWith('#set') && state.set?.qs?.[state.set.i]?.papers?.subject) || state.subject; return s === 'Book' ? 'Ext1' : s; };   // the Margaret book is Extension 1
+  const sheetSubj = () => { const s = (location.hash.startsWith('#set') && state.set?.qs?.[state.set.i]?.papers?.subject) || state.subject; return s === 'Book' ? 'Ext1' : s === 'AdvHSC' ? 'Adv' : s; };   // the Margaret book is Extension 1; the real HSC Advanced set is Advanced
   function drawSheetBtns() {
     const has = !!SHEETS[sheetSubj()];
     document.querySelectorAll('[data-sheet]').forEach(b => { b.hidden = !has; });
@@ -1142,8 +1142,79 @@
       body.appendChild(crow);
     });
   }
+  // ---------- real HSC Maths Advanced questions (NESA's own wording), only for admins, like Margaret ----------
+  // Papers are slugged hscreal-adv-<year> with subject 'AdvHSC', so they never show up in normal practice, the Papers page or stats.
+  // Pick questions from any year, then start them now or keep them in My list (saved on this device) for the class's set list.
+  let hrRows = null, hrYear = null; const hrPick = new Set();
+  const HR_LIST = 'tb_hr_list';
+  const hrYearOf = (q) => Number((/^hscreal-adv-(\d{4})\//.exec(q.id || '') || [])[1] || 0);
+  const hrShort = (q) => label(q).slice(1);   // '11(a)'
+  const hrList = () => { try { return JSON.parse(localStorage.getItem(HR_LIST) || '[]'); } catch { return []; } };
+  const hrSave = (ids) => { try { localStorage.setItem(HR_LIST, JSON.stringify(ids)); } catch { /* storage blocked */ } };
+  async function loadReal() {
+    const rows = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from('questions').select(QCOLS).like('id', 'hscreal-adv-%').order('id').range(from, from + 999);
+      if (error) throw error;
+      rows.push(...(data || []));
+      if (!data || data.length < 1000) break;
+    }
+    return rows.sort((a, b) => hrYearOf(b) - hrYearOf(a) || a.number - b.number || String(a.part || '').localeCompare(String(b.part || '')));
+  }
+  async function drawReal() {
+    const card = $('hr-card'); if (!card) return;
+    card.hidden = !adminOn() || state.preview || state.subject !== 'Adv'; if (card.hidden) return;
+    if (!hrRows) hrRows = await loadReal();
+    if (!hrRows.length) { card.hidden = true; return; }
+    const body = $('hr-body'); body.innerHTML = '';
+    const ids = hrList(), listed = ids.map(id => hrRows.find(q => q.id === id)).filter(Boolean);
+    const start = (qs) => busy(async () => { await startSet(qs.map(q => ({ ...q }))); });
+    // My list
+    const lrow = mk('div', 'tb-ex hr-list' + (listed.length ? ' open' : ''));
+    lrow.appendChild(mk('div', 'tb-ex-h', `<b>My list</b><span>${listed.length}</span>`));
+    if (listed.length) {
+      const chips = mk('div', 'hr-chips');
+      listed.forEach(q => {
+        const c = mk('button', 'hr-chip', `${hrYearOf(q)} Q${esc(hrShort(q))}<i aria-hidden="true">×</i>`); c.type = 'button'; c.title = 'Remove from My list';
+        c.onclick = () => { hrSave(hrList().filter(id => id !== q.id)); drawReal(); };
+        chips.appendChild(c);
+      });
+      const go = mk('button', 'primary tb-go', `Start my list`); go.type = 'button'; go.onclick = () => start(listed);
+      lrow.append(chips, go);
+    }
+    body.appendChild(lrow);
+    // each year
+    const years = [...new Set(hrRows.map(hrYearOf))];
+    years.forEach(y => {
+      const qs = hrRows.filter(q => hrYearOf(q) === y), open = hrYear === y, row = mk('div', 'tb-ex' + (open ? ' open' : ''));
+      const picked = qs.filter(q => hrPick.has(q.id)).length;
+      const head = mk('button', 'tb-ex-h', `<b>HSC ${y}</b><span>${picked ? picked + ' picked · ' : ''}${qs.length}</span>`); head.type = 'button';
+      head.onclick = () => { hrYear = open ? null : y; drawReal(); };
+      row.appendChild(head);
+      if (open) {
+        const grid = mk('div', 'tb-grid hr-grid');
+        qs.forEach(q => {
+          const b = mk('button', 'tb-q' + (hrPick.has(q.id) ? ' on' : '') + (ids.includes(q.id) ? ' listed' : ''), esc(hrShort(q))); b.type = 'button';
+          b.onclick = () => { hrPick.has(q.id) ? hrPick.delete(q.id) : hrPick.add(q.id); drawReal(); };
+          grid.appendChild(b);
+        });
+        row.appendChild(grid);
+      }
+      body.appendChild(row);
+    });
+    if (hrPick.size) {   // picks can span years
+      const picks = hrRows.filter(q => hrPick.has(q.id));
+      const bar = mk('div', 'hr-bar');
+      const add = mk('button', '', `Add ${picks.length} to my list`); add.type = 'button';
+      add.onclick = () => { const cur = hrList(); hrSave([...cur, ...picks.map(q => q.id).filter(id => !cur.includes(id))]); hrPick.clear(); drawReal(); };
+      const go = mk('button', 'primary', `Start ${picks.length}`); go.type = 'button'; go.onclick = () => start(picks);
+      bar.append(add, go);
+      body.appendChild(bar);
+    }
+  }
   async function renderBuild() {
     drawTextbook().catch(err => console.warn('textbook', err));
+    drawReal().catch(err => console.warn('real hsc', err));
     $('open-syllabus').hidden = !SYLLABUS[state.subject];
     $('pr-error').hidden = true;
     const [counts, { data: mine }] = await Promise.all([loadTopicCounts(), sb.from('my_topic_stats').select('*').eq('subject', state.subject)]);
@@ -1303,14 +1374,26 @@
     } finally { $('start').disabled = false; }
   };
 
+  // question images: most were moved to Backblaze B2 to stay inside Supabase's free storage (their paths start 'b2:');
+  // the rest are still in Supabase storage. B2 links last all day, so they're kept here and the browser reuses its copy.
+  const b2Seen = new Map();   // path -> [url, day]
   async function signed(paths, secs = 3600) {
     paths = [...new Set(paths.filter(Boolean))];
-    const out = {};
-    for (let i = 0; i < paths.length; i += 100) {
-      const { data, error } = await sb.storage.from('questions').createSignedUrls(paths.slice(i, i + 100), secs);
+    const out = {}, today = new Date().toISOString().slice(0, 10);
+    const b2 = paths.filter(p => p.startsWith('b2:')), sup = paths.filter(p => !p.startsWith('b2:'));
+    const need = b2.filter(p => { const k = b2Seen.get(p); if (k && k[1] === today) { out[p] = k[0]; return false; } return true; });
+    const jobs = [];
+    for (let i = 0; i < need.length; i += 300) jobs.push((async () => {
+      const { data, error } = await sb.functions.invoke('img-urls', { body: { paths: need.slice(i, i + 300) } });
+      if (error) throw error;
+      Object.entries(data?.urls || {}).forEach(([p, u]) => { out[p] = u; b2Seen.set(p, [u, today]); });
+    })());
+    for (let i = 0; i < sup.length; i += 100) jobs.push((async () => {
+      const { data, error } = await sb.storage.from('questions').createSignedUrls(sup.slice(i, i + 100), secs);
       if (error) throw error;
       data.forEach(u => { out[u.path] = u.signedUrl; });
-    }
+    })());
+    await Promise.all(jobs);
     return out;
   }
   async function attachUrls(qs, urls) {

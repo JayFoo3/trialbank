@@ -25,30 +25,56 @@
     catch { /* storage full: keep it in memory for this visit */ }
   };
 
-  // ---- drawing one stroke. Points are [x, y, pressure] in units of the page width; oy = where its anchor sits now ----
-  function drawStroke(ctx, st, w, oy, ox = 0) {
-    const p = st.p; if (!p || !p.length) return;
-    const X = (i) => ox + p[i] * w, Y = (i) => oy + p[i + 1] * w;
-    ctx.save();
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if (st.t === 'hl') {                 // one smooth path at one width, so overlaps don't go blotchy
-      ctx.strokeStyle = HL; ctx.fillStyle = HL; ctx.lineWidth = 18 * (w / 700);
-      ctx.beginPath(); ctx.moveTo(X(0), Y(0));
-      if (p.length === 3) { ctx.arc(X(0), Y(0), ctx.lineWidth / 2, 0, Math.PI * 2); ctx.fill(); ctx.restore(); return; }
-      for (let i = 3; i < p.length; i += 3) ctx.lineTo(X(i), Y(i));
-      ctx.stroke(); ctx.restore(); return;
+  // ---- drawing. Every stroke is a vector shape (SVG), so it stays sharp at any zoom and on any screen; no pixels to see.
+  // Pen strokes are a filled outline from perfect-freehand (width follows Pencil pressure, smooth ends); highlighter is a
+  // smooth centre line. Shapes are worked out once at a 700px-wide page and scaled to the real width, then cached.
+  const NS = 'http://www.w3.org/2000/svg', REF = 700, HL_SOLID = 'rgb(255, 210, 63)', HL_ALPHA = 0.42;
+  const shapes = new WeakMap();
+  const f2 = (v) => Math.round(v * 100) / 100;
+  function outlinePath(o) {
+    const n = o.length; if (n < 4) return '';
+    const m = (i, j, k) => f2((o[i][k] + o[j][k]) / 2);
+    let d = `M${f2(o[0][0])},${f2(o[0][1])}Q${f2(o[1][0])},${f2(o[1][1])} ${m(1, 2, 0)},${m(1, 2, 1)}T`;
+    for (let i = 2; i < n - 1; i++) d += `${m(i, i + 1, 0)},${m(i, i + 1, 1)} `;
+    return d + 'Z';
+  }
+  function centrePath(pts) {
+    const n = pts.length, P = (i) => `${f2(pts[i][0])},${f2(pts[i][1])}`;
+    if (n === 1) return `M${P(0)}l0.01,0`;
+    let d = `M${P(0)}`;
+    for (let i = 1; i < n - 1; i++) d += `Q${P(i)} ${f2((pts[i][0] + pts[i + 1][0]) / 2)},${f2((pts[i][1] + pts[i + 1][1]) / 2)}`;
+    return d + `L${P(n - 1)}`;
+  }
+  function shape(st, live) {   // path data in REF units, relative to the stroke's anchor
+    let d = live ? null : shapes.get(st); if (d != null) return d;
+    const p = st.p || [], pts = [];
+    for (let i = 0; i < p.length; i += 3) pts.push([p[i] * REF, p[i + 1] * REF, p[i + 2] || 0.5]);
+    if (!pts.length) d = '';
+    else if (st.t === 'hl') d = centrePath(pts);
+    else {
+      const PF = window.PerfectFreehand;
+      const o = PF ? PF.getStroke(pts, { size: (st.w || 2.4) * 1.1, thinning: 0.55, smoothing: 0.62, streamline: live ? 0.3 : 0.4, simulatePressure: false, last: !live }) : [];
+      d = outlinePath(o);
     }
-    const base = (st.w || 2.4) * (w / 700);
-    ctx.strokeStyle = st.c; ctx.fillStyle = st.c;
-    if (p.length === 3) { ctx.beginPath(); ctx.arc(X(0), Y(0), Math.max(1, base * (0.6 + p[2]) / 2), 0, Math.PI * 2); ctx.fill(); ctx.restore(); return; }
-    for (let i = 3; i < p.length; i += 3) {   // smooth through midpoints; width follows pen pressure
-      const x0 = X(i - 3), y0 = Y(i - 3), x1 = X(i), y1 = Y(i);
-      ctx.lineWidth = Math.max(1, base * (0.55 + 0.9 * (p[i + 2] || 0.5)));
-      ctx.beginPath();
-      if (i >= 6) { ctx.moveTo((X(i - 6) + x0) / 2, (Y(i - 6) + y0) / 2); ctx.quadraticCurveTo(x0, y0, (x0 + x1) / 2, (y0 + y1) / 2); }
-      else { ctx.moveTo(x0, y0); ctx.lineTo((x0 + x1) / 2, (y0 + y1) / 2); }
-      ctx.stroke();
-    }
+    if (!live) shapes.set(st, d);
+    return d;
+  }
+  const place = (w, oy, ox) => `translate(${f2(ox)} ${f2(oy)}) scale(${w / REF})`;
+  function strokeEl(st, w, oy, ox, el) {   // one stroke as an SVG path (reuses `el` when given)
+    el = el || document.createElementNS(NS, 'path');
+    el.setAttribute('d', shape(st, el.dataset && el.dataset.live === '1'));
+    el.setAttribute('transform', place(w, oy, ox));
+    if (st.t === 'hl') { el.setAttribute('fill', 'none'); el.setAttribute('stroke', HL_SOLID); el.setAttribute('stroke-width', '18'); el.setAttribute('stroke-linecap', 'round'); el.setAttribute('stroke-linejoin', 'round'); }
+    else { el.setAttribute('fill', st.c || '#1f2329'); el.removeAttribute('stroke'); }
+    return el;
+  }
+  // the same shapes painted onto a canvas (for the picture sent to marking and the tutor)
+  function paint(ctx, st, w, oy, ox = 0) {
+    const d = shape(st); if (!d) return;
+    ctx.save(); ctx.translate(ox, oy); ctx.scale(w / REF, w / REF);
+    const path = new Path2D(d);
+    if (st.t === 'hl') { ctx.globalAlpha = HL_ALPHA; ctx.strokeStyle = HL_SOLID; ctx.lineWidth = 18; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(path); }
+    else { ctx.fillStyle = st.c || '#1f2329'; ctx.fill(path); }
     ctx.restore();
   }
 
@@ -66,13 +92,17 @@
     const MORE = 600, fit = () => { space.style.height = ((look.space || 460) + (data.x || 0) * MORE) + 'px'; };
     fit();
     space.querySelector('.ann-more').onclick = () => { data.x = (data.x || 0) + 1; fit(); store(key, data); };   // remembered with the writing
-    const base = document.createElement('canvas'); base.className = 'ann-canvas';
-    const live = document.createElement('canvas'); live.className = 'ann-canvas ann-live';
+    const base = document.createElementNS(NS, 'svg'); base.setAttribute('class', 'ann-canvas');
+    const hlLayer = document.createElementNS(NS, 'g'), inkLayer = document.createElementNS(NS, 'g');
+    hlLayer.setAttribute('opacity', HL_ALPHA); base.append(hlLayer, inkLayer);   // highlighter sits under the ink, one even wash
+    const live = document.createElementNS(NS, 'svg'); live.setAttribute('class', 'ann-canvas ann-live');
+    const liveHl = document.createElementNS(NS, 'g'); liveHl.setAttribute('opacity', HL_ALPHA);
+    const livePath = document.createElementNS(NS, 'path'); livePath.dataset.live = '1';
+    live.append(liveHl);
     scope.classList.add('ann-on');
     scope.append(space, base, live);
-    const bctx = base.getContext('2d'), lctx = live.getContext('2d');
     const undo = [], redo = [];
-    let w = 0, h = 0, cw = 0, ox = 0, dpr = 1, cur = null, curTop = 0, scrollY = null, tap = null, sizeQueued = false;
+    let w = 0, h = 0, cw = 0, ox = 0, cur = null, curTop = 0, scrollY = null, tap = null, sizeQueued = false;
 
     // anchors: the page's own blocks (question card, answers, solution, working space...). A stroke remembers which one it's on.
     const anchorKey = (el) => el === space ? 'space' : el.id ? '#' + el.id : `${el.className.split(' ')[0] || el.tagName}@${[...scope.children].indexOf(el)}`;
@@ -103,18 +133,22 @@
       const ncw = Math.max(nw, document.documentElement.clientWidth), nox = Math.max(0, Math.round(r.left));
       if (nw !== w || nh !== h || ncw !== cw || nox !== ox) {   // only reallocate when something actually changed size
         w = nw; h = nh; cw = ncw; ox = nox;
-        // iPad Safari blanks canvases over ~16 million pixels: lower the resolution on very tall pages instead
-        dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(15e6 / Math.max(1, cw * h))));
-        for (const c of [base, live]) { c.width = Math.round(cw * dpr); c.height = Math.round(h * dpr); c.style.width = cw + 'px'; c.style.height = h + 'px'; c.style.left = -ox + 'px'; }
-        lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // vector layers: no pixel buffer, so a tall page never has to drop resolution
+        for (const c of [base, live]) { c.setAttribute('width', cw); c.setAttribute('height', h); c.style.width = cw + 'px'; c.style.height = h + 'px'; c.style.left = -ox + 'px'; }
       }
       measure(); redrawBase();
     }
+    function addEl(st, oy) { (st.t === 'hl' ? hlLayer : inkLayer).appendChild(strokeEl(st, w, oy, ox)); }
     function redrawBase() {
-      bctx.setTransform(dpr, 0, 0, dpr, 0, 0); bctx.clearRect(0, 0, cw, h);
-      data.s.forEach(st => { const oy = topOf(st); if (oy !== undefined) drawStroke(bctx, st, w, oy, ox); });
+      hlLayer.replaceChildren(); inkLayer.replaceChildren();
+      data.s.forEach(st => { const oy = topOf(st); if (oy !== undefined) addEl(st, oy); });
     }
-    function redrawLive() { lctx.clearRect(0, 0, cw, h); if (cur && !cur.erase) drawStroke(lctx, cur, w, curTop, ox); }
+    function redrawLive() {
+      if (!cur || cur.erase) { livePath.remove(); return; }
+      strokeEl(cur, w, curTop, ox, livePath);
+      const home = cur.t === 'hl' ? liveHl : live;
+      if (livePath.parentNode !== home) home.appendChild(livePath);
+    }
     const pt = (ev) => { const r = live.getBoundingClientRect(); return [ev.clientX - r.left - ox, ev.clientY - r.top, ev.pressure || 0.5]; };   // x from the page's left edge
     const draws = (ev) => ev.pointerType === 'pen' || ev.pointerType === 'mouse' || tool.touch === 'draw';
     const capture = (ev) => { try { live.setPointerCapture(ev.pointerId); } catch { /* pointer already gone */ } };
@@ -191,54 +225,14 @@
       }
       if (!cur.erase) redrawLive();
     });
-    // scribble back and forth over writing to rub it out (like Apple Notes). Strict on purpose, so handwriting never counts:
-    // at least 5 passes that each cover a good part of the scribble's length, going back over the same strip (not drifting along
-    // like "mmmm" does), and it only removes strokes that sit mostly inside the scribbled patch.
-    function scratchOut(st) {
-      const p = st.p, n = p.length / 3; if (n < 10) return false;
-      const xs = [], ys = [];
-      for (let i = 0; i < n; i++) { xs.push(p[i * 3] * w); ys.push(curTop + p[i * 3 + 1] * w); }
-      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-      const passes = (v) => {   // lengths of the back-and-forth runs along one axis, with jitter under 4px ignored
-        const runs = []; let lo = v[0], hi = v[0], dir = 0, start = v[0];
-        for (let i = 1; i < v.length; i++) {
-          const x = v[i];
-          if (dir >= 0 && x > hi) hi = x;
-          if (dir <= 0 && x < lo) lo = x;
-          if (dir >= 0 && hi - x > 4) { if (dir > 0 || hi - start > 4) runs.push(hi - start); dir = -1; start = hi; lo = x; }
-          else if (dir <= 0 && x - lo > 4) { if (dir < 0 || start - lo > 4) runs.push(start - lo); dir = 1; start = lo; hi = x; }
-        }
-        runs.push(dir > 0 ? hi - start : start - lo);
-        return runs.filter(r => r > 4);
-      };
-      const check = (v, along, across) => {
-        if (along < 16 || across > 1.0 * along) return false;
-        const runs = passes(v); if (runs.length < 5) return false;
-        const sorted = [...runs].sort((a, b) => a - b), med = sorted[sorted.length >> 1];
-        return med >= 0.45 * along;
-      };
-      if (!check(xs, x1 - x0, y1 - y0) && !check(ys, y1 - y0, x1 - x0)) return false;
-      const pad = 3, hit = (st2) => {
-        const oy = topOf(st2); if (oy === undefined) return false;
-        const m = st2.p.length / 3; let inside = 0;
-        for (let i = 0; i < m; i++) { const x = st2.p[i * 3] * w, y = oy + st2.p[i * 3 + 1] * w; if (x >= x0 - pad && x <= x1 + pad && y >= y0 - pad && y <= y1 + pad) inside++; }
-        return inside >= m * 0.4;
-      };
-      const keep = data.s.filter(s2 => !hit(s2));
-      if (keep.length === data.s.length) return false;   // nothing underneath: it's just a drawing, keep it
-      undo.push(data.s); redo.length = 0; data.s = keep; redrawBase();
-      const saving = data; setTimeout(() => store(key, saving), 0);
-      return true;
-    }
     function finish(ev) {
       if (!cur) { drawId = null; return; }
       const quick = ev && downAt && !downAt.moved && performance.now() - downAt.t < 220;   // a real tap, not a quick dot or full stop
       if (quick && !cur.erase && tapThrough(ev.clientX, ev.clientY)) { cur = null; drawId = null; redrawLive(); downAt = null; return; }   // clicked a button
-      if (!cur.erase && cur.t === 'pen' && scratchOut(cur)) { cur = null; drawId = null; downAt = null; redrawLive(); if (sizeQueued) { sizeQueued = false; size(); } return; }
       if (!cur.erase && cur.p.length) {
         undo.push(data.s); redo.length = 0;
         data.s = [...data.s, { ...cur, p: cur.p.map(v => Math.round(v * 10000) / 10000) }];
-        drawStroke(bctx, data.s[data.s.length - 1], w, curTop, ox);   // add just this stroke: no full redraw
+        addEl(data.s[data.s.length - 1], curTop);   // add just this stroke: no full redraw
         const saving = data;
         setTimeout(() => store(key, saving), 0);   // save after the frame, so writing the next stroke never waits on it
       }
@@ -279,7 +273,13 @@
       redo() { if (redo.length) { undo.push(data.s); data.s = redo.pop(); redrawBase(); store(key, data); } },
       clear() { if (data.s.length) { undo.push(data.s); data.s = []; redrawBase(); store(key, data); } },
       count: () => data.s.length,
-      async snapshot() { return base.toDataURL('image/png'); },
+      async snapshot() {   // the whole page's writing as a PNG (transparent background), painted from the vector shapes
+        const k = Math.min(1, Math.sqrt(15e6 / Math.max(1, cw * h)));
+        const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(cw * k)); c.height = Math.max(1, Math.round(h * k));
+        const ctx = c.getContext('2d'); ctx.scale(k, k);
+        data.s.forEach(st => { const oy = topOf(st); if (oy !== undefined) paint(ctx, st, w, oy, ox); });
+        return c.toDataURL('image/png');
+      },
       detach() { ro.disconnect(); mo.disconnect(); removeEventListener('resize', later); cancelAnimationFrame(raf); base.remove(); live.remove(); space.remove(); scope.classList.remove('ann-on'); },
     };
   }
@@ -419,7 +419,7 @@
     let y = 0;
     bands.forEach((b, i) => {
       if (i) { ctx.fillStyle = '#d9d9d9'; ctx.fillRect(pad, y - gap / 2, cw - pad * 2, 1); }
-      b.ss.forEach(st => drawStroke(ctx, st, W, y + pad - b.y0 * W, pad - x0 * W));
+      b.ss.forEach(st => paint(ctx, st, W, y + pad - b.y0 * W, pad - x0 * W));
       y += b.h + gap;
     });
     return new Promise(r => c.toBlob(r, 'image/png'));
