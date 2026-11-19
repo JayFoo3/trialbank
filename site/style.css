@@ -3025,6 +3025,10 @@ canvas.fire.nogl { background: radial-gradient(60% 70% at 50% 100%, rgba(255,170
 .hr-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 10px; }
 .hr-chip { min-height: 0; padding: 6px 10px; border-radius: 999px; font-weight: 700; font-size: .85rem; display: inline-flex; gap: 6px; align-items: center; }
 .hr-chip i { font-style: normal; color: var(--muted); }
+.hr-chip.on { background: var(--biro); border-color: var(--biro); color: #fff; }
+.hr-chip.on i { color: rgba(255,255,255,.75); }
+.hr-grid .tb-q { height: auto; min-height: 44px; display: grid; place-content: center; line-height: 1.1; padding: 4px 0; }
+.hr-grid .tb-q small { display: block; font-size: .7rem; font-weight: 700; opacity: .65; }
 .hr-bar { position: sticky; bottom: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 0 2px; }
 .tb-ex { border-top: 1px solid var(--rule); }
 .tb-ex-h { width: 100%; display: flex; justify-content: space-between; align-items: baseline; background: none; border: 0; box-shadow: none; padding: 11px 2px; min-height: 0; }

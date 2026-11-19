@@ -32,29 +32,22 @@ def rows():
         if len(r.json()) < 1000: return out
 
 
-def ensure_cors():
-    """The site loads images with crossOrigin='anonymous' (to trim and draw them), so B2 must send CORS headers."""
-    a = requests.get('https://api.backblazeb2.com/b2api/v3/b2_authorize_account', auth=(b2.KEY_ID, b2.APP_KEY), timeout=60)
-    if a.status_code >= 300: sys.exit(f'B2 sign-in failed: {a.status_code} {a.text[:200]}')
-    a = a.json(); api = a['apiInfo']['storageApi']['apiUrl']; tok = {'Authorization': a['authorizationToken']}
-    lb = requests.post(f'{api}/b2api/v3/b2_list_buckets', headers=tok, json={'accountId': a['accountId'], 'bucketName': b2.BUCKET}, timeout=60)
-    if lb.status_code >= 300 or not lb.json().get('buckets'):
-        return print('Could not read the bucket settings with this key. Set CORS by hand: Backblaze > Buckets > your bucket > CORS Rules >'
-                     ' "Share everything in this bucket with all HTTPS origins", tick S3 compatible API, Save. Then run this again.') or False
-    bk = lb.json()['buckets'][0]; rules = bk.get('corsRules') or []
-    if any('*' in r.get('allowedOrigins', []) or 'https' in r.get('allowedOrigins', []) for r in rules if 's3_get' in r.get('allowedOperations', [])):
-        print('B2 CORS: already set'); return True
-    rules = rules + [{'corsRuleName': 'trialbankImages', 'allowedOrigins': ['https'], 'allowedHeaders': ['*'],
-                      'allowedOperations': ['s3_get', 's3_head'], 'exposeHeaders': ['content-length'], 'maxAgeSeconds': 86400}]
-    u = requests.post(f'{api}/b2api/v3/b2_update_bucket', headers=tok, json={'accountId': a['accountId'], 'bucketId': bk['bucketId'], 'corsRules': rules}, timeout=60)
-    if u.status_code >= 300:
-        print(f'Could not set CORS ({u.status_code} {u.text[:150]}). Set it by hand: Backblaze > Buckets > your bucket > CORS Rules >'
-              ' "Share everything in this bucket with all HTTPS origins", tick S3 compatible API, Save. Then run this again.'); return False
-    print('B2 CORS: set (images can load on the site)'); return True
+CORS_HOW = ('Backblaze website > Buckets > your Trialbank bucket > CORS Rules > "Share everything in this bucket with all HTTPS origins",'
+            ' tick "S3 Compatible API", Save. Then run this again.')
+
+
+def cors_ok():
+    """The site loads images with crossOrigin='anonymous' (to trim and draw them), so B2 has to answer with CORS headers.
+    Tested with one real request for a file already in the bucket, as a browser on the site would make it."""
+    have = b2.listing()
+    if not have: return None
+    key = next(iter(have))
+    url, h = b2._sign('GET', key, {})
+    r = requests.get(url, headers={**h, 'Origin': 'https://jayfoo3.github.io', 'Range': 'bytes=0-0'}, timeout=60)
+    return bool(r.headers.get('Access-Control-Allow-Origin'))
 
 
 def copy_all():
-    if not ensure_cors(): sys.exit(1)
     rs = rows()
     paths = sorted({p for r in rs for p in (r['image_path'], r['solution_path']) if p and not p.startswith('b2:')})
     # B2's free tier caps lookups (about 2,500 a day), so never check files one by one: one bucket listing per 1,000 files instead
@@ -83,7 +76,10 @@ def copy_all():
     have = b2.listing()
     wrong = [p for p in paths if p not in have or (p in sizes and have[p] != sizes[p])]
     with open(DONE, 'w') as log: log.write('\n'.join(p for p in paths if p not in wrong) + '\n')
-    print(f'Copied {n[0]} this run. ' + ('ALL IMAGES ARE IN B2. Tell Claude, so the site can switch over.' if not wrong else f'{len(wrong)} missing or wrong size (e.g. {wrong[0]}): run it again.'))
+    print(f'Copied {n[0]} this run. ' + ('ALL IMAGES ARE IN B2.' if not wrong else f'{len(wrong)} missing or wrong size (e.g. {wrong[0]}): run it again.'))
+    c = cors_ok()
+    if c: print('B2 CORS: on, the site can load images from B2.' + (' Tell Claude, so the site can switch over.' if not wrong else ''))
+    else: print('B2 CORS: OFF. The site cannot load images from B2 until it is on. Turn it on: ' + CORS_HOW)
 
 
 def delete():

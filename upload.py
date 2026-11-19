@@ -57,9 +57,14 @@ def main():
     ap.add_argument('--only')
     ap.add_argument('--force', action='store_true')
     ap.add_argument('--dry', action='store_true')
+    ap.add_argument('--b2', action='store_true', help="images go to Backblaze B2 (paths saved as 'b2:<slug>/...'), not Supabase storage")
     a = ap.parse_args()
     if not a.dry and (not URL or not KEY):
         die('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
+    if a.b2:
+        global b2
+        import b2
+        b2.need()
 
     existing = set() if a.dry else {p['slug'] for p in rest('GET', 'papers?select=slug,questions(count)') if p['questions'][0]['count']}   # papers with questions already (an HSC paper uploaded as a PDF alone still gets its questions)
     manifests = sorted(glob.glob(os.path.join(HERE, 'output', '*', 'manifest.json')))
@@ -84,8 +89,9 @@ def main():
                 total_bytes += len(data)
                 path = f'{slug}/{os.path.splitext(fn)[0]}.webp'
                 if not a.dry:
-                    put_object(path, data)
-                uploaded[fn] = path
+                    if a.b2: b2.put(path, data, 'image/webp')
+                    else: put_object(path, data)
+                uploaded[fn] = ('b2:' + path) if a.b2 else path
         if a.dry:
             print(f'{slug}: {len(m["questions"])} questions, {len(uploaded)} images')
             continue

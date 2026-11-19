@@ -1145,7 +1145,7 @@
   // ---------- real HSC Maths Advanced questions (NESA's own wording), only for admins, like Margaret ----------
   // Papers are slugged hscreal-adv-<year> with subject 'AdvHSC', so they never show up in normal practice, the Papers page or stats.
   // Pick questions from any year, then start them now or keep them in My list (saved on this device) for the class's set list.
-  let hrRows = null, hrYear = null; const hrPick = new Set();
+  let hrRows = null, hrYear = null, hrTopic = null; const hrPick = new Set();
   const HR_LIST = 'tb_hr_list';
   const hrYearOf = (q) => Number((/^hscreal-adv-(\d{4})\//.exec(q.id || '') || [])[1] || 0);
   const hrShort = (q) => label(q).slice(1);   // '11(a)'
@@ -1183,6 +1183,31 @@
       lrow.append(chips, go);
     }
     body.appendChild(lrow);
+    const qButton = (q, withYear) => {
+      const b = mk('button', 'tb-q' + (hrPick.has(q.id) ? ' on' : '') + (ids.includes(q.id) ? ' listed' : ''), (withYear ? `<small>${hrYearOf(q)}</small>` : '') + esc(hrShort(q))); b.type = 'button';
+      b.onclick = () => { hrPick.has(q.id) ? hrPick.delete(q.id) : hrPick.add(q.id); drawReal(); };
+      return b;
+    };
+    // by topic: every year's questions on one topic (e.g. all the trig), newest first
+    const TRIG = /trig/i, topics = {};
+    hrRows.forEach(q => { if (q.topic) (topics[q.topic] = topics[q.topic] || []).push(q); });
+    const tnames = Object.keys(topics).sort((a, b) => (TRIG.test(b) - TRIG.test(a)) || a.localeCompare(b));
+    const trigQs = hrRows.filter(q => TRIG.test(q.topic || ''));
+    const trow = mk('div', 'tb-ex' + (hrTopic ? ' open' : ''));
+    const thead = mk('button', 'tb-ex-h', `<b>By topic</b><span>${hrTopic ? esc(hrTopic === '*trig' ? 'All trig' : hrTopic) : tnames.length}</span>`); thead.type = 'button';
+    thead.onclick = () => { hrTopic = hrTopic ? null : '*trig'; drawReal(); };
+    trow.appendChild(thead);
+    if (hrTopic) {
+      const chips = mk('div', 'hr-chips hr-topics');
+      const chip = (key, label, n) => { const c = mk('button', 'hr-chip' + (hrTopic === key ? ' on' : ''), `${esc(label)} <i>${n}</i>`); c.type = 'button'; c.onclick = () => { hrTopic = key; drawReal(); }; chips.appendChild(c); };
+      if (trigQs.length) chip('*trig', 'All trig', trigQs.length);
+      tnames.forEach(t => chip(t, t, topics[t].length));
+      const qs = hrTopic === '*trig' ? trigQs : (topics[hrTopic] || []);
+      const grid = mk('div', 'tb-grid hr-grid'); qs.forEach(q => grid.appendChild(qButton(q, true)));
+      const all = mk('button', 'primary tb-go', `Start all ${qs.length}`); all.type = 'button'; all.onclick = () => start(qs);
+      trow.append(chips, grid, all);
+    }
+    body.appendChild(trow);
     // each year
     const years = [...new Set(hrRows.map(hrYearOf))];
     years.forEach(y => {
@@ -1193,11 +1218,7 @@
       row.appendChild(head);
       if (open) {
         const grid = mk('div', 'tb-grid hr-grid');
-        qs.forEach(q => {
-          const b = mk('button', 'tb-q' + (hrPick.has(q.id) ? ' on' : '') + (ids.includes(q.id) ? ' listed' : ''), esc(hrShort(q))); b.type = 'button';
-          b.onclick = () => { hrPick.has(q.id) ? hrPick.delete(q.id) : hrPick.add(q.id); drawReal(); };
-          grid.appendChild(b);
-        });
+        qs.forEach(q => grid.appendChild(qButton(q)));
         row.appendChild(grid);
       }
       body.appendChild(row);

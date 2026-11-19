@@ -8,7 +8,7 @@ offered to students, so the questions only show in the admin "Real HSC" card on 
 Steps (Mac):  caffeinate -i python3 read_hsc.py --subject Adv          read the six papers with Claude Code (your plan)
      (Claude) python3 batch_readings.py "../Math Advanced/Exams"       cut them into output/hsc-adv-<year>/
               python3 real_hsc.py                                      make output/hscreal-adv-<year>/
-     (Mac)    python3 real_hsc.py --upload                             upload them
+     (Mac)    python3 real_hsc.py --upload                             upload them (add --b2 to send the images straight to Backblaze B2)
 """
 import json, os, shutil, subprocess, sys
 
@@ -24,7 +24,7 @@ for year in range(2020, 2026):
     p = os.path.join(dst, 'manifest.json'); m = json.load(open(p))
     m.update(slug=f'hscreal-adv-{year}', subject='AdvHSC', school='HSC', difficulty='HSC')
     json.dump(m, open(p, 'w'), indent=1)
-    done.append(m['slug']); print(f'HSC {year}: {m.get("questions")} questions -> {m["slug"]}')
+    done.append(m['slug']); print(f'HSC {year}: {len(m["questions"])} questions -> {m["slug"]}')
 if '--upload' in sys.argv and done:
     for slug in done:
-        subprocess.run([sys.executable, os.path.join(HERE, 'upload.py'), '--only', slug], check=True)
+        subprocess.run([sys.executable, os.path.join(HERE, 'upload.py'), '--only', slug] + (['--b2'] if '--b2' in sys.argv else []), check=True)
