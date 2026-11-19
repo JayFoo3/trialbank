@@ -27,14 +27,14 @@ def call(method, url, **kw):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('--dry', action='store_true')
+    ap = argparse.ArgumentParser(); ap.add_argument('--dry', action='store_true'); ap.add_argument('--prefix', default='', help='only papers whose slug starts with this')
     a = ap.parse_args()
     if not URL or not KEY:
         die('Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.')
     changed = json.load(open(os.path.join(HERE, 'stems_changed.json')))
     done_path = os.path.join(HERE, 'stems_uploaded.json')
     done = set(json.load(open(done_path))) if os.path.exists(done_path) else set()
-    todo = [k for k in changed if k not in done]
+    todo = [k for k in changed if k not in done and k.startswith(a.prefix)]
     # Sequences and Series first, then Projectile Motion, then the rest of Maths Advanced, then everything else
     topic = {}
     for mp in glob.glob(os.path.join(HERE, 'output', '*', 'manifest.json')):
