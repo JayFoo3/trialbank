@@ -117,7 +117,7 @@ def main(pdf, out):
             if y1 - y0 < 6: continue   # an empty or back-to-front span (two numbers read out of order): nothing to cut
             im = page_img(pi); W, H = im.size
             xr = max([w['x1'] for w in pages[pi]['words'] if y0 <= w['y0'] < y1 and w['x0'] >= x0 and w['y0'] < BOTTOM] or [W / S * 0.86])
-            right = max(int(x0 * S) + 40, min(int(W * 0.86), int((xr + 10) * S)))
+            right = max(int(x0 * S) + 40, min(int(W * 0.97), int((xr + 10) * S)))   # to the end of the text (was capped at 86% of the page, which cut long lines off)
             c = im.crop((int(x0 * S), int(y0 * S), right, int(y1 * S)))   # stop at the text, not the box's border
             a = np.asarray(c).astype(int); sat = (a.max(axis=2) - a.min(axis=2) > 70) & (a.min(axis=2) < 210)
             rows = np.where(sat.sum(axis=1) > max(0.55 * c.size[0], 500))[0]   # a coloured rule runs most of the page; the coloured number badge doesn't; rows = rows[rows > 30]

@@ -386,6 +386,7 @@
   // ---------- NESA formula / reference sheet, beside the calculator ----------
   // one official sheet per course: the maths one holds Ext 2, Ext 1 and Advanced pages, so each course shows its own and the ones beneath it
   const SHEETS = { Adv: ['m3', 'm4'], Ext1: ['m2', 'm3', 'm4'], Ext2: ['m1', 'm2', 'm3', 'm4'], Physics: ['p1', 'p2', 'p3', 'p4'] };
+  const realSubj = (s) => s === 'Book' ? 'Ext1' : s === 'AdvHSC' ? 'Adv' : s;   // private sets (Margaret, Real HSC) count as their course
   const sheetSubj = () => { const s = (location.hash.startsWith('#set') && state.set?.qs?.[state.set.i]?.papers?.subject) || state.subject; return s === 'Book' ? 'Ext1' : s === 'AdvHSC' ? 'Adv' : s; };   // the Margaret book is Extension 1; the real HSC Advanced set is Advanced
   function drawSheetBtns() {
     const has = !!SHEETS[sheetSubj()];
@@ -1523,7 +1524,7 @@
     loadStars().then(s => starLabel($('star'), s.has(x.id)));
     $('star').onclick = () => toggleStar(x.id, $('star'));
     $('flag-q').innerHTML = `${SB_FLAG}<span class="sb-l">Flag</span>`; $('flag-q').classList.remove('lit'); $('flag-q').onclick = () => flagQuestion(x, $('flag-q'));
-    $('ask-tutor').hidden = !(tutorUsable() && tuSubjects().includes(x.papers.subject) && x.image_path && !x.content);
+    $('ask-tutor').hidden = !(tutorUsable() && tuSubjects().includes(realSubj(x.papers.subject)) && x.image_path && !x.content);
     $('ask-tutor').onclick = () => askTutor(x);
     $('explain-mistake').hidden = true;
     $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true; $('layout-box').hidden = true;
@@ -1787,7 +1788,7 @@
   // ---------- "Explain my mistake": straight into the tutor on this question, knowing what went wrong ----------
   function showExplain(x, score, outOf, chosen, res) {
     const b = $('explain-mistake');
-    const fits = tuSubjects().includes(x.papers?.subject) && x.image_path && !x.content;
+    const fits = tuSubjects().includes(realSubj(x.papers?.subject)) && x.image_path && !x.content;
     const pro = tutorUsable(), sell = !pro && proOpen();
     b.hidden = !fits || (!pro && !sell);
     $('explain-pro').hidden = pro;
