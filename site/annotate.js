@@ -78,6 +78,72 @@
     ctx.restore();
   }
 
+  // ---- teacher marks from auto-marking: a green tick at the end of each right line, a red pen circle round each mistake with
+  // a short note under it. Positions are in the same units as strokes (fractions of the page width, from their block's top),
+  // drawn here in REF units like the strokes, so they land on the writing at any screen size.
+  const TICK = '#1f9d55', RED = '#e5484d';
+  function markShapes(m) {
+    const X0 = m.x0 * REF, Y0 = m.y0 * REF, X1 = m.x1 * REF, Y1 = m.y1 * REF;
+    if (m.k === 'tick') {
+      const r = 10.5, cx = X1 + r + 10, cy = (Y0 + Y1) / 2;
+      return { tick: { cx, cy, r, d: `M${f2(cx - 4.6)},${f2(cy + 0.2)}L${f2(cx - 1.3)},${f2(cy + 3.6)}L${f2(cx + 5)},${f2(cy - 3.6)}` } };
+    }
+    const cx = (X0 + X1) / 2, cy = (Y0 + Y1) / 2, rx = Math.max(14, (X1 - X0) / 2 + 9), ry = Math.max(12, (Y1 - Y0) / 2 + 7);
+    const seed = ((m.x0 * 997 + m.y0 * 131) % 1) * 6.28, pts = [], start = -1.9, turn = Math.PI * 2 + 0.45;
+    for (let i = 0; i <= 44; i++) {   // one loop and a bit, slightly wobbly and growing, like a quick pen circle
+      const t = start + turn * i / 44, k = 1 + 0.035 * Math.sin(3 * t + seed) + 0.05 * i / 44;
+      pts.push([cx + Math.cos(t) * rx * k, cy + Math.sin(t) * ry * k]);
+    }
+    return { circle: { d: centrePath(pts) }, note: m.n ? { x: X0 - 6, y: cy + ry + 8, text: m.n } : null };
+  }
+  const NOTE_FONT = 600, NOTE_SIZE = 12.5, NOTE_H = 22;
+  let measurer = null;
+  function noteWidth(text) {
+    measurer = measurer || document.createElement('canvas').getContext('2d');
+    measurer.font = `${NOTE_FONT} ${NOTE_SIZE}px Inter, Arial, sans-serif`;
+    return measurer.measureText(text).width + 20;
+  }
+  function markEl(m, w, oy, ox, i, since) {   // since: seconds since these marks arrived (null: long ago, no animation)
+    const fresh = since != null;
+    const g = document.createElementNS(NS, 'g'), sh = markShapes(m), el = (tag, at) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); return e; };
+    g.setAttribute('transform', place(w, oy, ox));
+    g.setAttribute('class', 'ann-mark' + (fresh ? ' fresh' : '')); g.style.setProperty('--d', (0.25 + i * 0.22 - (since || 0)).toFixed(3) + 's');   // a redraw mid-way carries on where it was
+    if (sh.tick) {
+      const t = el('g', { class: 'am-tick' });
+      t.append(el('circle', { cx: f2(sh.tick.cx), cy: f2(sh.tick.cy), r: sh.tick.r, fill: TICK }),
+        el('path', { d: sh.tick.d, fill: 'none', stroke: '#fff', 'stroke-width': 2.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      g.append(t);
+    } else {
+      g.append(el('path', { class: 'am-ring', d: sh.circle.d, fill: 'none', stroke: RED, 'stroke-width': 2.4, 'stroke-linecap': 'round', pathLength: 1 }));
+      if (sh.note) {
+        const nw = noteWidth(sh.note.text), n = el('g', { class: 'am-note' });
+        n.append(el('rect', { x: f2(sh.note.x), y: f2(sh.note.y), width: f2(nw), height: NOTE_H, rx: NOTE_H / 2, fill: '#fde8e8' }),
+          el('text', { x: f2(sh.note.x + 10), y: f2(sh.note.y + NOTE_H / 2 + 4.3), fill: '#c62f34', 'font-size': NOTE_SIZE, 'font-weight': NOTE_FONT, 'font-family': 'Inter, Arial, sans-serif' }));
+        n.lastChild.textContent = sh.note.text;
+        g.append(n);
+      }
+    }
+    return g;
+  }
+  // the same marks painted on a canvas (the marked copy of a photo or typed answer). `s` scales REF units to pixels.
+  function paintMark(ctx, m, s, ox, oy) {
+    const sh = markShapes(m);
+    ctx.save(); ctx.translate(ox, oy); ctx.scale(s, s);
+    if (sh.tick) {
+      ctx.fillStyle = TICK; ctx.beginPath(); ctx.arc(sh.tick.cx, sh.tick.cy, sh.tick.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(new Path2D(sh.tick.d));
+    } else {
+      ctx.strokeStyle = RED; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.stroke(new Path2D(sh.circle.d));
+      if (sh.note) {
+        const nw = noteWidth(sh.note.text);
+        ctx.fillStyle = '#fde8e8'; ctx.beginPath(); ctx.roundRect(sh.note.x, sh.note.y, nw, NOTE_H, NOTE_H / 2); ctx.fill();
+        ctx.fillStyle = '#c62f34'; ctx.font = `${NOTE_FONT} ${NOTE_SIZE}px Inter, Arial, sans-serif`; ctx.textBaseline = 'middle'; ctx.fillText(sh.note.text, sh.note.x + 10, sh.note.y + NOTE_H / 2 + 0.5);
+      }
+    }
+    ctx.restore();
+  }
+  let freshMarks = null;   // { key, at }: marks that just arrived draw themselves in, one after another
+
   // ---- no text selection, callouts or zoom gestures while writing ----
   const block = (ev) => { if (active) ev.preventDefault(); };
   document.addEventListener('selectstart', block);
@@ -94,7 +160,8 @@
     space.querySelector('.ann-more').onclick = () => { data.x = (data.x || 0) + 1; fit(); store(key, data); };   // remembered with the writing
     const base = document.createElementNS(NS, 'svg'); base.setAttribute('class', 'ann-canvas');
     const hlLayer = document.createElementNS(NS, 'g'), inkLayer = document.createElementNS(NS, 'g');
-    hlLayer.setAttribute('opacity', HL_ALPHA); base.append(hlLayer, inkLayer);   // highlighter sits under the ink, one even wash
+    const markLayer = document.createElementNS(NS, 'g');
+    hlLayer.setAttribute('opacity', HL_ALPHA); base.append(hlLayer, inkLayer, markLayer);   // highlighter sits under the ink, one even wash; marks on top
     const live = document.createElementNS(NS, 'svg'); live.setAttribute('class', 'ann-canvas ann-live');
     const liveHl = document.createElementNS(NS, 'g'); liveHl.setAttribute('opacity', HL_ALPHA);
     const livePath = document.createElementNS(NS, 'path'); livePath.dataset.live = '1';
@@ -142,6 +209,13 @@
     function redrawBase() {
       hlLayer.replaceChildren(); inkLayer.replaceChildren();
       data.s.forEach(st => { const oy = topOf(st); if (oy !== undefined) addEl(st, oy); });
+      drawMarks();
+    }
+    function drawMarks() {
+      let since = freshMarks && freshMarks.key === key ? (performance.now() - freshMarks.at) / 1000 : null;
+      if (since != null && since > 0.9 + (data.m || []).length * 0.22) { freshMarks = null; since = null; }
+      markLayer.replaceChildren();
+      (data.m || []).forEach((m, i) => { const oy = m.a === '__legacy' ? tops.__legacy?.top : tops[m.a]?.top; if (oy !== undefined) markLayer.appendChild(markEl(m, w, oy, ox, i, since)); });
     }
     function redrawLive() {
       if (!cur || cur.erase) { livePath.remove(); return; }
@@ -271,7 +345,8 @@
     return {
       undo() { if (undo.length) { redo.push(data.s); data.s = undo.pop(); redrawBase(); store(key, data); } },
       redo() { if (redo.length) { undo.push(data.s); data.s = redo.pop(); redrawBase(); store(key, data); } },
-      clear() { if (data.s.length) { undo.push(data.s); data.s = []; redrawBase(); store(key, data); } },
+      clear() { if (data.s.length) { undo.push(data.s); data.s = []; delete data.m; redrawBase(); store(key, data); } },
+      setMarks(m) { data.m = m; store(key, data); drawMarks(); },
       count: () => data.s.length,
       async snapshot() {   // the whole page's writing as a PNG (transparent background), painted from the vector shapes
         const k = Math.min(1, Math.sqrt(15e6 / Math.max(1, cw * h)));
@@ -400,7 +475,9 @@
   }
   // everything written for this key as one picture (pen only, no highlighter), each part of the page as its own block,
   // working space last. Works whether or not annotation is switched on. Returns a PNG blob, or null if nothing's written.
-  async function image(key, W = 1100) {
+  async function image(key, W = 1100) { return (await imageMap(key, W))?.blob || null; }
+  // the same picture, plus where each part of the page landed in it, so marks placed on the picture can go back onto the writing
+  async function imageMap(key, W = 1100) {
     const groups = new Map();
     load(key).s.forEach(st => { if (st.t === 'hl' || !st.p || !st.p.length) return; const k = st.a || '__legacy'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(st); });
     if (!groups.size) return null;
@@ -408,7 +485,7 @@
     const bands = [...groups.entries()].sort(([a], [b]) => (a === 'space') - (b === 'space')).map(([, ss]) => {
       let y0 = Infinity, y1 = -Infinity;
       ss.forEach(st => { for (let i = 1; i < st.p.length; i += 3) { y0 = Math.min(y0, st.p[i]); y1 = Math.max(y1, st.p[i]); } });
-      return { ss, y0, h: (y1 - y0) * W + pad * 2 };
+      return { ss, y0, h: (y1 - y0) * W + pad * 2, a: ss[0].a || '__legacy' };
     });
     let x0 = Infinity, x1 = -Infinity;
     groups.forEach(ss => ss.forEach(st => { for (let i = 0; i < st.p.length; i += 3) { x0 = Math.min(x0, st.p[i]); x1 = Math.max(x1, st.p[i]); } }));
@@ -417,12 +494,39 @@
     const c = document.createElement('canvas'); c.width = cw; c.height = ch;
     const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cw, ch);
     let y = 0;
+    const map = { W, pad, x0, bands: [] };
     bands.forEach((b, i) => {
       if (i) { ctx.fillStyle = '#d9d9d9'; ctx.fillRect(pad, y - gap / 2, cw - pad * 2, 1); }
       b.ss.forEach(st => paint(ctx, st, W, y + pad - b.y0 * W, pad - x0 * W));
+      map.bands.push({ a: b.a, y0: b.y0, top: y, h: b.h });
       y += b.h + gap;
     });
-    return new Promise(r => c.toBlob(r, 'image/png'));
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    return blob ? { blob, map } : null;
   }
-  window.Annotate = { button, stop, image, active: () => active };
+  // marks in picture pixels ({k, x0, y0, x1, y1, n}) back onto the writing, saved with it and shown whenever it's open
+  function placeMarks(key, map, marks) {
+    const out = [];
+    marks.forEach(m => {
+      const cy = (m.y0 + m.y1) / 2;
+      const b = map.bands.find(b => cy >= b.top && cy <= b.top + b.h) || map.bands.reduce((p, b) => Math.abs(b.top + b.h / 2 - cy) < Math.abs(p.top + p.h / 2 - cy) ? b : p);
+      const X = (v) => map.x0 + (v - map.pad) / map.W, Y = (v) => b.y0 + (v - b.top - map.pad) / map.W;
+      out.push({ k: m.k, a: b.a, x0: X(m.x0), y0: Y(m.y0), x1: X(m.x1), y1: Y(m.y1), ...(m.n ? { n: m.n } : {}) });
+    });
+    freshMarks = { key, at: performance.now() };
+    if (active && active.key === key) active.api.setMarks(out);
+    else { const d = load(key); d.m = out; store(key, d); }
+  }
+  // a marked copy of any picture (a photo of their working, or a typed answer): the marks painted on it
+  async function markedCopy(blob, marks) {
+    const bmp = await createImageBitmap(blob), c = document.createElement('canvas');
+    const s = Math.max(1, bmp.width / REF) * 1.15;   // pen and badge sizes scale with the picture
+    let right = bmp.width, bottom = bmp.height;      // grow the page so a tick past the last word, or a note under the last line, isn't cut off
+    marks.forEach(m => { right = Math.max(right, m.x1 + 40 * s); if (m.n) { right = Math.max(right, m.x0 + (noteWidth(m.n) + 4) * s); bottom = Math.max(bottom, m.y1 + 46 * s); } });
+    c.width = Math.ceil(right); c.height = Math.ceil(bottom);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(bmp, 0, 0);
+    marks.forEach(m => paintMark(ctx, { k: m.k, x0: m.x0 / s / REF, y0: m.y0 / s / REF, x1: m.x1 / s / REF, y1: m.y1 / s / REF, n: m.n }, s * 1, 0, 0));
+    return new Promise(r => c.toBlob(r, 'image/jpeg', 0.88));
+  }
+  window.Annotate = { button, stop, image, imageMap, placeMarks, markedCopy, active: () => active };
 })();

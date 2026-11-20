@@ -1075,6 +1075,441 @@
         ['csd3', 'Choosing a synthesis: environmental, social and economic factors'],
       ],
     },
+    Ext2: {   // generated dot points (Nov 2026)
+      "Contradiction": [
+        ["xt1", "Language of proof: implication, converse, contrapositive and negation"],
+        ["xt2", "Proof by contradiction (irrational numbers, parity, number results)"],
+        ["xt3", "Disproving statements with a counterexample"],
+      ],
+      "Inequalities": [
+        ["xt4", "Proving inequalities from squares being non-negative"],
+        ["xt5", "AM-GM, conditional inequalities and inequalities proved with calculus"],
+      ],
+      "Induction": [
+        ["xt6", "Proof by induction of inequalities"],
+        ["xt7", "Induction with recursive sequences, derivatives and other results"],
+      ],
+      "Euler's": [
+        ["xt8", "Exponential form re^{i theta} and converting between forms"],
+        ["xt9", "De Moivre's theorem: powers of complex numbers"],
+        ["xt10", "De Moivre's theorem for multiple-angle and power trigonometric identities"],
+      ],
+      "Solving Equations": [
+        ["xt11", "Square roots of complex numbers and quadratic equations over C"],
+        ["xt12", "Conjugate root theorem and factorising real polynomials over C"],
+        ["xt13", "Solving z^n = w and roots of unity"],
+      ],
+      "Argand Diag": [
+        ["xt14", "Complex arithmetic, conjugates and equating real and imaginary parts"],
+        ["xt15", "Modulus, argument and mod-arg form, including products and quotients"],
+      ],
+      "Geometric Implications": [
+        ["xt16", "Geometric meaning of complex addition, subtraction and multiplication (vectors and rotations)"],
+        ["xt17", "Curves and regions (loci) in the complex plane"],
+      ],
+      "3D Vectors": [
+        ["xt18", "Three-dimensional vectors: components, magnitude, unit vectors, parallel and collinear"],
+        ["xt19", "Scalar product, angles, perpendicular vectors and projections in 3D"],
+        ["xt20", "Vector proofs and position vectors in geometry"],
+      ],
+      "Equations of lines": [
+        ["xt21", "Vector and parametric equations of a line in 2D and 3D"],
+        ["xt22", "Intersecting, parallel and skew lines; angle between lines"],
+      ],
+      "Substitution": [
+        ["xt23", "Integration by substitution, including definite integrals"],
+        ["xt24", "Integrals of products and powers of trigonometric functions"],
+      ],
+      "Quadratic Denom.": [
+        ["xt25", "Integrals with quadratic denominators by completing the square"],
+        ["xt26", "Partial fractions with linear and irreducible quadratic factors"],
+      ],
+      "Reduction": [
+        ["xt27", "Deriving reduction (recurrence) formulae"],
+        ["xt28", "Using reduction formulae to evaluate integrals"],
+      ],
+      "Parts": [
+        ["xt29", "Integration by parts"],
+        ["xt30", "Repeated and cyclic integration by parts, definite integrals"],
+      ],
+      "SHM": [
+        ["xt31", "Recognising SHM: x'' = -n^2(x - c), period, amplitude and centre"],
+        ["xt32", "SHM problems using v^2 = n^2(a^2 - (x - c)^2) and displacement-time equations"],
+      ],
+      "Resisted Motion": [
+        ["xt33", "Horizontal motion with resistance proportional to v or v^2"],
+        ["xt34", "Vertical resisted motion, terminal velocity and resisted projectiles"],
+      ],
+      "Non Resisted Motion": [
+        ["xt35", "Acceleration as a function of x or t: using v dv/dx = d/dx(v^2/2)"],
+        ["xt36", "Forces and Newton's laws: inclined planes, pulleys and resolving forces"],
+      ],
+    },
+    Std2: {   // generated dot points (Nov 2026)
+      "Formulae and Equations": [
+        ["sd1", "Substitute into formulae and evaluate"],
+        ["sd2", "Solve linear equations and change the subject of a formula"],
+        ["sd3", "Blood alcohol content (BAC) formula"],
+        ["sd4", "Medication dosage formulae (Fried's, Young's, Clark's)"],
+      ],
+      "Linear Relationships": [
+        ["sd5", "Gradient, intercepts and y = mx + c"],
+        ["sd6", "Direct variation and linear models in context"],
+        ["sd7", "Solve simultaneous linear equations graphically and algebraically"],
+        ["sd8", "Break-even analysis with linear cost and revenue"],
+      ],
+      "Non-linear Relationships": [
+        ["sd9", "Exponential growth and decay models"],
+        ["sd10", "Quadratic graphs: intercepts, axis of symmetry and vertex"],
+        ["sd11", "Quadratic models in practical contexts"],
+        ["sd12", "Reciprocal relationships and inverse variation"],
+      ],
+      "Applications of Measurement": [
+        ["sd13", "Measurement error: absolute error, limits of accuracy, percentage error"],
+        ["sd14", "Perimeter and area of plane and composite shapes"],
+        ["sd15", "Volume, capacity and surface area of solids"],
+        ["sd16", "Time zones, longitude and time differences"],
+      ],
+      "Working with Rates": [
+        ["sd17", "Unit rates and converting between rates"],
+        ["sd18", "Speed, distance and time"],
+        ["sd19", "Fuel consumption rates"],
+        ["sd20", "Power and energy: watts, kilowatts and kilowatt-hours"],
+      ],
+      "Right-angled Triangles": [
+        ["sd21", "Pythagoras' theorem in practical problems"],
+        ["sd22", "Trigonometric ratios to find a side"],
+        ["sd23", "Trigonometric ratios to find an angle"],
+        ["sd24", "Angles of elevation and depression"],
+        ["sd25", "Compass and true bearings"],
+      ],
+      "Non-right-angled Trigonometry": [
+        ["sd26", "Sine rule to find a side or an angle"],
+        ["sd27", "Cosine rule to find a side or an angle"],
+        ["sd28", "Area of a triangle using A = 1/2 ab sin C"],
+        ["sd29", "Bearings and radial surveys with non-right-angled triangles"],
+      ],
+      "Rates and Ratios": [
+        ["sd30", "Simplify ratios and divide a quantity in a given ratio"],
+        ["sd31", "Scale drawings, map scales and building plans"],
+        ["sd32", "Trapezoidal rule for the area of land"],
+        ["sd33", "Rainfall volume using V = Ah"],
+      ],
+      "Money Matters": [
+        ["sd34", "Wages, salaries, overtime, commission, piecework and leave loading"],
+        ["sd35", "Taxable income, income tax and the Medicare levy"],
+        ["sd36", "Simple interest"],
+        ["sd37", "Budgeting, GST, discounts and household costs"],
+      ],
+      "Investments and Loans": [
+        ["sd38", "Compound interest and future value"],
+        ["sd39", "Inflation, appreciation and shares (dividends and dividend yield)"],
+        ["sd40", "Straight-line and declining-balance depreciation"],
+        ["sd41", "Reducing balance loans and credit cards"],
+      ],
+      "Annuities": [
+        ["sd42", "Future value of an annuity"],
+        ["sd43", "Present value of an annuity"],
+        ["sd44", "Loan repayments and comparing annuity options"],
+      ],
+      "Data Analysis": [
+        ["sd45", "Classifying data and sampling methods"],
+        ["sd46", "Measures of central tendency and spread"],
+        ["sd47", "Quartiles, interquartile range, box plots and outliers"],
+        ["sd48", "Comparing data sets and describing shape"],
+      ],
+      "Relative Frequency and Probability": [
+        ["sd49", "Relative frequency and expected frequency"],
+        ["sd50", "Theoretical probability, sample spaces and complementary events"],
+        ["sd51", "Multistage events using tables and tree diagrams"],
+      ],
+      "Bivariate Data Analysis": [
+        ["sd52", "Scatterplots and correlation"],
+        ["sd53", "Least-squares regression line: predictions, interpolation and extrapolation"],
+        ["sd54", "Interpreting the gradient and intercept, and correlation versus causation"],
+      ],
+      "The Normal Distribution": [
+        ["sd55", "z-scores"],
+        ["sd56", "The empirical rule (68-95-99.7)"],
+        ["sd57", "Comparing scores and making decisions using z-scores"],
+      ],
+      "Network Concepts": [
+        ["sd58", "Network terminology and constructing networks"],
+        ["sd59", "Shortest paths"],
+        ["sd60", "Minimum spanning trees"],
+      ],
+      "Critical Path Analysis": [
+        ["sd61", "Activity networks, earliest and latest start times"],
+        ["sd62", "Critical path, float and minimum completion time"],
+        ["sd63", "Network flow: maximum flow and minimum cut"],
+      ],
+    },
+    Bio: {   // generated dot points (Nov 2026)
+      "Reproduction": [
+        ["bi1", "Methods of asexual and sexual reproduction in animals, plants, fungi, bacteria and protists"],
+        ["bi2", "Fertilisation, implantation and hormonal control of pregnancy and birth in mammals"],
+      ],
+      "Cell Replication": [
+        ["bi3", "Mitosis and meiosis: processes, products, crossing over and independent assortment"],
+        ["bi4", "DNA replication (semi-conservative, enzymes) and why accurate replication matters"],
+      ],
+      "DNA and Polypeptide Synthesis": [
+        ["bi5", "Forms of DNA in prokaryotes and eukaryotes, protein structure and gene expression"],
+        ["bi6", "Polypeptide synthesis: transcription, translation and reading codons"],
+      ],
+      "Genetic Variation": [
+        ["bi7", "Monohybrid crosses: dominance, codominance and incomplete dominance with Punnett squares"],
+        ["bi8", "Sex-linked inheritance and interpreting pedigrees"],
+      ],
+      "Inheritance Patterns in a Population": [
+        ["bi9", "Allele and genotype frequencies and the Hardy-Weinberg principle"],
+        ["bi10", "DNA sequencing, SNPs and DNA profiling to study inheritance in populations"],
+      ],
+      "Mutation": [
+        ["bi11", "Types of mutation (point, frameshift, chromosomal) and their effects on proteins"],
+        ["bi12", "Mutagens, somatic vs germline mutations, coding vs non-coding DNA, gene flow and genetic drift"],
+      ],
+      "Biotechnology": [
+        ["bi13", "Uses of biotechnology past, present and future"],
+        ["bi14", "Ethical and social implications of biotechnology and its effect on biodiversity"],
+      ],
+      "Genetic Technologies": [
+        ["bi15", "Reproductive technologies: artificial insemination, artificial pollination and cloning"],
+        ["bi16", "Recombinant DNA technology, transgenic organisms, PCR and gel electrophoresis"],
+      ],
+      "Causes of Infectious Disease": [
+        ["bi17", "Types of pathogens and their adaptations for entry and transmission"],
+        ["bi18", "Transmission of disease and the work of Koch and Pasteur"],
+      ],
+      "Responses to Pathogens": [
+        ["bi19", "Plant responses to pathogens: physical and chemical defences"],
+        ["bi20", "Animal innate responses: barriers, inflammation, phagocytosis and fever"],
+      ],
+      "Immunity": [
+        ["bi21", "Adaptive immunity: humoral response, B cells and antibodies"],
+        ["bi22", "Cell-mediated response, T cells, memory and active vs passive immunity"],
+      ],
+      "Prevention, Treatment and Control": [
+        ["bi23", "Preventing spread: hygiene, quarantine, vaccination and herd immunity"],
+        ["bi24", "Treatment with antibiotics and antivirals, resistance, and Aboriginal and Torres Strait Islander medicines"],
+        ["bi25", "Controlling epidemics and pandemics at local, regional and global scales"],
+      ],
+      "Homeostasis": [
+        ["bi26", "Negative feedback loops and thermoregulation in endotherms"],
+        ["bi27", "Blood glucose and water balance, and plant and animal adaptations to maintain homeostasis"],
+      ],
+      "Causes and Effects": [
+        ["bi28", "Classes of non-infectious disease: genetic, environmental, nutritional and cancer"],
+        ["bi29", "Incidence, prevalence and mortality rates of non-infectious disease"],
+      ],
+      "Epidemiology": [
+        ["bi30", "Features of epidemiological studies: descriptive, analytical, cohort, case-control and trials"],
+        ["bi31", "Interpreting epidemiological data and evaluating evidence for causes and treatments"],
+      ],
+      "Prevention": [
+        ["bi32", "Educational programs and public health campaigns to prevent non-infectious disease"],
+        ["bi33", "Genetic engineering, screening and evaluating the effectiveness of prevention strategies"],
+      ],
+      "Technologies and Disorders": [
+        ["bi34", "Hearing loss and technologies: hearing aids, cochlear and bone conduction implants"],
+        ["bi35", "Visual disorders and technologies: spectacles, contact lenses and laser surgery"],
+        ["bi36", "Loss of kidney function and dialysis"],
+      ],
+    },
+    Econ: {   // generated dot points (Nov 2026)
+      "Globalisation": [
+        ["ec1", "Features of globalisation: trade, financial, technology and labour flows, TNCs and international organisations"],
+        ["ec2", "Effects of globalisation on economies, including global economic instability"],
+      ],
+      "Trade and Financial Flows": [
+        ["ec3", "Gains from trade: absolute and comparative advantage, opportunity cost"],
+        ["ec4", "Patterns of world and Australian trade and financial flows (FDI, portfolio, loans)"],
+      ],
+      "Protection and Free Trade": [
+        ["ec5", "Methods of protection and their effects on prices, output and welfare"],
+        ["ec6", "Arguments for and against protection; trade agreements and the WTO"],
+      ],
+      "Balance of Payments": [
+        ["ec7", "Structure of the balance of payments: current, capital and financial accounts"],
+        ["ec8", "Calculating balances and explaining Australia's current account deficit"],
+      ],
+      "Exchange Rates": [
+        ["ec9", "Determination of a floating exchange rate: demand for and supply of the AUD"],
+        ["ec10", "Effects of exchange rate movements, the TWI and exchange rate regimes"],
+      ],
+      "Terms of Trade and Foreign Debt": [
+        ["ec11", "Terms of trade: index calculation, causes and effects of changes"],
+        ["ec12", "Foreign debt and foreign equity: net foreign liabilities and servicing costs"],
+      ],
+      "Economic Growth": [
+        ["ec13", "Measuring growth: GDP, real vs nominal, per capita, the deflator"],
+        ["ec14", "Sources of growth: aggregate demand and supply, the multiplier and accelerator"],
+        ["ec15", "The business cycle and the consequences of economic growth"],
+      ],
+      "Unemployment": [
+        ["ec16", "Measuring unemployment: labour force, participation, underemployment"],
+        ["ec17", "Types, causes and effects of unemployment, including the NAIRU"],
+      ],
+      "Inflation": [
+        ["ec18", "Measuring inflation: CPI, headline vs underlying, real values"],
+        ["ec19", "Causes and effects of inflation: demand-pull, cost-push, expectations, imported"],
+      ],
+      "External Stability": [
+        ["ec20", "Indicators of external stability: CAD, net foreign debt, servicing ratio, currency"],
+        ["ec21", "Consequences of external instability and policies to improve it"],
+      ],
+      "Distribution of Income and Wealth": [
+        ["ec22", "Measuring inequality: quintile shares, Lorenz curve, Gini coefficient"],
+        ["ec23", "Sources and causes of inequality, its costs and benefits, the tax-transfer system"],
+      ],
+      "Environmental Sustainability": [
+        ["ec24", "Environmental market failure: externalities, social vs private cost, public goods"],
+        ["ec25", "Policies for ecologically sustainable development: pricing, permits, regulation"],
+      ],
+      "Economic Development": [
+        ["ec26", "Measuring development: GNI per capita, PPP and the Human Development Index"],
+        ["ec27", "Growth vs development, barriers and strategies for development"],
+      ],
+      "Fiscal Policy": [
+        ["ec28", "The budget: outlays, receipts, budget outcomes, structural vs cyclical components"],
+        ["ec29", "Fiscal stance, automatic stabilisers, financing deficits and effects of fiscal policy"],
+      ],
+      "Monetary Policy": [
+        ["ec30", "Implementing monetary policy: the RBA, cash rate target, market operations, transmission"],
+        ["ec31", "Monetary policy stance, inflation targeting and effects on the economy"],
+      ],
+      "Microeconomic Policy": [
+        ["ec32", "Areas of microeconomic reform: competition, deregulation, privatisation, tariffs, infrastructure"],
+        ["ec33", "Effects of microeconomic reform on efficiency, productivity and equity"],
+      ],
+      "Labour Market Policy": [
+        ["ec34", "Wage determination: awards, enterprise bargaining, minimum wage, the Fair Work Commission"],
+        ["ec35", "Labour market policies to reduce unemployment and improve flexibility"],
+      ],
+      "Limitations of Policy": [
+        ["ec36", "Time lags, policy conflicts and trade-offs between objectives"],
+        ["ec37", "Global, political and structural constraints and the policy mix"],
+      ],
+    },
+    Eng: {   // generated dot points (Nov 2026)
+      "Engineering Fundamentals": [
+        ["en1", "Historical development of engineering, the engineer's role and societal impact"],
+        ["en2", "SI units, mass and weight, scalar and vector quantities, resolving forces"],
+        ["en3", "Classification, structure and properties of engineering materials"],
+        ["en4", "Freehand sketching, pictorial and orthogonal projection to AS1100"],
+      ],
+      "Engineered Products": [
+        ["en5", "Historical development, environmental impact and recyclability of engineered products"],
+        ["en6", "Statics: free body diagrams, resultants, moments and equilibrium"],
+        ["en7", "Simple machines: mechanical advantage, velocity ratio, efficiency and gear ratios"],
+        ["en8", "Metals, polymers and forming processes: work hardening, thermoplastics and thermosets"],
+        ["en9", "Orthogonal drawings, sectioning and dimensioning to AS1100"],
+      ],
+      "Braking Systems": [
+        ["en10", "History and societal and environmental impact of braking systems"],
+        ["en11", "Friction, work, energy and power in braking; hydraulic brakes and Pascal's principle"],
+        ["en12", "Crystal structure, iron-carbon alloys, steels and cast irons"],
+        ["en13", "Composites and ceramics for friction materials; materials testing"],
+      ],
+      "Biomedical Engineering": [
+        ["en14", "Scope of the profession, ethics and history of biomedical engineering"],
+        ["en15", "Stress, strain, Hooke's law, Young's modulus and the stress-strain diagram"],
+        ["en16", "Biomaterials: biocompatibility, metals, polymers, ceramics and composites in the body"],
+        ["en17", "Electricity: Ohm's law, series and parallel circuits and power in medical devices"],
+      ],
+      "Civil Structures": [
+        ["en18", "History, societal and environmental impact of civil structures"],
+        ["en19", "Truss analysis by the method of joints and method of sections"],
+        ["en20", "Shear force, bending moment, bending stress and factor of safety"],
+        ["en21", "Concrete, composites, crack theory and corrosion in civil structures"],
+      ],
+      "Personal and Public Transport": [
+        ["en22", "History, societal and environmental impact of personal and public transport"],
+        ["en23", "Static friction, angle of friction and repose, energy, work and power in vehicles"],
+        ["en24", "Heat treatment and forming of ferrous metals"],
+        ["en25", "Non-ferrous metals, glass, polymers and composites in vehicles"],
+        ["en26", "Electricity in transport: AC and DC, motors, generators and electrical power"],
+      ],
+      "Aeronautical Engineering": [
+        ["en27", "History, scope of the profession and societal impact of flight"],
+        ["en28", "Lift, drag, weight and thrust; Bernoulli's principle and control surfaces"],
+        ["en29", "Fluid mechanics: hydrostatic and dynamic pressure, Pascal's principle and propulsion"],
+        ["en30", "Aircraft materials: aluminium alloys, age hardening, composites, corrosion and NDT"],
+      ],
+      "Telecommunications Engineering": [
+        ["en31", "History, scope of the profession and societal impact of telecommunications"],
+        ["en32", "Analogue and digital signals, modulation, frequency, wavelength and bandwidth"],
+        ["en33", "Transmission media: copper cable, fibre optics, radio, microwave and satellites"],
+        ["en34", "Telecommunications materials: copper alloys, semiconductors, polymers and optical fibres"],
+      ],
+    },
+    SE: {   // generated dot points (Nov 2026)
+      "Programming Fundamentals": [
+        ["sw1", "Software development steps and the role of each"],
+        ["sw2", "Designing algorithms: pseudocode, flowcharts, structure charts and data flow diagrams"],
+        ["sw3", "Data types, data structures and number systems (binary, hexadecimal, two's complement)"],
+        ["sw4", "Writing and tracing code: control structures, subroutines and standard algorithms"],
+        ["sw5", "Testing and debugging: error types, test data, desk checking and debugging tools"],
+      ],
+      "The Object-oriented Paradigm": [
+        ["sw6", "OOP concepts: classes, objects, abstraction and encapsulation"],
+        ["sw7", "Inheritance, polymorphism, generalisation and class diagrams"],
+        ["sw8", "Implementing and tracing object-oriented code in Python"],
+      ],
+      "Programming Mechatronics": [
+        ["sw9", "Mechatronic hardware: microcontrollers, sensors, actuators and end effectors"],
+        ["sw10", "Control systems: open and closed loop, feedback, motion and degrees of freedom"],
+        ["sw11", "Programming and interfacing mechatronic systems: instructions, signals, wiring and power"],
+      ],
+      "Secure Software Architecture": [
+        ["sw12", "Secure design concepts: CIA, authentication, authorisation, accountability, cryptography, sandboxing, security and privacy by design"],
+        ["sw13", "Developing secure code: input validation, sanitisation, error handling and security testing"],
+        ["sw14", "Vulnerabilities and attacks: injection, XSS, CSRF, broken authentication, race conditions, redirects, file and side-channel attacks"],
+        ["sw15", "Impact of secure software: collaboration, enterprise benefits and social, ethical and legal issues"],
+      ],
+      "Programming for the Web": [
+        ["sw16", "Data transmission and web protocols: packets, IP, DNS, HTTP/HTTPS, TLS, ports and email protocols"],
+        ["sw17", "Front-end development: HTML, CSS, JavaScript, the browser, accessibility and standards"],
+        ["sw18", "Back-end development: servers, frameworks, databases and SQL"],
+        ["sw19", "Web applications: PWAs, performance, UI/UX, developer tools and big data"],
+      ],
+      "Software Automation": [
+        ["sw20", "Machine learning and AI: types of learning, training data and MLOps"],
+        ["sw21", "Machine learning models: regression, decision trees, KNN and neural networks"],
+        ["sw22", "Automation (RPA, BPA) and the impact of automation and AI on people, society and bias"],
+      ],
+      "Software Engineering Project": [
+        ["sw23", "Identifying and defining: needs, requirements, constraints and feasibility"],
+        ["sw24", "Planning and managing a project: methodologies, Gantt charts, version control and communication"],
+        ["sw25", "Testing, evaluating and documenting a solution: quality assurance, test plans and documentation"],
+      ],
+    },
+    EngStd: {   // generated dot points (Nov 2026)
+      "Common Module: Unseen Texts": [
+        ["esd1", "Identify language forms and features (techniques) in short unseen extracts"],
+        ["esd2", "Explain the effect of a technique on meaning and on the responder"],
+        ["esd3", "Analyse how unseen texts (including described visual texts) represent human experiences, emotions and paradoxes"],
+      ],
+      "Common Module: Extended Response": [
+        ["esd4", "Plan an extended response: thesis, structure, technique-evidence-effect paragraphs linked to human experiences"],
+        ["esd5", "Samuel Wagan Watson's poetry: representation of human experiences, ideas and context"],
+        ["esd6", "Samuel Wagan Watson's poetry: poetic form, techniques and their effects"],
+      ],
+      "Module A: Language, Identity and Culture": [
+        ["esd7", "Explain how language reflects and shapes individual and cultural identity"],
+        ["esd8", "Analyse language choices (voice, naming, code-switching, dialect, pronouns) that represent identity and culture"],
+      ],
+      "Module B: Close Study of Literature": [
+        ["esd9", "Analyse the distinctive qualities of a text: form, structure and language"],
+        ["esd10", "Analyse how character, setting, symbol, motif and context develop a text's ideas"],
+        ["esd11", "Write an analytical response: topic sentences, integrated evidence and sustained argument"],
+      ],
+      "Module C: The Craft of Writing": [
+        ["esd12", "Craft imaginative writing: voice, characterisation, setting and narrative structure"],
+        ["esd13", "Craft discursive and persuasive writing for purpose and audience"],
+        ["esd14", "Use stylistic features for effect and reflect on writing choices"],
+      ],
+    },
   };
   const topicSteps = (t, subj = state.subject) => (STEPS[subj] || {})[t] || null;
   let topicCounts = null;   // [{subject, topic, type, n}]
@@ -1504,6 +1939,7 @@
     if (qcard) { qcard.classList.remove('enter'); void qcard.offsetWidth; qcard.classList.add('enter'); }
     // write on the question: pencil, highlighter, eraser, plus working space underneath
     if (window.Annotate) { Annotate.stop(); qcard?.querySelector('.ann-tools')?.remove(); }
+    $('marked-copy')?.remove();
     if (!s.sid) { s.sid = 's' + Date.now().toString(36); annPrune(s.sid); }   // writing belongs to this set: a new set starts with clean questions
     if (window.Annotate && qcard && state.user) { const tb = mk('div', 'ann-tools'); tb.appendChild(Annotate.button(qcard, `tb_ann_${state.user.id}_${s.sid}_${x.id}`, { scope: $('view-set'), full: true, ...inductionSpace(x) })); qcard.prepend(tb); }
     $('set-pos').innerHTML = `<b>${s.i + 1} of ${s.qs.length}</b><span>${esc(topicName(x.topic))}</span>`;
@@ -1601,15 +2037,17 @@
   async function autoMark(photo = null) {
     const s = state.set, x = s && s.qs[s.i], btn = $('auto-mark');
     if (!x || btn.disabled || s.results[s.i]) return;
-    let blob = photo ? await shrinkImage(photo, 1600) : await window.Annotate?.image(`tb_ann_${state.user.id}_${s.sid}_${x.id}`).catch(() => null);
+    const annKey = `tb_ann_${state.user.id}_${s.sid}_${x.id}`;
+    const pic = photo ? null : await window.Annotate?.imageMap(annKey).catch(() => null);
+    let blob = photo ? await shrinkImage(photo, 1600) : pic?.blob || null;
     const typed = !photo && x.content?.typed && String(x._v || '').trim();
     if (typed) blob = await typedImage(String(x._v), blob);   // a typed answer goes to the marker as a picture of the text, above any handwriting
     if (!blob) { $('am-photo').click(); return; }   // nothing written on screen: a photo of their paper working instead
     const at = s.i, folder = `${state.user.id}/qm-${Date.now().toString(36)}`, paths = [];
     btn.disabled = true; btn.innerHTML = '<span class="am-spin" aria-hidden="true"></span>Marking…';
     try {
-      const pages = [];
-      for (const [i, part] of (await stripsOf(blob)).entries()) {
+      const pages = [], strips = await stripsOf(blob);
+      for (const [i, { blob: part }] of strips.parts.entries()) {
         const path = `${folder}/w${i + 1}.${part.type === 'image/png' ? 'png' : part.type === 'image/webp' ? 'webp' : 'jpg'}`;
         const { error: ue } = await sb.storage.from('submissions').upload(path, part, { contentType: part.type || 'image/png', upsert: true });
         if (ue) throw ue;
@@ -1622,6 +2060,7 @@
       if (state.set !== s || s.i !== at) return;   // they moved on while it marked
       if (!data.found && s.duel) { toast('Nothing to mark yet. Write your working on the question first.'); return; }
       await record(data.awarded, data.out_of || x.marks || 0, null, $('self-mark'), null, data);
+      showTeacherMarks(data.marks, strips, { key: !photo && !typed && pic ? annKey : null, map: pic?.map, blob });
       $('sol-wrap').classList.add('marked'); $('show-sol').hidden = false; $('show-sol').click();
     } catch (err) {
       if (state.set !== s || s.i !== at) return;
@@ -1651,20 +2090,46 @@
     if (bmp) ctx.drawImage(bmp, 0, th, W, bh);
     return new Promise(r => cv.toBlob(r, 'image/png'));
   }
-  // a tall picture of someone's working, cut into at most 4 overlapping strips: the marker shrinks very tall images until handwriting blurs
+  // a tall picture of someone's working, cut into at most 4 overlapping strips: the marker shrinks very tall images until handwriting blurs.
+  // Each strip remembers where it came from (top, height), so marks the marker puts on a strip can go back onto the whole picture.
   async function stripsOf(blob) {
-    let bmp; try { bmp = await createImageBitmap(blob); } catch { return [blob]; }
+    let bmp; try { bmp = await createImageBitmap(blob); } catch { return { parts: [{ blob }], W: 0 }; }
     const OVER = 60, H = bmp.height, W = bmp.width;
-    if (H <= 1500) return [blob];
+    if (H <= 1500) return { parts: [{ blob, top: 0, h: H }], W };
     const STRIP = Math.max(1500, Math.ceil((H + OVER * 3) / 4));
     const out = [];
     for (let y = 0; y < H; y += STRIP - OVER) {
       const h = Math.min(STRIP, H - y), cv = document.createElement('canvas'); cv.width = W; cv.height = h;
       const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, h); ctx.drawImage(bmp, 0, y, W, h, 0, 0, W, h);
-      out.push(await new Promise(r => cv.toBlob(r, 'image/png')));
+      out.push({ blob: await new Promise(r => cv.toBlob(r, 'image/png')), top: y, h });
       if (y + h >= H || out.length === 4) break;
     }
-    return out.filter(Boolean).length === out.length ? out : [blob];
+    return out.every(o => o.blob) ? { parts: out, W } : { parts: [{ blob, top: 0, h: H }], W };
+  }
+  // the marker's ticks and circles, like a teacher's red pen: drawn straight on their handwriting, or on a marked copy of a photo / typed answer
+  async function showTeacherMarks(marks, strips, { key, map, blob }) {
+    if (!Array.isArray(marks) || !marks.length || !strips.W || !window.Annotate) return;
+    const px = [];
+    marks.forEach(m => {
+      const st = strips.parts[m.page - 1]; if (!st || st.h == null) return;
+      const X = (v) => v / 1000 * strips.W, Y = (v) => st.top + v / 1000 * st.h;
+      const p = { k: m.kind, x0: X(m.x0), y0: Y(m.y0), x1: X(m.x1), y1: Y(m.y1), ...(m.note ? { n: m.note } : {}) };
+      // overlapping strips can mark the same line twice: keep the first
+      if (px.some(q => q.k === p.k && Math.abs((q.y0 + q.y1) - (p.y0 + p.y1)) < 40 && Math.abs((q.x0 + q.x1) - (p.x0 + p.x1)) < 80)) return;
+      px.push(p);
+    });
+    if (!px.length) return;
+    if (key && map) {
+      Annotate.placeMarks(key, map, px);
+      const a = Annotate.active();
+      if (!a || a.key !== key) document.querySelector('#view-set .ann-tools .ann-btn')?.click();   // open the writing so they see it marked
+      return;
+    }
+    try {
+      const copy = await Annotate.markedCopy(blob, px), fig = mk('figure', 'marked-copy'), im = new Image();
+      im.alt = 'Your working, marked'; im.src = URL.createObjectURL(copy); fig.appendChild(im);
+      $('marked-copy')?.remove(); fig.id = 'marked-copy'; $('verdict').after(fig);
+    } catch { /* the mark and feedback still show */ }
   }
   function markBlocked(msg) {
     state.markBlocked = true;

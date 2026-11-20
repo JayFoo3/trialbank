@@ -73,3 +73,15 @@
 .ann-pop .ann-dot.on { background: color-mix(in srgb, var(--ink) 8%, transparent); }
 
 @media (prefers-reduced-motion: reduce) { .ann-bar.enter, .ann-bar .ann-tool.rise, .ann-bar .ann-tool.drop, .ann-bar .pulse::before, .ann-pop.in, .ann-menu.in { animation: none; } }
+
+/* teacher marks from auto-marking, drawn on the writing: they draw themselves in once, one after another */
+.ann-mark .am-tick { transform-box: fill-box; transform-origin: center; }
+.ann-mark.fresh .am-ring { stroke-dasharray: 1; stroke-dashoffset: 1; animation: am-draw .5s cubic-bezier(.5, 0, .3, 1) var(--d) forwards; }
+.ann-mark.fresh .am-tick { transform: scale(0); animation: am-pop .38s cubic-bezier(.3, 1.6, .5, 1) var(--d) forwards; }
+.ann-mark.fresh .am-note { opacity: 0; animation: am-fade .3s ease-out calc(var(--d) + .4s) forwards; }
+@keyframes am-draw { to { stroke-dashoffset: 0; } }
+@keyframes am-pop { to { transform: scale(1); } }
+@keyframes am-fade { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ann-mark.fresh .am-ring, .ann-mark.fresh .am-tick, .ann-mark.fresh .am-note { animation: none; stroke-dashoffset: 0; transform: none; opacity: 1; } }
+.marked-copy { margin: 12px 0 0; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(20, 30, 60, .12); }
+.marked-copy img { display: block; width: 100%; height: auto; }
