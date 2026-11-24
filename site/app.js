@@ -1960,7 +1960,7 @@
     loadStars().then(s => starLabel($('star'), s.has(x.id)));
     $('star').onclick = () => toggleStar(x.id, $('star'));
     $('flag-q').innerHTML = `${SB_FLAG}<span class="sb-l">Flag</span>`; $('flag-q').classList.remove('lit'); $('flag-q').onclick = () => flagQuestion(x, $('flag-q'));
-    $('ask-tutor').hidden = !(tutorUsable() && tuSubjects().includes(realSubj(x.papers.subject)) && x.image_path && !x.content);
+    $('ask-tutor').hidden = !(tutorUsable() && tuSubjects().includes(realSubj(x.papers.subject)) && (x.content ? !!(x.content.prompt || x.content.stmt_text) : x.image_path));
     $('ask-tutor').onclick = () => askTutor(x);
     $('explain-mistake').hidden = true;
     $('verdict').hidden = true; $('verdict').className = 'verdict'; $('lost-box').hidden = true; $('layout-box').hidden = true;
@@ -3503,6 +3503,16 @@
   }
   $('an-pick').onclick = () => $('an-file').click();
   $('an-file').onchange = (ev) => { an.files = [...ev.target.files].slice(0, 6); ev.target.value = ''; drawAnFiles(); };
+  {   // drop the notification straight onto the card
+    const card = $('an-card'), ok = (f) => f.type === 'application/pdf' || f.type.startsWith('image/');
+    card.addEventListener('dragover', (ev) => { ev.preventDefault(); card.classList.add('an-drop'); });
+    card.addEventListener('dragleave', (ev) => { if (!card.contains(ev.relatedTarget)) card.classList.remove('an-drop'); });
+    card.addEventListener('drop', (ev) => {
+      ev.preventDefault(); card.classList.remove('an-drop');
+      const fs = [...(ev.dataTransfer?.files || [])].filter(ok).slice(0, 6);
+      if (fs.length) { an.files = fs; card.open = true; drawAnFiles(); }
+    });
+  }
   async function pdfText(f) {   // a typed PDF's own words: cheaper and more exact than reading the picture
     const lib = await loadPdfJs();
     const doc = await lib.getDocument({ data: await f.arrayBuffer(), isEvalSupported: false }).promise;
@@ -3517,6 +3527,7 @@
     const say = (t) => { $('an-status').textContent = t; }, btn = $('an-go'), outBox = $('an-out');
     const pasted = $('an-text').value.trim();
     if (!an.files.length && !pasted) return say('Add the notification first.');
+    if (!tuAllowed() && !(state.tutorCredits > 0)) return proOpen() ? openPro('paper') : say('This uses the tutor, which comes with Pro.');   // before uploading anything
     btn.disabled = true; outBox.innerHTML = '';
     const session = 'notice-' + Date.now().toString(36);
     try {
@@ -6572,6 +6583,7 @@
     const btn = $('tu-go'); btn.disabled = true;
     try {
       await tuLoad(given || (own ? null : await tuPick(tuSubject())));
+      if (given?.content) tu.msgs.push({ role: 'student', hide: true, text: quickSeed(given) });   // a typed question has no picture: the tutor gets it as text
       if (given?.ask) { await tuSend(given.ask); return; }
       if (own) { tu.msgs.push({ role: 'tutor', text: "Send me the question you're stuck on: a photo is easiest, or type it out. Then tell me what you've tried so far." }); tuDraw(); }
       else await tuSend();
@@ -6619,8 +6631,12 @@
     tuAnnButton();
     card.hidden = !q;
     if (!q) return;
-    $('tu-qmeta').textContent = `${q.papers.school} ${q.papers.year} ${label(q)} · ${marksText(q.marks)} · ${topicName(q.topic)}`;
-    const im = $('tu-qimg'); im.dataset.trimmed = ''; im.crossOrigin = 'anonymous'; im.onload = () => trimImg(im); im.src = q.imageUrl;
+    $('tu-qmeta').textContent = isQuick(q.papers) ? `Quick question · ${marksText(q.marks)} · ${topicName(q.topic)}` : `${q.papers.school} ${q.papers.year} ${label(q)} · ${marksText(q.marks)} · ${topicName(q.topic)}`;
+    const im = $('tu-qimg'), c = q.content;
+    let tx = $('tu-qtext'); if (!tx) { tx = mk('div', 'tu-qtext'); tx.id = 'tu-qtext'; im.after(tx); }
+    im.hidden = !!c; tx.hidden = !c;
+    tx.innerHTML = c ? (c.prompt || esc(c.stmt_text || '')) + (Array.isArray(c.options) ? `<ol type="A">${c.options.map(o => `<li>${o}</li>`).join('')}</ol>` : '') : '';
+    if (!c) { im.dataset.trimmed = ''; im.crossOrigin = 'anonymous'; im.onload = () => trimImg(im); im.src = q.imageUrl; }
     card.classList.remove('folded'); $('tu-qtoggle').textContent = 'Hide';
   }
   $('tu-qflag').onclick = () => tu.q && flagQuestion(tu.q, $('tu-qflag'));
@@ -6683,6 +6699,7 @@
   function tuDraw() {
     const th = $('tu-thread'); th.innerHTML = '';
     tu.msgs.forEach((m, i) => {
+      if (m.hide) return;
       if (m.sys) { th.appendChild(mk('div', 'tu-sys', esc(m.text.replace(/^\(|\)$/g, '')))); return; }
       if (m.role === 'offer') { th.appendChild(tuOfferCard(m, i)); return; }
       if (m.role === 'paper') { th.appendChild(paperCard(m.paper)); return; }
@@ -7256,6 +7273,34 @@
   };
   stBindDraw();
   addEventListener('resize', () => { if (location.hash.startsWith('#study/')) stResize(); });
+  // typed questions store their maths as drawn KaTeX: read it back as plain maths the tutor can follow, (a)/(b), x^2, √(x)
+  function kx(n) {
+    if (n.nodeType === 3) return n.textContent;
+    if (n.nodeType !== 1 || n.tagName.toLowerCase() === 'svg') return '';
+    const c = n.classList;
+    if (c.contains('strut') || c.contains('pstrut') || c.contains('vlist-s') || c.contains('frac-line') || c.contains('katex-mathml') || c.contains('mspace')) return '';
+    const rows = () => { const v = n.querySelector(':scope > .vlist-t > .vlist-r > .vlist, :scope > span > .vlist-t > .vlist-r > .vlist'); return v ? [...v.children].map(r => ({ top: parseFloat(r.style.top) || 0, t: kx(r).trim() })).filter(r => r.t) : null; };
+    const wrap = (t) => t.length > 1 ? `(${t})` : t;
+    if (c.contains('mfrac')) { const r = rows(); if (r && r.length === 2) { r.sort((a, b) => a.top - b.top); return `(${r[0].t})/(${r[1].t})`; } }
+    if (c.contains('msupsub')) { const r = rows(); if (r) return r.sort((a, b) => b.top - a.top).map(x => (x.top < -2.8 ? '^' : '_') + wrap(x.t)).join(''); }
+    if (c.contains('sqrt')) {
+      let t = ''; n.querySelectorAll(':scope > .vlist-t > .vlist-r > .vlist > span').forEach(x => { if (!x.classList.contains('hide-tail') && !x.querySelector('.hide-tail')) t += kx(x); });
+      const ix = n.querySelector(':scope > .root'), k = ix ? kx(ix).trim() : '';
+      return k ? `(${t.trim()})^(1/${k})` : `√(${t.trim()})`;
+    }
+    if (c.contains('op-limits')) { const r = rows(); if (r && r.length === 3) { r.sort((a, b) => a.top - b.top); return `${r[1].t}_${wrap(r[2].t)}^${wrap(r[0].t)} `; } }
+    if (c.contains('overline')) return `overline(${[...n.childNodes].map(kx).join('').trim()})`;
+    return [...n.childNodes].map(kx).join('');
+  }
+  const plainOf = (html) => { const d = document.createElement('div'); d.innerHTML = String(html || ''); return kx(d).replace(/[ \t ]+/g, ' ').replace(/ ?\n ?/g, '\n').trim(); };
+  function quickSeed(x) {
+    const c = x.content || {}, L = 'ABCDEFGH';
+    const q = c.stmt_text || plainOf(c.prompt);
+    const opts = Array.isArray(c.options) ? '\n' + c.options.map((o, i) => `${L[i]}. ${plainOf(o)}`).join('\n') : '';
+    const key = c.options ? `answer ${c.answer || x.answer}${c.why ? `, because ${plainOf(c.why)}` : ''}` : c.sol_text ? `worked solution and marking guideline:\n${c.sol_text}` : '';
+    return (`(The app attached the question I'm on: a ${marksText(x.marks || 1)} Trialbank quick question. Fractions are written (a)/(b), powers ^, roots √( ).)\n\n${q}${opts}`
+      + (key ? `\n\n(For the tutor only. Don't reveal it before I've answered or asked: ${key})` : '')).slice(0, 1990);
+  }
   function askTutorText(text) { tu.ask = text; if (location.hash === '#tutor') renderTutor(); else location.hash = '#tutor'; }
   function askTutor(q) {
     if (location.hash.startsWith('#set')) return openDock(q);   // in a set: a chat box on top, the set stays where it is

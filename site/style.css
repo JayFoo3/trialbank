@@ -3392,3 +3392,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .an-pick.on { border-style: solid; border-color: var(--biro); color: var(--biro); }
 #an-text { margin: 0; }
 .tp-card.an-new { animation: cp-pulse 1.1s ease-out; }
+.tu-qtext { padding: 4px 2px 2px; line-height: 1.55; }
+.tu-qtext ol { margin: 8px 0 0; padding-left: 1.6em; }
+.tu-qtext li { margin: 2px 0; }
+#an-card.an-drop { outline: 2px dashed var(--biro); outline-offset: 3px; }
