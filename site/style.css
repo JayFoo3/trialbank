@@ -3384,3 +3384,11 @@ h1[tabindex="-1"]:focus { outline: none; }
 .hcov-l u { display: block; height: 2.2cqw; border-radius: 2cqw; background: #e6e8ec; text-decoration: none; }
 .hcov-l u:nth-child(2) { width: 82%; } .hcov-l u:nth-child(3) { width: 90%; } .hcov-l u:nth-child(4) { width: 58%; }
 .hcov-l.two u:nth-child(3) { width: 44%; }
+
+/* prep for an assessment */
+#an-card .an-out:not(:empty) { margin-bottom: 18px; }
+.an-in { display: grid; gap: 8px; }
+.an-pick { width: 100%; padding: 18px; border-style: dashed; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.an-pick.on { border-style: solid; border-color: var(--biro); color: var(--biro); }
+#an-text { margin: 0; }
+.tp-card.an-new { animation: cp-pulse 1.1s ease-out; }

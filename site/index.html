@@ -285,6 +285,16 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <div id="topic-chips"></div>
       <p class="small pr-foot"><button class="link" id="topics-all" hidden>Select every topic</button><button class="link" id="open-syllabus">Syllabus</button></p>
     </div>
+    <details class="card cp-card" id="an-card" hidden>
+      <summary><span><b>Prep for an assessment</b></span><em class="pro-chip" id="an-pro" hidden>Pro</em><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div class="an-in">
+        <input type="file" id="an-file" accept="application/pdf,image/*" multiple hidden>
+        <button class="secondary an-pick" id="an-pick">Add the notification</button>
+        <textarea id="an-text" rows="2" placeholder="Or paste it here"></textarea>
+      </div>
+      <div class="cp-go"><button class="primary" id="an-go">Make my test</button><span class="small muted" id="an-status"></span></div>
+      <div class="an-out" id="an-out"></div>
+    </details>
     <div class="tp-mine" id="tp-mine" hidden></div>
     <details class="card cp-card" id="cp-card">
       <summary><span><b>Make a practice paper</b></span><em class="pro-chip" id="cp-pro" hidden>Pro</em><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>

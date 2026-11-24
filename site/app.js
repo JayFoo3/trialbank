@@ -160,7 +160,7 @@
     if (!state.preview) sb.rpc('log_visit', { v: h || 'home' }).then(() => {}, () => {});   // engagement stats for the Admin page
     return busy(async () => {
      try {
-      if (h === 'practise') { show('practise'); drawCpCard(); drawResume(); drawMyPapers().catch(err => console.warn('papers', err)); await renderBuild(); return; }
+      if (h === 'practise') { show('practise'); drawCpCard(); drawAnCard(); drawResume(); drawMyPapers().catch(err => console.warn('papers', err)); await renderBuild(); return; }
       if (h === 'progress' && can('progress')) { show('progress'); await renderProgress(); return; }
       if (h === 'admin' && adminOn()) { show('admin'); await renderAdmin(); adminTabs(); return; }
       if (h === 'profile') { show('profile'); await renderProfile(); return; }
@@ -3488,6 +3488,74 @@
     } catch (err) { tu.msgs.push({ sys: true, text: err.message || String(err) }); }
     finally { tu.busy = false; tuDraw(); tuSave(); }
   }
+  // ---------- prep for an assessment: drop in the notification, the tutor reads what it covers and how it's set out, the bank builds the test ----------
+  // One tutor message per test, so it sits inside the same Pro / pack limits as the tutor and can never cost more than they pay for.
+  const an = { files: [] };
+  function drawAnCard() {
+    if (!$('an-card')) return;
+    $('an-card').hidden = !state.user || !!state.preview;
+    $('an-pro').hidden = tuAllowed();
+  }
+  function drawAnFiles() {
+    const n = an.files.length, b = $('an-pick');
+    b.textContent = !n ? 'Add the notification' : n === 1 ? an.files[0].name : `${n} files`;
+    b.classList.toggle('on', !!n);
+  }
+  $('an-pick').onclick = () => $('an-file').click();
+  $('an-file').onchange = (ev) => { an.files = [...ev.target.files].slice(0, 6); ev.target.value = ''; drawAnFiles(); };
+  async function pdfText(f) {   // a typed PDF's own words: cheaper and more exact than reading the picture
+    const lib = await loadPdfJs();
+    const doc = await lib.getDocument({ data: await f.arrayBuffer(), isEvalSupported: false }).promise;
+    let out = '';
+    for (let i = 1; i <= Math.min(doc.numPages, 6); i++) {
+      const tc = await (await doc.getPage(i)).getTextContent();
+      out += tc.items.map(x => x.str + (x.hasEOL ? '\n' : ' ')).join('') + '\n';
+    }
+    return out.replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
+  }
+  async function anRun() {
+    const say = (t) => { $('an-status').textContent = t; }, btn = $('an-go'), outBox = $('an-out');
+    const pasted = $('an-text').value.trim();
+    if (!an.files.length && !pasted) return say('Add the notification first.');
+    btn.disabled = true; outBox.innerHTML = '';
+    const session = 'notice-' + Date.now().toString(36);
+    try {
+      let text = pasted;
+      for (const f of an.files) if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) { say('Reading it…'); text += '\n' + await pdfText(f).catch(() => ''); }
+      const pages = an.files.length ? await filesToPages(an.files, say, 1600) : [];
+      const imgs = [];
+      for (const [i, b] of pages.slice(0, 4).entries()) {   // the tutor looks at up to 4 pages: tables and dot points that don't come through as text
+        say(`Sending page ${i + 1}…`);
+        const path = `${state.user.id}/${session}/p${String(i + 1).padStart(2, '0')}.jpg`;
+        const { error } = await sb.storage.from('submissions').upload(path, b, { contentType: 'image/jpeg', upsert: true });
+        if (error) throw error;
+        imgs.push(path);
+      }
+      say('Working out what it covers…');
+      const ask = "This is my assessment notification. Make me a practice test shaped like it: the same topics, working time, and mix of multiple choice and written marks. "
+        + "Fill paper now. Only ask me something if it really doesn't say which topics it covers. "
+        + 'In the title put the task name, and the due date if it gives one, e.g. "Task 2 practice · due 3 Dec".';
+      const { data, error } = await sb.functions.invoke('tutor', { body: {
+        subject: state.subject, mode: 'quiz', question_id: null, chunks: {}, syllabus: tuSyllabus(),
+        messages: [{ role: 'student', text: `${ask}\n\nThe notification:\n${text || '(see the pages)'}`.slice(0, 2000), images: imgs }],
+      } });
+      if (error) { let msg = error.message; try { msg = (await error.context.json()).error || msg; } catch { /* no body */ } throw new Error(msg); }
+      if (!data?.paper) { say(data?.say || "Couldn't tell what it covers. Paste the topics in and try again."); return; }
+      say('Picking questions…');
+      const p = await buildTutorPaper(data.paper);
+      an.files = []; $('an-text').value = ''; drawAnFiles(); say('');
+      if (p.unsaved || p.subject !== state.subject) {   // not in "Your papers" below: show it here
+        outBox.appendChild(paperCard(p, { subj: state.subject }));
+        if (p.unsaved === 'full') say('You have 30 saved papers. Delete one to keep this.');
+      } else {
+        await drawMyPapers();
+        const first = $('tp-mine')?.querySelector('.tp-card');
+        if (first) { first.classList.add('an-new'); first.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      }
+    } catch (err) { say(err.message || String(err)); }
+    finally { btn.disabled = false; }
+  }
+  $('an-go').onclick = anRun;
   async function pdfAction(btn, opts, errEl) {
     const old = btn.textContent; btn.disabled = true;
     if (errEl) errEl.hidden = true;
