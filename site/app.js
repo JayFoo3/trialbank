@@ -3503,6 +3503,22 @@
   }
   $('an-pick').onclick = () => $('an-file').click();
   $('an-file').onchange = (ev) => { an.files = [...ev.target.files].slice(0, 6); ev.target.value = ''; drawAnFiles(); };
+  // paste the notification: a copied PDF or photo (from Finder, Files, Preview, a screenshot) goes in as a file, plain text stays as text
+  function anPaste(ev) {
+    const cd = ev.clipboardData; if (!cd) return;
+    const ok = (f) => f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || f.type.startsWith('image/'));
+    let fs = [...(cd.files || [])].filter(ok);
+    if (!fs.length) fs = [...(cd.items || [])].filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(ok);
+    if (!fs.length) return;   // just text: let it paste as normal
+    ev.preventDefault();
+    an.files = [...an.files, ...fs.map((f, i) => f.name ? f : new File([f], `Pasted ${i + 1}.${f.type === 'application/pdf' ? 'pdf' : 'png'}`, { type: f.type }))].slice(0, 6);
+    $('an-card').open = true; drawAnFiles();
+  }
+  $('an-card').addEventListener('paste', anPaste);
+  document.addEventListener('paste', (ev) => {   // on Practise, a paste anywhere outside a text box lands in the card too
+    if (location.hash !== '#practise' || $('an-card').hidden || $('an-card').contains(ev.target) || ev.target.closest?.('input, textarea, [contenteditable]')) return;
+    anPaste(ev);
+  });
   {   // drop the notification straight onto the card
     const card = $('an-card'), ok = (f) => f.type === 'application/pdf' || f.type.startsWith('image/');
     card.addEventListener('dragover', (ev) => { ev.preventDefault(); card.classList.add('an-drop'); });
