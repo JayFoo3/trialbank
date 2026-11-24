@@ -28,7 +28,9 @@ TOPIC = {'wf': 'Working with Functions', 'gt': 'Graphing Techniques', 'tm': 'Tri
          'pab': 'Properties of Acids and Bases', 'bl': 'Using Brønsted–Lowry Theory', 'qan': 'Quantitative Analysis', 'nm': 'Nomenclature', 'hc': 'Hydrocarbons',
          'prh': 'Products of Reactions Involving Hydrocarbons', 'al': 'Alcohols', 'oab': 'Reactions of Organic Acids and Bases', 'po': 'Polymers',
          'ai': 'Analysis of Inorganic Substances', 'ao': 'Analysis of Organic Substances', 'csd': 'Chemical Synthesis and Design',
-         'ti': 'Trigonometric Identities and Equations', 'cp': 'Continuous Probability Distributions', 'gr': 'Graphical Relat.', 'fo': 'Further Operations', 'co': 'Combinatorics', 'na': 'Normal Approx.'}
+         'ti': 'Trigonometric Identities and Equations', 'cp': 'Continuous Probability Distributions', 'gr': 'Graphical Relat.', 'fo': 'Further Operations', 'co': 'Combinatorics', 'na': 'Normal Approx.',
+         # Nov 2026 dot points: these files name the topic on every question, so the names here are only labels
+         'xt': 'Ext 2', 'sd': 'Standard 2', 'bi': 'Biology', 'ec': 'Economics', 'en': 'Engineering Studies', 'sw': 'Software Engineering', 'esd': 'English Standard'}
 SUBJ = {'quick-adv': 'Adv', 'quick-ext1': 'Ext1', 'quick-physics': 'Physics', 'quick-chem': 'Chem', 'quick-ext1-proof': 'Ext1',
         'quick-ext2': 'Ext2', 'quick-std2': 'Std2', 'quick-bio': 'Bio', 'quick-econ': 'Econ', 'quick-eng': 'Eng', 'quick-se': 'SE', 'quick-engadv': 'EngAdv', 'quick-engstd': 'EngStd'}
 subj_of = lambda slug: SUBJ.get(slug) or SUBJ[slug.removesuffix('-worked')]   # quick-bio-worked -> Bio
