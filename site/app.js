@@ -3494,7 +3494,7 @@
   function drawAnCard() {
     if (!$('an-card')) return;
     $('an-card').hidden = !state.user || !!state.preview;
-    $('an-pro').hidden = tuAllowed();
+    $('an-pro').hidden = tutorUsable();
   }
   function drawAnFiles() {
     const n = an.files.length, b = $('an-pick');
@@ -3527,7 +3527,7 @@
     const say = (t) => { $('an-status').textContent = t; }, btn = $('an-go'), outBox = $('an-out');
     const pasted = $('an-text').value.trim();
     if (!an.files.length && !pasted) return say('Add the notification first.');
-    if (!tuAllowed() && !(state.tutorCredits > 0)) return proOpen() ? openPro('paper') : say('This uses the tutor, which comes with Pro.');   // before uploading anything
+    if (!tutorUsable()) return proOpen() ? openPro('paper') : say('This uses the tutor, which comes with Pro.');   // before uploading anything
     btn.disabled = true; outBox.innerHTML = '';
     const session = 'notice-' + Date.now().toString(36);
     try {
