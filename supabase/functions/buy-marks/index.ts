@@ -5,7 +5,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 
 const SITE = 'https://jayfoo3.github.io/trialbank/';
-const ORIGINS = ['https://jayfoo3.github.io', 'http://localhost:8765'];
+const ORIGINS = ['https://trialbank.com.au', 'https://www.trialbank.com.au', 'https://jayfoo3.github.io', 'http://localhost:8765'];
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
