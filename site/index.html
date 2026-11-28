@@ -28,6 +28,7 @@
 <link rel="stylesheet" href="annbar.css?v=dev">
 <link rel="stylesheet" href="notes.css?v=dev">
 <link rel="stylesheet" href="motion.css?v=dev">
+<link rel="stylesheet" href="home-e.css?v=dev">
 <script src="device.js?v=dev"></script>
 <script>/* apply the student's saved look before anything paints */
 try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = document.documentElement;
@@ -214,6 +215,12 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       <button id="quick-set" hidden></button><button id="ob-first-go" hidden></button>
       <div id="resume-banner" hidden><span id="resume-title"></span><span id="resume-sub"></span><button id="resume-btn"></button></div>
     </section>
+
+    <!-- two games, one tap each -->
+    <div class="home-acts" id="home-acts">
+      <button id="home-quick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Quick</button>
+      <button id="home-duel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M9.5 17.5 21 6V3h-3L6.5 14.5M11 19l-6-6M8 16l-4 4M5 21l-2-2"/></svg>Duel</button>
+    </div>
 
     <!-- last week in one card, from Monday until closed -->
     <div class="wk-card" id="wk-card" hidden>

@@ -5553,22 +5553,86 @@
       ${petBadge(f, 'md')}<b>${esc(f.name)}</b>
       <small class="fr-meta"><span class="fr-fl">${flame(int(f.streak))}</span>${int(f.streak)} · Lv ${int(f.level) || 1}</small>
       <small class="fr-st">${f.done_today ? 'Done today' : 'Not yet'}</small>${(f.me ? battleWins() : int(f.wins)) ? `<small class="fr-rank">${rankOf(f.me ? battleWins() : int(f.wins))}</small>` : ''}</div>`;
+  // Home: you, then every friend in one list; online friends first (green dot), each with a duel button
+  const HF_ADD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  const HF_DUEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M9.5 17.5 21 6V3h-3L6.5 14.5M11 19l-6-6M8 16l-4 4M5 21l-2-2"/></svg>';
+  const hfRow = (f) => `<div class="hf-row${f.me ? ' me' : ''}"${f.me ? ' data-me="1"' : ` data-fid="${esc(f.friend_id)}"`} role="button" tabindex="0" aria-label="${esc(f.me ? 'Your profile' : f.name)}">
+      <span class="hf-face">${petBadge(f, 'md')}${f.status ? `<i class="hf-on ${f.status}" aria-label="${f.status === 'idle' ? 'Idle' : 'Online'}" title="${f.status === 'idle' ? 'Idle' : 'Online'}"></i>` : ''}</span>
+      <span class="hf-name">${esc(f.me ? (myName() || 'You').split(/\s+/)[0] : f.name)}</span>
+      <span class="hf-lv">Lv ${int(f.level) || 1}</span>
+      <span class="hf-st"><span class="fr-fl">${flame(int(f.streak))}</span>${int(f.streak)}</span>
+      ${f.me ? '<span class="hf-gap"></span>' : `<button class="hf-duel" data-duel="${esc(f.friend_id)}" aria-label="Duel ${esc(f.name)}" title="Duel">${HF_DUEL}</button>`}</div>`;
+  function hfSorted() {
+    const rank = { online: 2, idle: 1 };
+    return state.friends.map(f => ({ ...f, status: stStatus(f) }))
+      .sort((a, b) => (rank[b.status] || 0) - (rank[a.status] || 0) || b.streak - a.streak);
+  }
   async function drawFriends() {
     const box = $('friends'), head = $('friends-head');
     if (state.preview || !state.user) { box.hidden = head.hidden = true; return; }
     const fs = await loadFriends();
-    head.hidden = box.hidden = false;
-    if (!fs.length) {
-      box.className = 'friends empty';
-      box.innerHTML = `<p><b>Do your Daily 5 with friends.</b> <span class="muted">See their streaks and who's done today's 5.</span></p><button class="secondary" id="fr-invite">Invite a friend</button>`;
-      $('fr-invite').onclick = openFriends;
-      return;
-    }
-    box.className = 'friends';
+    box.hidden = false;
+    box.className = 'hf';
+    fs.forEach(hfWatch);
     await myLevel();
-    const all = [meRow(), ...fs].sort((a, b) => b.done_today - a.done_today || b.streak - a.streak);
-    box.innerHTML = all.map(friendChip).join('');
+    box.innerHTML = `<div class="hf-head"><h2>Friends</h2><button class="hf-add" id="hf-add" aria-label="Add a friend" title="Add a friend">${HF_ADD}</button></div>
+      ${hfRow(meRow())}${fs.length ? hfSorted().map(hfRow).join('') : '<div class="hf-invite"><button class="secondary" id="fr-invite">Invite a friend</button></div>'}`;
+    $('hf-add').onclick = openFriends;
+    if ($('fr-invite')) $('fr-invite').onclick = openFriends;
   }
+  // see who's online: the same presence channels the study-together page uses
+  let hfRedraw = 0;
+  function hfWatch(f) {
+    if (stWatch[f.friend_id]) return;
+    const c = stWatch[f.friend_id] = sb.channel(`inbox:${f.friend_id}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
+    c.on('presence', { event: 'sync' }, () => { stDrawFriends(); hfOnline(); }).subscribe((x) => { if (x === 'SUBSCRIBED') c.track({ w: 1 }); });
+  }
+  function hfOnline() {   // re-sort the list when someone comes online or leaves (at most every half second)
+    clearTimeout(hfRedraw);
+    hfRedraw = setTimeout(() => {
+      const box = $('friends'); if (!box || box.hidden || !box.classList.contains('hf') || !state.friends.length) return;
+      box.querySelectorAll('.hf-row[data-fid]').forEach(r => r.remove());
+      box.insertAdjacentHTML('beforeend', hfSorted().map(hfRow).join(''));
+    }, 500);
+  }
+  function duelFriend(f) {
+    openPlayer(f);
+    const d = document.getElementById('pc-duel'); if (d) d.click();
+  }
+  $('friends').addEventListener('click', (ev) => {
+    const d = ev.target.closest('[data-duel]');
+    if (d) { const f = state.friends.find(x => x.friend_id === d.dataset.duel); if (f) duelFriend(f); return; }
+    const r = ev.target.closest('.hf-row'); if (!r) return;
+    if (r.dataset.me) return openPlayer('me');
+    const f = state.friends.find(x => x.friend_id === r.dataset.fid); if (f) openPlayer(f);
+  });
+  $('friends').addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList?.contains('hf-row')) { ev.preventDefault(); ev.target.click(); } });
+  // Home: Duel picks a friend (online ones first); Quick starts 10 quick questions
+  $('home-duel').onclick = async () => {
+    if (state.preview || !state.user) return;
+    const fs = await loadFriends();
+    if (!fs.length) return openFriends();
+    const list = hfSorted();
+    if (list.length === 1) return duelFriend(list[0]);
+    const k = await choiceBox('Duel who?', list.slice(0, 8).map(f => [f.friend_id, (f.status ? '\u25CF ' : '') + esc(f.name), f.status === 'online' ? 'primary' : 'secondary']));
+    const f = k && list.find(x => x.friend_id === k); if (f) duelFriend(f);
+  };
+  $('home-quick').onclick = async () => {
+    const b = $('home-quick'); b.disabled = true;
+    try {
+      const counts = await loadTopicCounts();
+      const mine = counts.filter(r => r.subject === state.subject);
+      const quick = [...new Set(mine.filter(r => r.type === 'quick').map(r => r.topic))];
+      const pool = quick.length ? quick : [...new Set(mine.map(r => r.topic))];
+      const weak = (state.weak || []).map(w => w.topic).filter(t => pool.includes(t));
+      shuffle(pool);
+      state.topics = new Set(weak.length ? [...weak, ...pool.slice(0, 3)] : pool);
+      try { await busy(() => buildSet({ count: 10, type: 'quick', qfmt: 'mcq', diff: 'all', fresh: 1 })); }
+      catch { await busy(() => buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1 })); }   // no quick questions here yet
+      location.hash = '#set';
+    } catch (err) { toast(esc(err.message || String(err))); }
+    finally { b.disabled = false; }
+  };
   $('fr-open').onclick = () => openFriends();
   async function openFriends() {
     $('streak-pop').hidden = true;
@@ -7210,16 +7274,24 @@
       window.Juice?.sfx?.pop?.();
       const k = await choiceBox(`<b>${esc(String(payload.from || 'A friend').slice(0, 30))}</b> invited you to study together`, [['join', 'Join now', 'primary'], ['no', 'Not now', 'secondary']]);
       if (k === 'join') location.hash = `#study/${code}`;
-    }).on('presence', { event: 'sync' }, () => {}).subscribe((s) => { if (s === 'SUBSCRIBED') stIn.track({ on: 1 }); });
+    }).on('presence', { event: 'sync' }, () => {}).subscribe((s) => { if (s === 'SUBSCRIBED') stIn.track({ on: 1, idle: stIdle }); });
+    // idle: the tab is in the background, or nothing has been touched for 5 minutes
+    let t = 0;
+    const set = (idle) => { if (idle === stIdle) return; stIdle = idle; try { stIn.track({ on: 1, idle }); } catch { /* offline for a moment */ } };
+    const poke = () => { clearTimeout(t); set(document.hidden); if (!document.hidden) t = setTimeout(() => set(true), 5 * 60 * 1000); };
+    ['pointerdown', 'keydown', 'scroll', 'visibilitychange'].forEach(e => document.addEventListener(e, poke, { passive: true }));
+    poke();
   }
+  let stIdle = false;
   const stWatch = {}, stInvited = new Set();   // friend id -> a channel watching their inbox (to see them online and send the invite)
   const stOnline = (f) => !!stWatch[f.friend_id]?.presenceState?.()?.[f.friend_id];
+  const stStatus = (f) => { const p = stWatch[f.friend_id]?.presenceState?.()?.[f.friend_id]; return !p ? null : p.some(x => !x.idle) ? 'online' : 'idle'; };   // online on any device beats idle
   async function stFriends() {
     await loadFriends().catch(() => []);
     state.friends.forEach(f => {
       if (stWatch[f.friend_id]) return;
       const c = stWatch[f.friend_id] = sb.channel(`inbox:${f.friend_id}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
-      c.on('presence', { event: 'sync' }, stDrawFriends).subscribe((x) => { if (x === 'SUBSCRIBED') c.track({ w: 1 }); });   // Realtime only shares who's there with members who track too
+      c.on('presence', { event: 'sync' }, () => { stDrawFriends(); hfOnline(); }).subscribe((x) => { if (x === 'SUBSCRIBED') c.track({ w: 1 }); });   // Realtime only shares who's there with members who track too
     });
     stDrawFriends();
   }

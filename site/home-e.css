@@ -1,0 +1,43 @@
+/* home-e.css - the Home E layout: Today's 5, Quick and Duel, then you and every friend in one list.
+   Loaded last, so removing its <link> in index.html brings the old home back (the old sections are only hidden, not removed). */
+
+/* the old home sections, hidden (their code still runs) */
+#view-home .hello-row, #home-sub, #quick-desc, #wk-card, #friends-head,
+#view-home [data-feature="weak"], #view-home [data-feature="exam"], #review-error { display: none !important; }
+
+/* Today's 5 sits at the top of the page */
+#view-home .next { margin-top: 6px; }
+
+/* Quick and Duel: two chunky buttons */
+.home-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+.home-acts button { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 64px; border-radius: var(--r);
+  font-size: 1.2rem; font-weight: 900; background: var(--paper); }
+.home-acts svg { width: 22px; height: 22px; fill: none; stroke: var(--biro); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+/* you and your friends, one list: online friends first (green dot), then idle (orange), then offline (no dot) */
+#friends.hf { display: block; overflow: hidden; padding: 0; margin: 0 0 20px; background: var(--paper); border: 2px solid var(--rule); border-radius: var(--r-lg); box-shadow: 0 3px 0 var(--rule); }
+.hf-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 2px solid var(--rule); }
+.hf-head h2 { margin: 0; flex: 1; font-size: 1.25rem; font-weight: 900; }
+.hf-add { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; box-shadow: 0 3px 0 var(--rule); }
+.hf-add svg, .hf-duel svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.hf-row { display: flex; align-items: center; gap: 14px; padding: 11px 18px; border-bottom: 2px solid var(--rule); cursor: pointer; }
+.hf-row:last-child { border-bottom: 0; }
+.hf-row:hover { background: var(--soft); }
+.hf-row.me { background: var(--soft); }
+.hf-face { position: relative; flex: none; }
+.hf-face .pet { --sz: 48px; }
+.hf-on { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%; background: var(--good); border: 3px solid var(--paper); z-index: 2; }
+.hf-on.idle { background: var(--mid); }
+.hf-name { flex: 1; min-width: 0; font-weight: 800; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hf-lv { width: 52px; font-weight: 800; font-size: .92rem; color: var(--muted); }
+.hf-st { width: 52px; display: flex; align-items: center; gap: 2px; font-weight: 900; }
+.hf-st .fr-fl { width: 16px; height: 19px; margin-right: 2px; }
+.hf-duel, .hf-gap { flex: none; width: 44px; height: 44px; }
+.hf-duel { padding: 0; display: grid; place-items: center; color: var(--biro); box-shadow: 0 3px 0 var(--rule); }
+.hf-invite { display: flex; justify-content: center; padding: 14px 18px; }
+
+@media (max-width: 640px) {
+  .home-acts { gap: 12px; margin: 16px 0; }
+  .hf-lv { display: none; }
+  .hf-row { padding: 10px 14px; gap: 12px; }
+}
