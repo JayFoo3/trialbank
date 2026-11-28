@@ -5298,12 +5298,51 @@
     return box;
   }
   // the Home card: today's five, how far through, or done
+  // Today's 5 banner: one tile per question, a maths/science symbol and a one-word topic; the next one outlined, answered ones ticked
+  const T5_SYMBOLS = [
+    [/electromagnet|magnet/i, 'B', 'Magnetism'], [/series|sequence/i, 'Σ', 'Series'], [/induction|proof/i, 'n+1', 'Proof'], [/combinator|permutation/i, 'ⁿCᵣ', 'Counting'],
+    [/binomial|distribution|probab/i, 'P(A)', 'Probability'], [/statist|data|bivariate/i, 'x̄', 'Statistics'],
+    [/integra|area under/i, '∫', 'Integrals'], [/differential equation/i, 'dy/dx', 'Diff. eqns'], [/differen|calculus|derivative|rates? of change/i, 'dy/dx', 'Calculus'],
+    [/trig/i, 'sin θ', 'Trig'], [/exponential|logarithm|\blog/i, 'eˣ', 'Logs'], [/financ|annuit|interest/i, '$', 'Finance'],
+    [/vector/i, 'v⃗', 'Vectors'], [/graph|transform/i, 'y=f(x)', 'Graphs'], [/function|polynomial/i, 'f(x)', 'Functions'],
+    [/projectile|kinemat|motion/i, 'v⃗', 'Motion'], [/force|dynamic|newton/i, 'F=ma', 'Forces'], [/momentum|collision/i, 'p', 'Momentum'],
+    [/energy|work|power/i, 'E', 'Energy'], [/electr|charge|circuit/i, 'q', 'Electricity'],
+    [/wave|sound/i, 'λ', 'Waves'], [/light|quantum|photon|relativ/i, 'hf', 'Light'], [/thermo|heat/i, 'Q', 'Heat'], [/nucle|radioact/i, 'α', 'Nuclear'],
+    [/equilibri/i, '⇌', 'Equilibrium'], [/acid|base/i, 'pH', 'Acids'], [/organic|hydrocarbon/i, 'C–H', 'Organic'], [/quantitative|mole|stoich/i, 'n', 'Moles'],
+    [/cell/i, '⬡', 'Cells'], [/gene|dna|inherit/i, 'DNA', 'Genetics'], [/evolution/i, 'Evo', 'Evolution'], [/disease|immun/i, '✚', 'Disease'],
+  ];
+  function t5Symbol(topic) {
+    const name = topicName(topic) || '';
+    for (const [re, sym, short] of T5_SYMBOLS) if (re.test(name) || re.test(topic || '')) return [sym, short];
+    const w = name.replace(/^(introduction to|the|working with)\s+/i, '').split(/\s+/)[0] || 'Topic';
+    return [w.slice(0, 1).toUpperCase(), w.length > 12 ? w.slice(0, 11) + '.' : w];
+  }
+  let t5Topics = { key: '', by: {} };
+  async function drawT5Tiles(row) {
+    const box = $('t5-tiles');
+    if (!row || !row.question_ids?.length) { box.hidden = true; return; }
+    const key = row.question_ids.join(',');
+    if (t5Topics.key !== key) {
+      const { data } = await sb.from('questions').select('id, topic').in('id', row.question_ids);
+      t5Topics = { key, by: Object.fromEntries((data || []).map(q => [q.id, q.topic])) };
+    }
+    const done = new Set(row.answered || []), next = row.finished_at ? -1 : row.question_ids.findIndex(id => !done.has(id));
+    box.innerHTML = row.question_ids.map((id, k) => {
+      const [sym, short] = t5Symbol(t5Topics.by[id]), isDone = done.has(id), isNext = k === next;
+      return `<li class="t5-tile${isDone ? ' done' : ''}${isNext ? ' next' : ''}" title="${esc(topicName(t5Topics.by[id]) || '')}">
+        ${isDone ? '<svg class="t5-tick" viewBox="0 0 24 24" aria-label="Done"><path d="M5 12l5 5 9-10"/></svg>' : ''}
+        <b class="t5-sym">${esc(sym)}</b><span class="t5-name">${esc(short)}</span><i class="t5-bar"></i></li>`;
+    }).join('');
+    box.hidden = false;
+  }
   async function drawDaily() {
     const go = $('next-go'), dots = $('daily-dots'), alt = $('daily-alt');
     alt.hidden = true;
     $('daily-mode').textContent = DAILY_MODES[dailyMode()]; $('daily-mode').hidden = false;
     let row = null;
     try { row = await getDaily(); } catch (_) {}
+    if (!row && state.user && !state.preview) { try { ({ row } = await buildDaily()); } catch (_) { /* nothing to pick yet: the plain banner */ } }   // so the banner can show today's topics
+    drawT5Tiles(row).catch(err => console.warn('today tiles', err));
     const st = streakData(), streakLive = st.last === dayOf() || st.last === prevDay(dayOf());
     const total = row ? row.question_ids.length : 5, done = row ? row.answered.length : 0;
     dots.innerHTML = Array.from({ length: total }, (_, k) => `<i class="${k < done ? 'on' : ''}"></i>`).join('');
