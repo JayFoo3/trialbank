@@ -1,5 +1,5 @@
 # Supabase pauses free projects after a week with no requests. This pings it twice a week so it stays up.
-# Add SUPABASE_URL and SUPABASE_ANON_KEY as repository secrets (Settings -> Secrets and variables -> Actions).
+# The URL and publishable key are already public in site/app.js, so no repo secrets are needed.
 name: keep Supabase awake
 on:
   schedule:
@@ -9,9 +9,17 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          curl -sf -X POST "$SUPABASE_URL/rest/v1/rpc/signup_reason" \
-            -H "apikey: $SUPABASE_ANON_KEY" -H "Content-Type: application/json" -d '{"p_email":"keepalive@example.com","p_code":""}' > /dev/null && echo awake
+      - name: Ping Supabase
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_URL: https://xqkdggyksufbthskmmdz.supabase.co
+          SUPABASE_KEY: sb_publishable_eJI_qmdm7H6VTax5x5zx8g_9MvxlIFz
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -sS -o body.txt -w '%{http_code}' -X POST "$SUPABASE_URL/rest/v1/rpc/signup_reason" \
+              -H "apikey: $SUPABASE_KEY" -H "Content-Type: application/json" \
+              -d '{"p_email":"keepalive@example.com","p_code":""}') || code=000
+            echo "attempt $i: HTTP $code $(cat body.txt 2>/dev/null)"
+            [ "$code" = 200 ] && echo awake && exit 0
+            sleep 20
+          done
+          exit 1
