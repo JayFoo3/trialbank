@@ -5481,8 +5481,9 @@
     dots.innerHTML = Array.from({ length: total }, (_, k) => `<i class="${k < done ? 'on' : ''}"></i>`).join('');
     dots.hidden = false;
     const late = new Date().toLocaleString('en-AU', { hour: 'numeric', hour12: false, timeZone: 'Australia/Sydney' }) >= 18;
+    $('next-title').closest('.next').classList.toggle('t5-finished', !!(row && row.finished_at));   // all done: the banner just says Trialbank
     if (row && row.finished_at) {
-      $('next-title').textContent = 'Done for today';
+      $('next-title').textContent = 'Trialbank';
       $('quick-desc').textContent = `${row.score} / ${row.out_of} today. Come back tomorrow to make it ${liveStreak(st) + 1} days.`;
       go.textContent = 'Quick set'; go.onclick = () => $('quick-set').click();
       alt.textContent = "Redo today's 5"; alt.hidden = false;

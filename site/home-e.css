@@ -98,3 +98,9 @@
   .t5-bar { left: 7px; right: 7px; bottom: 8px; height: 4px; }
   #view-home .next .next-acts { padding-right: 92px; }   /* keep Start clear of the mascot */
 }
+
+/* Today's 5 finished: everything goes, the banner just says Trialbank */
+.next.t5-finished #daily-dots, .next.t5-finished #t5-tiles, .next.t5-finished #quick-desc, .next.t5-finished .next-acts { display: none !important; }
+.next.t5-finished #next-title { display: block !important;  font-family: var(--display); font-weight: 900; color: #fff !important; font-size: clamp(2.6rem, 6vw, 4.2rem); letter-spacing: -.04em; line-height: 1; margin: 0; }
+.next.t5-finished { justify-content: center; }
+#view-home .next.t5-finished > #next-title { grid-column: 1 / span 2; grid-row: 1 / span 8; align-self: center; }
