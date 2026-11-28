@@ -2684,7 +2684,7 @@
         <h3 class="hsc-h3">What's holding you back</h3>
         <div class="hsc-hold ${pro ? '' : 'locked'}">${(pro ? x.holding : [{ topic: 'Topic one', pct: 48, gain: 3.1 }, { topic: 'Topic two', pct: 55, gain: 2.2 }, { topic: 'Topic three', pct: 61, gain: 1.4 }]).map(h => `
           <div class="hsc-row"><span class="hsc-t">${esc(pro ? topicName(h.topic) : h.topic)}</span><span class="muted small hsc-pct">${h.pct}% right</span><b>+${h.gain.toFixed(1)}%</b>${pro ? `<button class="link small" data-topic="${esc(h.topic)}">Practise</button>` : ''}</div>`).join('') || '<p class="muted small">Nothing stands out: your topics are all close to your average.</p>'}
-          ${pro ? (x.holding.length ? '<p class="small muted">Lifting each topic to your average raises your raw mark by about this much. <button class="link small" id="hsc-paper">Make me a paper on these</button></p>' : '') : '<div class="hsc-lock"><b>See exactly which topics are costing you marks</b><span>and how much each one is worth.</span><button class="primary" id="hsc-pro">Unlock with Pro</button></div>'}
+          ${pro ? (x.holding.length ? '<p class="small muted">Lifting each topic to your average raises your raw mark by about this much.</p>' : '') : '<div class="hsc-lock"><b>See exactly which topics are costing you marks</b><span>and how much each one is worth.</span><button class="primary" id="hsc-pro">Unlock with Pro</button></div>'}
         </div>
         ${others.length ? `<div class="hsc-others">${others.map(([s, p]) => `<span class="chip">${esc(C.subjects[s])} <b>${p.band}</b></span>`).join('')}</div>` : ''}`;
       box.querySelectorAll('[data-topic]').forEach(b => b.onclick = async () => {
@@ -3596,6 +3596,7 @@
   const an = { files: [] };
   function drawAnCard() {
     if (!$('an-card')) return;
+    $('an-card').hidden = true; return;   // Prep for a test is switched off for now
     $('an-card').hidden = !state.user || !!state.preview;
     $('an-pro').hidden = tutorUsable();
   }

@@ -64,3 +64,6 @@
   .pr2-kind { flex: 1; } .pr2-kind button { flex: 1; padding: 8px 6px; }
   #view-practise .pr-bar .primary { flex: 1; }
 }
+
+/* switched off for now: Make a paper, Prep for a test, and Your papers on Practise */
+#cp-card, #an-card, #tp-mine { display: none !important; }
