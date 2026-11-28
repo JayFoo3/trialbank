@@ -1928,8 +1928,10 @@
     if (narrowed.length) {   // dot points picked: only questions that need nothing beyond them
       const { data: sk } = await sb.from('questions').select('id, topic, skills, papers!inner(subject)').eq('papers.subject', state.subject).in('topic', narrowed).not('skills', 'is', null).limit(3000);
       const fits = new Set((sk || []).filter(q => { const sel = state.steps.get(q.topic), need = q.skills || []; return need.length && !need.includes('outside') && need.every(x => sel.has(x)); }).map(q => q.id));
-      pool = pool.filter(q => !narrowed.includes(q.topic) || fits.has(q.id));
-      if (!pool.length) throw new Error('No questions cover just those dot points yet. Tick a few more, or use the whole topic.');
+      const narrowedPool = pool.filter(q => !narrowed.includes(q.topic) || fits.has(q.id));
+      if (narrowedPool.length) pool = narrowedPool;
+      else if (pool.length) toast('These questions aren\'t sorted by dot point yet, so this set covers the whole topic.');   // e.g. HSC questions, before they're tagged
+      else throw new Error('No questions cover just those dot points yet. Tick a few more, or use the whole topic.');
     }
     if (!pool.length) throw new Error('No questions match that. Widen the filters.');
     if (o.fresh) {
@@ -7899,7 +7901,7 @@ void main() {
         <input class="fc-find" type="search" placeholder="Find a topic" autocomplete="off" aria-label="Find a topic">
         <div class="fc-topics">${topics.map(t => `<button type="button" class="fc-t${pick.has(t) ? ' on' : ''}" data-t="${esc(t)}">${esc(topicName(t))}</button>`).join('')}</div>
         <input class="fc-stakes" maxlength="40" placeholder="Stakes, e.g. loser buys chips" autocomplete="off" aria-label="Stakes (optional)" value="${esc(stakes)}">
-        <div class="fc-go"><div class="seg fc-k"><button data-k="quick"${kind === 'quick' ? ' class="on"' : ''} title="Short textbook-style questions, marked instantly">Quick</button><button data-k="all"${kind === 'all' ? ' class="on"' : ''} title="Questions from past trial papers">Trial</button></div><div class="seg fc-n"><button data-n="5"${n === 5 ? ' class="on"' : ''}>5</button><button data-n="10"${n === 10 ? ' class="on"' : ''}>10</button></div>
+        <div class="fc-go"><div class="seg fc-k"><button data-k="quick"${kind === 'quick' ? ' class="on"' : ''} title="Short textbook-style questions, marked instantly">Textbook</button><button data-k="all"${kind === 'all' ? ' class="on"' : ''} title="Questions from past trial papers">Trial</button></div><div class="seg fc-n"><button data-n="5"${n === 5 ? ' class="on"' : ''}>5</button><button data-n="10"${n === 10 ? ' class="on"' : ''}>10</button></div>
         <button class="duel-btn" id="fc-send" ${pick.size ? '' : 'disabled'}>${fireHTML(0, 'icon')}<span>Send challenge</span></button></div>`;
       const send = box.querySelector('#fc-send');
       box.querySelectorAll('.fc-s').forEach(b => b.onclick = () => { subj = b.dataset.s; draw(); });
