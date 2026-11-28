@@ -5,6 +5,7 @@
                                        2. copies every question/solution image Supabase -> B2 (same path), checks each size
                                        Safe to stop and run again: anything already in B2 at the right size is skipped.
   (then the site and edge functions are deployed, and every image path gets 'b2:' in front, e.g. b2:hsc-ext2-2020/q11a.webp)
+  python3 move_images_b2.py --switch   points every question at its B2 copy (only images B2 really has)
   python3 move_images_b2.py --delete   only once every row points at B2: deletes those images from Supabase storage
 
 Needs SUPABASE_URL, SUPABASE_SERVICE_KEY, B2_KEY_ID, B2_APP_KEY, B2_BUCKET, B2_ENDPOINT (all in ~/.trialbank_keys)."""
@@ -70,7 +71,7 @@ def copy_all():
         with lock:
             sizes[p] = len(r.content); n[0] += 1
             if n[0] % 250 == 0: print(f'  {n[0]}/{len(todo)}  ({(time.time() - t0) / 60:.0f} min)')
-    with ThreadPoolExecutor(8) as ex: list(ex.map(one, todo))
+    with ThreadPoolExecutor(int(os.environ.get("B2_THREADS", "32"))) as ex: list(ex.map(one, todo))
     for b in bad[:30]: print('  !', b)
     print('Checking everything landed in B2...')
     have = b2.listing()
@@ -99,4 +100,42 @@ def delete():
     print(f'Done: {gone} images removed from Supabase storage. Thumbs, profile pictures and uploads stay there.')
 
 
-delete() if '--delete' in sys.argv else copy_all()
+def switch():
+    """Point every question at its B2 copy ('b2:' + path), but only for images that are in B2 at full size."""
+    rs = rows()
+    have = b2.listing()
+    if not cors_ok(): sys.exit('B2 CORS is OFF, so the site could not load images from B2. Nothing switched. Turn it on: ' + CORS_HOW)
+    todo, skipped = [], set()
+    for r in rs:
+        ch = {}
+        for k in ('image_path', 'solution_path'):
+            p = r[k]
+            if not p or p.startswith('b2:'): continue
+            if p in have: ch[k] = 'b2:' + p
+            else: skipped.add(p)
+        if ch: todo.append((r['id'], ch))
+    print(f'{len(todo)} questions to switch to B2, {len(skipped)} images not in B2 yet (left on Supabase)')
+    lock, n, bad = threading.Lock(), [0], []
+
+    def one(item):
+        qid, ch = item
+        for i in range(5):
+            try:
+                x = requests.patch(f'{URL}/rest/v1/questions?id=eq.{qid}', headers={**H, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'}, json=ch, timeout=60)
+                if x.status_code < 300: break
+            except requests.RequestException: pass
+            time.sleep(2 * (i + 1))
+        else:
+            bad.append(qid); return
+        with lock:
+            n[0] += 1
+            if n[0] % 1000 == 0: print(f'  {n[0]}/{len(todo)}')
+    with ThreadPoolExecutor(16) as ex: list(ex.map(one, todo))
+    print(f'Switched {n[0]} questions to B2.' + (f' {len(bad)} failed (e.g. id {bad[0]}): run --switch again.' if bad else ''))
+    if skipped: print(f'{len(skipped)} images are not in B2 (e.g. {sorted(skipped)[0]}): run plain "python3 move_images_b2.py" to copy them, then --switch again.')
+    if not bad and not skipped: print('Every question now uses B2. Check a few questions load on the site, then run --delete.')
+
+
+if '--delete' in sys.argv: delete()
+elif '--switch' in sys.argv: switch()
+else: copy_all()
