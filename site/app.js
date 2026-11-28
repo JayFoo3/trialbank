@@ -36,7 +36,7 @@
     subject: (() => { try { const k = localStorage.getItem('tb_subject'); return k && C.subjects[k] ? k : Object.keys(C.subjects)[0]; } catch { return Object.keys(C.subjects)[0]; } })(),
     topics: new Set(),          // selected topic names
     steps: new Map(),           // topic -> the dot points picked inside it (empty: the whole topic)
-    opts: { count: 10, type: 'all', diff: 'all', fresh: 1, qfmt: 'mcq' },
+    opts: { count: 10, type: 'quick', diff: 'all', fresh: 1, qfmt: 'mcq' },   // Practise opens on Textbook
     set: null,                  // { qs: [...], i, results: [] }
   };
 
@@ -1764,7 +1764,8 @@
       $('pr-error').hidden = true;
       const keep = new Set(state.topics), keepSteps = state.steps; state.steps = new Map();
       state.topics = new Set(weak.length ? weak.map(w => w.topic) : all.filter(t => !skip.has(t)));
-      try { await busy(() => buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1 })); location.hash = '#set'; }
+      const kind = state.opts.type === 'quick' ? { type: 'quick', qfmt: state.opts.qfmt } : { type: 'all', diff: state.opts.diff };   // follows Textbook / Trial / HSC
+      try { await busy(async () => { try { await buildSet({ count: state.opts.count, fresh: 1, ...kind }); } catch (e) { if (kind.type !== 'quick') throw e; await buildSet({ count: state.opts.count, type: 'all', diff: 'all', fresh: 1 }); } }); location.hash = '#set'; }
       catch (err) { $('pr-error').textContent = err.message; $('pr-error').hidden = false; }
       finally { state.topics = keep; state.steps = keepSteps; }
     };
@@ -1812,7 +1813,7 @@
   let pr2 = { list: [], cur: null, q: '', screen: 'list', ch: null, ex: null, bk: new Set(), years: new Set() };
   // admins only: Textbook shows Margaret's chapters, HSC adds the real HSC papers by year
   const pr2Mode = () => !adminOn() || state.preview ? 'topics'
-    : pr2Kind() === 'quick' && tbRows?.length ? 'book'
+    : pr2Kind() === 'quick' && tbRows?.length && ['Ext1', 'Adv', 'Ext2'].includes(state.subject) ? 'book'
     : pr2Kind() === 'hsc' && state.subject === 'Adv' && hrRows?.length ? 'real' : 'topics';
   const BOOK_SHORT = { 'Sequences and Series': 'Sequences & series', 'Trigonometric Functions': 'Trig functions', 'Derivatives and Primitives': 'Derivatives',
     'Graphical Applications of Differentiation': 'Graphing calculus', 'Applications of Calculus': 'Calculus in use', 'Applications of Vectors': 'Vectors in use',
@@ -1954,7 +1955,12 @@
     if (!state.topics.size) { $('pr-smart').click(); return; }
     $('start').disabled = true;
     try {
-      await buildSet({ allowSkipped: true });
+      try { await buildSet({ allowSkipped: true }); }
+      catch (err) {   // Textbook on topics with no textbook questions yet: trial questions instead, and say so
+        if (state.opts.type !== 'quick') throw err;
+        await buildSet({ allowSkipped: true, type: 'all', diff: 'all' });
+        toast('No textbook questions on those topics yet, so these are trial questions.');
+      }
       location.hash = '#set';
     } catch (err) {
       $('home-error').textContent = err.message; $('home-error').hidden = false;
