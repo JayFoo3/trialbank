@@ -120,3 +120,5 @@
 .t5-done svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
 @media (max-width: 640px) { .t5-done li { font-size: .8rem; } .t5-done b { min-width: 24px; height: 24px; } }
 @media (max-width: 960px) { #view-home .next.t5-finished > #next-title, #view-home .next.t5-finished > .t5-done { grid-column: 1; } }
+/* phone: show the whole mascot, feet included (the box used to crop him at the knees) */
+@media (max-width: 640px) { #view-home .next-mascot { width: 70px; height: auto; overflow: visible; top: 8px; } }
