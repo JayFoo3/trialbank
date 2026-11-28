@@ -44,7 +44,7 @@ def cors_ok():
     if not have: return None
     key = next(iter(have))
     url, h = b2._sign('GET', key, {})
-    r = requests.get(url, headers={**h, 'Origin': 'https://jayfoo3.github.io', 'Range': 'bytes=0-0'}, timeout=60)
+    r = requests.get(url, headers={**h, 'Origin': 'https://trialbank.com.au', 'Range': 'bytes=0-0'}, timeout=60)
     return bool(r.headers.get('Access-Control-Allow-Origin'))
 
 
