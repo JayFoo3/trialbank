@@ -11,3 +11,6 @@
 [data-device="phone"] .ann-btn, [data-device="phone"] .ann-bar { display: none !important; }
 [data-device="phone"] #paper-exam, [data-device="phone"] #cp-card { display: none !important; }
 [data-device="phone"] .keys { display: none; }
+
+/* Laptop: use the width of the screen, with a small margin each side (was a 1060px column in the middle) */
+@media (min-width: 1200px) { [data-device="laptop"] { --max: min(1600px, calc(100vw - 64px)); } }
