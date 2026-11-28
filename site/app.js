@@ -1812,8 +1812,9 @@
   const pr2Sym = (t) => PR2_SYM[topicName(t)] || t5Symbol(t)[0];
   let pr2 = { list: [], cur: null, q: '', screen: 'list', ch: null, ex: null, bk: new Set(), years: new Set() };
   // admins only: Textbook shows Margaret's chapters, HSC adds the real HSC papers by year
+  const bookOk = () => adminOn() && !state.preview && !!tbRows?.length && ['Ext1', 'Adv', 'Ext2'].includes(state.subject);   // Margaret: admins, maths only
   const pr2Mode = () => !adminOn() || state.preview ? 'topics'
-    : pr2Kind() === 'quick' && tbRows?.length && ['Ext1', 'Adv', 'Ext2'].includes(state.subject) ? 'book'
+    : pr2Kind() === 'margaret' && bookOk() ? 'book'
     : pr2Kind() === 'hsc' && state.subject === 'Adv' && hrRows?.length ? 'real' : 'topics';
   const BOOK_SHORT = { 'Sequences and Series': 'Sequences & series', 'Trigonometric Functions': 'Trig functions', 'Derivatives and Primitives': 'Derivatives',
     'Graphical Applications of Differentiation': 'Graphing calculus', 'Applications of Calculus': 'Calculus in use', 'Applications of Vectors': 'Vectors in use',
@@ -1850,10 +1851,7 @@
   }
   const pr2SearchHtml = () => `<label class="pr2-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="pr2-q" type="search" placeholder="Search" aria-label="Search" value="${esc(pr2.q)}" autocomplete="off"></label>`;
   function pr2Search() { const inp = $('pr2-q'); inp.oninput = () => { pr2.q = inp.value; const pos = inp.selectionStart; drawPr2(); const i2 = $('pr2-q'); i2.focus(); i2.setSelectionRange(pos, pos); }; }
-  function pr2Years() {
-    const ys = [...new Set(hrRows.map(hrYearOf))].sort((a, b) => b - a);
-    return `<div class="pr2-years" role="group" aria-label="Years"><button type="button" class="${pr2.years.size ? '' : 'on'}" data-y="">Any year</button>${ys.map(y => `<button type="button" class="${pr2.years.has(y) ? 'on' : ''}" data-y="${y}">${y}</button>`).join('')}</div>`;
-  }
+
   function drawPr2(list) {
     const box = $('pr2'); if (!box) return;
     box.dataset.mode = pr2Mode();
@@ -1874,7 +1872,7 @@
         <div class="pr2-list">${shown.map(row).join('') || '<p class="small muted">No topic matches that.</p>'}</div>
       </aside>
       <section class="pr2-r">${!t ? '' : `
-        <div class="pr2-h"><button type="button" class="pr2-back" aria-label="Back to topics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><h2>${esc(topicName(t))}</h2></div>${pr2Mode() === 'real' ? pr2Years() : ''}
+        <div class="pr2-h"><button type="button" class="pr2-back" aria-label="Back to topics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><h2>${esc(topicName(t))}</h2></div>
         <div class="pr2-dots">${steps.length ? steps.map(([id, lab]) => { const ok = state.topics.has(t) && (whole || sel?.has(id));
           return `<button type="button" class="pr2-d${ok ? ' on' : ''}" data-s="${esc(id)}" aria-pressed="${ok}"><i aria-hidden="true">${ok ? '✓' : ''}</i><span>${esc(lab)}</span></button>`; }).join('')
           : '<p class="small muted">No dot points for this topic yet.</p>'}</div>`}
@@ -1890,7 +1888,6 @@
       drawPr2(); startSummary();
     });
     box.querySelector('.pr2-back')?.addEventListener('click', () => { pr2.screen = 'list'; drawPr2(); });
-    box.querySelectorAll('[data-y]').forEach(b => b.onclick = () => { const y = Number(b.dataset.y); if (!y) pr2.years.clear(); else pr2.years.has(y) ? pr2.years.delete(y) : pr2.years.add(y); drawPr2(); });
     box.querySelectorAll('.pr2-d').forEach(b => b.onclick = () => {
       const id = b.dataset.s, all = steps.map(x => x[0]);
       let cur = state.topics.has(t) ? (sel?.size ? new Set(sel) : new Set(all)) : new Set();
@@ -1901,17 +1898,19 @@
     });
   }
   // bottom bar: Textbook / Trial / HSC and how many, driving the existing options
-  function pr2Kind() { const o = state.opts; return o.type === 'quick' ? 'quick' : o.diff === 'HSC' ? 'hsc' : 'trial'; }
+  function pr2Kind() { const o = state.opts; return pr2.margaret && bookOk() ? 'margaret' : o.type === 'quick' ? 'quick' : o.diff === 'HSC' ? 'hsc' : 'trial'; }
   const optClick = (opt, v) => document.querySelector(`.seg[data-opt="${opt}"] button[data-v="${v}"]`)?.click();
   function drawPr2Bar() {
     const k = $('pr2-kind'); if (!k) return;
+    k.querySelector('[data-k="margaret"]').hidden = !bookOk();
     k.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.k === pr2Kind()));
     $('pr-bar').classList.toggle('book', pr2Mode() === 'book');
     $('pr2-n').textContent = state.opts.count;
   }
   $('pr2-kind')?.addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-k]'); if (!b) return;
-    if (b.dataset.k === 'quick') optClick('type', 'quick');
+    pr2.margaret = b.dataset.k === 'margaret';
+    if (b.dataset.k === 'quick' || b.dataset.k === 'margaret') optClick('type', 'quick');
     else { optClick('type', 'all'); optClick('diff', b.dataset.k === 'hsc' ? 'HSC' : 'all'); }
     drawPr2Bar(); drawPr2(); startSummary();
   });
@@ -1945,9 +1944,9 @@
     $('home-error').hidden = true;
     const mode = pr2Mode();
     if (mode === 'book') { const qs = tbRows.filter(q => pr2.bk.has(q.id)).sort((a, b) => bookCh(a) - bookCh(b) || bookQ(a) - bookQ(b)); if (qs.length) busy(async () => { await startSet(qs.map(q => ({ ...q }))); }); return; }
-    if (mode === 'real') {   // real HSC questions: picked topics (or all), picked years (or all)
+    if (mode === 'real') {   // real HSC questions from every year: picked topics (or all)
       const names = new Set([...state.topics].map(topicName));
-      let pool = hrRows.filter(q => (!state.topics.size || state.topics.has(q.topic) || names.has(topicName(q.topic))) && (!pr2.years.size || pr2.years.has(hrYearOf(q))));
+      let pool = hrRows.filter(q => (!state.topics.size || state.topics.has(q.topic) || names.has(topicName(q.topic))));
       if (!pool.length) { $('home-error').textContent = 'No HSC questions for that yet.'; $('home-error').hidden = false; return; }
       pool = shuffle([...pool]).slice(0, state.opts.count);
       busy(async () => { await startSet(pool.map(q => ({ ...q }))); }); return;
