@@ -1864,6 +1864,35 @@
     renderQuestion();
     location.hash = '#set';
   }
+  // how much each topic should come up in Quick, Mixed and Today's 5: weaker topics (on the student's recent answers) far more often.
+  // Accuracy uses the newest-weighted last 50 answers per topic (my_topic_stats), pulled towards 60% when there are only a few answers,
+  // so one lucky or unlucky answer doesn't swing it. Untried topics sit in the middle.
+  async function topicWeights(subj = state.subject) {
+    const w = new Map();
+    if (state.preview || !state.user) return w;
+    const { data } = await sb.from('my_topic_stats').select('*').eq('subject', subj);
+    (data || []).forEach(r => {
+      const s = r.w_out != null ? Number(r.w_score) : Number(r.score), o = r.w_out != null ? Number(r.w_out) : Number(r.out_of);
+      if (!(o > 0)) return;
+      const acc = (s + 0.6 * 3) / (o + 3);
+      w.set(r.topic, 0.03 + (1 - acc) ** 2);   // 40% right comes up about 6x as often as 90% right
+    });
+    return w;
+  }
+  const topicWeight = (w, t) => w.has(t) ? w.get(t) : 0.19;   // untried: like a topic at about 55%
+  // pick n questions, choosing each one's topic in proportion to its weight (a topic's weight drops a little each time it's
+  // picked, so a set still has some variety)
+  function weightedPick(pool, n, w) {
+    const by = new Map(); shuffle(pool).forEach(q => { if (!by.has(q.topic)) by.set(q.topic, []); by.get(q.topic).push(q); });
+    const live = new Map([...by.keys()].map(t => [t, topicWeight(w, t)])), out = [];
+    while (out.length < n && live.size) {
+      let r = Math.random() * [...live.values()].reduce((a, b) => a + b, 0), t;
+      for (const [k, v] of live) { t = k; if ((r -= v) <= 0) break; }
+      out.push(by.get(t).pop());
+      if (!by.get(t).length) live.delete(t); else live.set(t, live.get(t) * 0.75);
+    }
+    return shuffle(out);
+  }
   async function buildSet(over = {}) {
     const o = { ...state.opts, ...over };
     state.paceNext = !!o.pace && !('diff' in over);   // the speed timer is for sets built from the Practise page's own options
@@ -1909,8 +1938,7 @@
       const unseen = pool.filter(x => !seenIds.has(x.id));
       if (unseen.length >= o.count) pool = unseen;
     }
-    shuffle(pool);
-    const qs = pool.slice(0, o.count);
+    const qs = o.weights ? weightedPick(pool, o.count, o.weights) : shuffle(pool).slice(0, o.count);
     const drillIds = qs.filter(x => x._drill).map(x => x.id);
     if (drillIds.length) {
       const { data: full, error: fe } = await sb.from('questions').select('id, content').in('id', drillIds);
@@ -4115,11 +4143,9 @@
     $('quick-error').hidden = true; $('quick-set').disabled = true;
     try {
       const counts = await loadTopicCounts();
-      const all = [...new Set(counts.filter(r => r.subject === state.subject).map(r => r.topic))];
-      const weak = (state.weak || []).map(w => w.topic);
-      shuffle(all);
-      state.topics = new Set(weak.length ? [...weak, ...all.slice(0, 3)] : all);
-      await busy(() => buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1 }));
+      state.topics = new Set(counts.filter(r => r.subject === state.subject).map(r => r.topic));
+      const weights = await topicWeights();
+      await busy(() => buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1, weights }));
       location.hash = '#set';
     } catch (err) { $('quick-error').textContent = err.message; $('quick-error').hidden = false; }
     finally { $('quick-set').disabled = false; }
@@ -5173,14 +5199,16 @@
   async function buildDaily(subj = state.subject) {
     await loadStepBlock(subj); const today = dayOf(), skip = skipped(subj), tooHard = blockedQs();
     // three requests at once: where they are on each topic, what they've answered, and a random sample of every question they can see
-    const [srs, { data: att }, { data: poolRows, error: poolErr }] = await Promise.all([
+    const [srs, { data: att }, { data: poolRows, error: poolErr }, wts] = await Promise.all([
       loadSrs(subj),
       sb.from('attempts').select('question_id, score, out_of, created_at, questions!inner(topic, papers!inner(subject))')
         .eq('user_id', state.user.id).eq('questions.papers.subject', subj).order('created_at', { ascending: false }).limit(1000)
         .then(r => state.preview ? { data: [] } : r),
       sb.rpc('daily_pool', { subj }),
+      topicWeights(subj).catch(() => new Map()),
     ]);
     if (poolErr) throw poolErr;
+    const weaker = (a, b) => topicWeight(wts, b) - topicWeight(wts, a);   // weakest topic first
     const seen = new Set(), wrongIds = [];
     (att || []).forEach(a => {
       if (seen.has(a.question_id)) return; seen.add(a.question_id);
@@ -5203,11 +5231,11 @@
     (poolRows || []).filter(ok).forEach(x => { (byTopic[x.topic] = byTopic[x.topic] || []).push(x); });
     const pick = (t, lvl) => (byTopic[t] || []).filter(x => !pickIds.has(x.id))
       .sort((a, b) => (want(b) - want(a)) || Math.abs(qLevel(a) - lvl) - Math.abs(qLevel(b) - lvl) || seen.has(a.id) - seen.has(b.id))[0];
-    // 2. topics due back today, most overdue and most often wrong first; 3. new topics; 4. whatever comes back soonest
+    // 2. topics due back today, weakest (recent answers) first; 3. new topics; 4. other topics, weakest first
     const allTopics = Object.keys(byTopic);
-    const dueT = Object.values(srs).filter(r => r.due <= today && byTopic[r.topic]).sort((a, b) => a.due.localeCompare(b.due) || b.wrong_n - a.wrong_n).map(r => r.topic);
+    const dueT = Object.values(srs).filter(r => r.due <= today && byTopic[r.topic]).sort((a, b) => weaker(a.topic, b.topic) || a.due.localeCompare(b.due) || b.wrong_n - a.wrong_n).map(r => r.topic);
     const newT = shuffle(allTopics.filter(t => !srs[t]));
-    const laterT = Object.values(srs).filter(r => r.due > today && byTopic[r.topic]).sort((a, b) => a.due.localeCompare(b.due)).map(r => r.topic);
+    const laterT = Object.values(srs).filter(r => r.due > today && byTopic[r.topic]).sort((a, b) => weaker(a.topic, b.topic) || a.due.localeCompare(b.due)).map(r => r.topic);
     const used = new Set(out.map(o => o.topic));
     const nNew = Math.min(newT.length, Object.keys(srs).length ? 1 : 5);   // one new topic a day once they've started, all new on day one
     const room = 5 - out.length;
@@ -5624,11 +5652,10 @@
       const mine = counts.filter(r => r.subject === state.subject);
       const quick = [...new Set(mine.filter(r => r.type === 'quick').map(r => r.topic))];
       const pool = quick.length ? quick : [...new Set(mine.map(r => r.topic))];
-      const weak = (state.weak || []).map(w => w.topic).filter(t => pool.includes(t));
-      shuffle(pool);
-      state.topics = new Set(weak.length ? [...weak, ...pool.slice(0, 3)] : pool);
-      try { await busy(() => buildSet({ count: 10, type: 'quick', qfmt: 'mcq', diff: 'all', fresh: 1 })); }
-      catch { await busy(() => buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1 })); }   // no quick questions here yet
+      state.topics = new Set(pool);
+      const weights = await topicWeights();
+      try { await busy(() => buildSet({ count: 10, type: 'quick', qfmt: 'mcq', diff: 'all', fresh: 1, weights })); }
+      catch { await busy(() => buildSet({ count: 10, type: 'all', diff: 'all', fresh: 1, weights })); }   // no quick questions here yet
       location.hash = '#set';
     } catch (err) { toast(esc(err.message || String(err))); }
     finally { b.disabled = false; }
