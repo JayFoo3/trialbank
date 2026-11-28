@@ -1804,7 +1804,30 @@
     'Trigonometric Identities and Equations': 'Trig identities', 'Trigonometric Functions and Graphs': 'Trig graphs', 'Introduction to Differentiation': 'Intro to calculus',
     'Exponential and Logarithmic Functions': 'Logs', 'Differential Calculus': 'Derivatives', 'Applications of Differentiation': 'Applications', 'Integral Calculus': 'Integration',
     'Sequences and Series': 'Series', 'Financial Mathematics': 'Finance', 'Discrete Probability Distributions': 'Discrete', 'Descriptive Statistics and Bivariate Data': 'Statistics',
-    'Continuous Probability Distributions': 'Continuous', 'The Normal Distribution': 'Normal' };
+    'Continuous Probability Distributions': 'Continuous', 'The Normal Distribution': 'Normal',
+    // Physics
+    'Projectile Motion': 'Projectiles', 'Circular Motion': 'Circular motion', 'Motion in Gravitational Fields': 'Gravity', 'Charged Particles, Conductors and Fields': 'Charged particles',
+    'The Motor Effect': 'Motor effect', 'Electromagnetic Induction': 'Induction', 'Applications of the Motor Effect': 'Motors', 'Electromagnetic Spectrum': 'EM spectrum',
+    'Light: Wave Model': 'Light as waves', 'Light: Quantum Model': 'Light as quanta', 'Light and Special Relativity': 'Relativity', 'Origins of the Elements': 'Origins',
+    'Structure of the Atom': 'The atom', 'Quantum Mechanical Nature of the Atom': 'Quantum atom', 'Properties of the Nucleus': 'Nucleus', 'Deep Inside the Atom': 'Particles',
+    // Standard 2
+    'Formulae and Equations': 'Formulae', 'Linear Relationships': 'Linear', 'Non-linear Relationships': 'Non-linear', 'Applications of Measurement': 'Measurement',
+    'Working with Rates': 'Rates', 'Right-angled Triangles': 'Right triangles', 'Non-right-angled Trigonometry': 'Non-right trig', 'Rates and Ratios': 'Ratios',
+    'Money Matters': 'Money', 'Investments and Loans': 'Investments', 'Data Analysis': 'Data', 'Relative Frequency and Probability': 'Probability',
+    'Bivariate Data Analysis': 'Bivariate', 'Network Concepts': 'Networks', 'Critical Path Analysis': 'Critical path',
+    // Software Engineering, Engineering Studies
+    'Secure Software Architecture': 'Secure software', 'Programming for the Web': 'Web', 'Software Automation': 'Automation', 'Software Engineering Project': 'Project',
+    'Programming Fundamentals': 'Fundamentals', 'The Object-oriented Paradigm': 'OOP', 'Programming Mechatronics': 'Mechatronics',
+    'Civil Structures': 'Civil', 'Personal and Public Transport': 'Transport', 'Aeronautical Engineering': 'Aeronautical', 'Telecommunications Engineering': 'Telecomms',
+    'Engineering Fundamentals': 'Fundamentals', 'Engineered Products': 'Products', 'Braking Systems': 'Braking', 'Biomedical Engineering': 'Biomedical',
+    // English
+    'Common Module: Unseen Texts': 'Unseen texts', 'Common Module: Extended Response': 'Extended response', 'Module A: Language, Identity and Culture': 'Module A',
+    'Module B: Close Study of Literature': 'Module B', 'Module C: The Craft of Writing': 'Module C',
+    // Chemistry
+    'Static and Dynamic Equilibrium': 'Equilibrium', 'Factors that Affect Equilibrium': 'Le Chatelier', 'Calculating the Equilibrium Constant (Keq)': 'Keq',
+    'Solution Equilibria': 'Solubility', 'Properties of Acids and Bases': 'Acids & bases', 'Using Brønsted–Lowry Theory': 'Brønsted–Lowry', 'Quantitative Analysis': 'Titrations',
+    'Nomenclature': 'Naming', 'Products of Reactions Involving Hydrocarbons': 'Hydrocarbon reactions', 'Reactions of Organic Acids and Bases': 'Organic acids',
+    'Analysis of Inorganic Substances': 'Inorganic analysis', 'Analysis of Organic Substances': 'Organic analysis', 'Chemical Synthesis and Design': 'Synthesis' };
   const PR2_SYM = { 'Working with Functions': 'f(x)', 'Graphing Techniques': 'g(x)', 'Trigonometry and Measure of Angles': 'θ', 'Trigonometric Identities and Equations': 'sec',
     'Trigonometric Functions and Graphs': 'sin', 'Introduction to Differentiation': 'f′', 'Differential Calculus': 'y′', 'Applications of Differentiation': 'f″', 'Discrete Probability Distributions': 'E(X)',
     'Continuous Probability Distributions': 'pdf', 'The Normal Distribution': 'z', 'Descriptive Statistics and Bivariate Data': 'x̄' };
@@ -1852,7 +1875,15 @@
   const pr2SearchHtml = () => `<label class="pr2-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="pr2-q" type="search" placeholder="Search" aria-label="Search" value="${esc(pr2.q)}" autocomplete="off"></label>`;
   function pr2Search() { const inp = $('pr2-q'); inp.oninput = () => { pr2.q = inp.value; const pos = inp.selectionStart; drawPr2(); const i2 = $('pr2-q'); i2.focus(); i2.setSelectionRange(pos, pos); }; }
 
+  // re-drawing replaces the list, so keep where it was scrolled to (tapping a topic mustn't jump back to the top)
   function drawPr2(list) {
+    const box = $('pr2'); if (!box) return;
+    const keep = ['.pr2-list', '.pr2-dots'].map(sel => box.querySelector(sel)?.scrollTop || 0), y = scrollY;
+    drawPr2Inner(list);
+    ['.pr2-list', '.pr2-dots'].forEach((sel, i) => { const el = box.querySelector(sel); if (el) el.scrollTop = keep[i]; });
+    if (scrollY !== y) scrollTo(0, y);
+  }
+  function drawPr2Inner(list) {
     const box = $('pr2'); if (!box) return;
     box.dataset.mode = pr2Mode();
     if (pr2Mode() === 'book') { if (list) pr2.list = list; box.classList.toggle('show-topic', pr2.screen === 'topic'); drawBook(box); return; }
