@@ -2,7 +2,7 @@
    Loaded last, so removing its <link> in index.html brings the old home back (the old sections are only hidden, not removed). */
 
 /* the old home sections, hidden (their code still runs) */
-#view-home .hello-row, #home-sub, #quick-desc, #wk-card, #friends-head,
+#view-home .hello-row, #home-sub, #quick-desc, #daily-mode, #wk-card, #friends-head,
 #view-home [data-feature="weak"], #view-home [data-feature="exam"], #review-error { display: none !important; }
 
 /* Today's 5 sits at the top of the page */
@@ -78,14 +78,23 @@
 .t5-tile.done .t5-bar { background: #fff; }
 .t5-tick { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
 
-/* iPad portrait and phones: tiles go under the title, smaller */
+/* iPad portrait: title, Start, then the tiles in one column, with the mascot beside all three (no gap under Start) */
 @media (max-width: 960px) {
-  #view-home .next { grid-template-columns: minmax(0, 1fr) auto; }
-  #view-home .next > .t5-tiles { grid-column: 1 / -1; grid-row: auto; order: 5; min-height: 0; margin: 18px 0 4px; }
-  #view-home .next > .next-mascot { grid-column: 2; }
-  .t5-tile { padding: 12px 4px 22px; gap: 8px; border-radius: 16px; }
-  .t5-sym { font-size: 1.5rem; }
-  .t5-name { font-size: .78rem; }
-  .t5-bar { left: 10px; right: 10px; bottom: 10px; height: 5px; }
+  #view-home .next { grid-template-columns: minmax(0, 1fr) auto; column-gap: 20px; }
+  #view-home .next > .t5-tiles { grid-column: 1; grid-row: auto; order: 5; min-height: 0; margin: 20px 0 2px; gap: 10px; }
+  #view-home .next > .next-mascot { grid-column: 2; grid-row: 1 / span 8; align-self: end; }
+  .t5-tile { padding: 14px 4px 24px; gap: 8px; border-radius: 16px; }
+  .t5-sym { font-size: 1.55rem; }
+  .t5-name { font-size: .8rem; }
+  .t5-bar { left: 10px; right: 10px; bottom: 11px; height: 5px; }
   .t5-tick { width: 16px; height: 16px; top: 6px; right: 6px; }
+}
+/* phones: the tiles take the full width under the title; the small mascot stays in the corner */
+@media (max-width: 640px) {
+  #view-home .next > .t5-tiles { grid-column: 1 / -1; gap: 6px; margin-top: 16px; }
+  .t5-tile { padding: 10px 2px 20px; border-radius: 12px; }
+  .t5-sym { font-size: 1.15rem; }
+  .t5-name { display: none; }   /* too narrow for words: the symbols carry it (full name on long-press) */
+  .t5-bar { left: 7px; right: 7px; bottom: 8px; height: 4px; }
+  #view-home .next .next-acts { padding-right: 92px; }   /* keep Start clear of the mascot */
 }
