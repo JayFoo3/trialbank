@@ -87,3 +87,18 @@
 .pr2-list, .pr2-dots { grid-template-columns: minmax(0, 1fr); overflow-x: hidden; }
 .pr2-t, .pr2-d, .pr2-ex { min-width: 0; }
 .pr2-d span { min-width: 0; overflow-wrap: anywhere; }
+
+/* module view (Biology): inquiry questions with NESA's dot points */
+.pr2-mods .pr2-dots { gap: 18px; }
+.iq { display: grid; gap: 2px; }
+.iq-h { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border: 0; border-radius: var(--r); background: var(--bg); box-shadow: none; text-align: left; justify-content: flex-start; color: var(--ink); }
+.iq-h:active { transform: none; }
+.iq-h i { width: 22px; height: 22px; flex: none; border-radius: 7px; border: 2px solid var(--rule-strong); background: var(--paper); display: grid; place-items: center; font-style: normal; font-size: .8rem; font-weight: 900; color: var(--biro); margin-top: 1px; }
+.iq-h.on i { background: var(--biro); border-color: var(--biro); color: #fff; }
+.iq-h span { display: grid; gap: 2px; min-width: 0; }
+.iq-h b { font-family: var(--display); font-size: 1.05rem; }
+.iq-h em { font-style: normal; font-size: .75rem; font-weight: 800; color: var(--biro); }
+.iq-h small { color: var(--muted); font-weight: 600; font-size: .88rem; }
+.pr2-mods .pr2-d { padding-left: 46px; position: relative; }
+.pr2-mods .pr2-d i { position: absolute; left: 12px; top: 11px; }
+.pr2-d span small { display: block; margin-top: 3px; color: var(--muted); font-weight: 600; font-size: .85rem; }
