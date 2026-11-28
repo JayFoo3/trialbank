@@ -104,3 +104,19 @@
 .next.t5-finished #next-title { display: block !important;  font-family: var(--display); font-weight: 900; color: #fff !important; font-size: clamp(2.6rem, 6vw, 4.2rem); letter-spacing: -.04em; line-height: 1; margin: 0; }
 .next.t5-finished { justify-content: center; }
 #view-home .next.t5-finished > #next-title { grid-column: 1 / span 2; grid-row: 1 / span 8; align-self: center; }
+
+/* the logo */
+.brand-mark { width: 1.25em; height: 1.25em; flex: none; }
+/* Today's 5 finished: logo + Trialbank, today's topics as small ticked chips underneath */
+.next.t5-finished #next-title { display: flex !important; align-items: center; gap: .3em; }
+.done-mark { width: 1.05em; height: 1.05em; flex: none; }
+.t5-done { display: none; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; gap: 8px; }
+#view-home .next.t5-finished { grid-template-rows: 1fr auto auto 1fr; row-gap: 14px; }
+#view-home .next.t5-finished > #next-title { grid-row: 2; align-self: end; }
+#view-home .next.t5-finished > .t5-done { display: flex; grid-column: 1 / span 2; grid-row: 3; align-self: start; }
+#view-home .next.t5-finished > .next-mascot { grid-row: 1 / span 4; }
+.t5-done li { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; border-radius: 999px; background: rgba(255,255,255,.16); color: #fff; font-weight: 800; font-size: .92rem; }
+.t5-done b { min-width: 28px; height: 28px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: #fff; color: var(--biro); display: grid; place-items: center; font-family: 'Cambria Math', Georgia, serif; font-style: italic; font-size: .78rem; }
+.t5-done svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+@media (max-width: 640px) { .t5-done li { font-size: .8rem; } .t5-done b { min-width: 24px; height: 24px; } }
+@media (max-width: 960px) { #view-home .next.t5-finished > #next-title, #view-home .next.t5-finished > .t5-done { grid-column: 1; } }

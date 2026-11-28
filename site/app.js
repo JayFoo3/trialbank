@@ -5472,6 +5472,9 @@
         ${isDone ? '<svg class="t5-tick" viewBox="0 0 24 24" aria-label="Done"><path d="M5 12l5 5 9-10"/></svg>' : ''}
         <b class="t5-sym">${esc(sym)}</b><span class="t5-name">${esc(short)}</span><i class="t5-bar"></i></li>`;
     }).join('');
+    const seen = new Set();   // the small 'done today' chips under the Trialbank title, one per topic
+    $('t5-done').innerHTML = row.question_ids.map(id => t5Topics.by[id]).filter(Boolean).map(t => [t, ...t5Symbol(t)]).filter(([, , short]) => !seen.has(short) && seen.add(short))
+      .map(([t, sym, short]) => { return `<li title="${esc(topicName(t))}"><b>${esc(sym)}</b>${esc(short)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></li>`; }).join('');
     box.hidden = false;
   }
   async function drawDaily() {
@@ -5489,7 +5492,7 @@
     const late = new Date().toLocaleString('en-AU', { hour: 'numeric', hour12: false, timeZone: 'Australia/Sydney' }) >= 18;
     $('next-title').closest('.next').classList.toggle('t5-finished', !!(row && row.finished_at));   // all done: the banner just says Trialbank
     if (row && row.finished_at) {
-      $('next-title').textContent = 'Trialbank';
+      $('next-title').innerHTML = `<svg class="done-mark" viewBox="0 6 82 82" aria-hidden="true"><rect x="26" y="14" width="50" height="66" rx="9" fill="rgba(255,255,255,.35)" transform="rotate(-22 51 82)"/><rect x="26" y="14" width="50" height="66" rx="9" fill="rgba(255,255,255,.6)" transform="rotate(-11 51 82)"/><rect x="26" y="14" width="50" height="66" rx="9" fill="#fff" stroke="#c9d6fb" stroke-width="4"/><path d="M36 28h26M36 38h18" stroke="#bccbfa" stroke-width="5" stroke-linecap="round"/><path d="M37 57l9 9 19-21" fill="none" stroke="#2f5be8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Trialbank</span>`;
       $('quick-desc').textContent = `${row.score} / ${row.out_of} today. Come back tomorrow to make it ${liveStreak(st) + 1} days.`;
       go.textContent = 'Quick set'; go.onclick = () => $('quick-set').click();
       alt.textContent = "Redo today's 5"; alt.hidden = false;
