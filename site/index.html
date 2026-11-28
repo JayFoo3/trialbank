@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="notes.css?v=dev">
 <link rel="stylesheet" href="motion.css?v=dev">
 <link rel="stylesheet" href="home-e.css?v=dev">
+<link rel="stylesheet" href="practise-g.css?v=dev">
 <script src="device.js?v=dev"></script>
 <script>/* apply the student's saved look before anything paints */
 try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = document.documentElement;
@@ -290,6 +291,7 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
         <input id="topic-filter" type="search" placeholder="Search topics, e.g. series" autocomplete="off" aria-label="Search topics">
         <button class="link small" id="topics-none" hidden>Clear</button>
       </div>
+      <div class="pr2" id="pr2"></div>
       <div id="topic-chips"></div>
       <p class="small pr-foot"><button class="link" id="topics-all" hidden>Select every topic</button><button class="link" id="open-syllabus">Syllabus</button></p>
     </div>
@@ -324,6 +326,8 @@ try { const p = JSON.parse(localStorage.getItem('tb_prefs') || '{}'), r = docume
       </div>
       <div class="pr-bar-row">
         <div class="pr-bar-l"><b id="start-summary">Pick a topic to start</b><span class="small muted" id="pr-picked"></span></div>
+        <div class="pr2-kind" id="pr2-kind" role="group" aria-label="Question type"><button data-k="quick">Textbook</button><button data-k="trial">Trial</button><button data-k="hsc">HSC</button></div>
+        <div class="pr2-count" role="group" aria-label="How many questions"><button id="pr2-less" aria-label="Fewer">−</button><b id="pr2-n">10</b><button id="pr2-more" aria-label="More">+</button></div>
         <button class="link small" id="pr-opts-btn" aria-expanded="false">Options</button>
         <button class="primary" id="start" disabled>Start</button>
       </div>

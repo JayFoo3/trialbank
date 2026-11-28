@@ -1773,6 +1773,7 @@
     $('topics-learnt').onclick = () => openLearnt(Object.keys(byTopic));
     { const pos = classPos(); $('pr-up-t').textContent = pos ? topicName(pos) + (classStep() && topicSteps(pos) ? ` · part ${topicSteps(pos).findIndex(([id]) => id === classStep()) + 1} of ${topicSteps(pos).length}` : '') : skip.size ? `${all.length - later.length} of ${all.length} topics` : 'Set it'; $('topics-learnt').classList.toggle('unset', !pos && !skip.size); }
     $('topics-none').onclick = () => { state.topics.clear(); renderBuild(); };
+    drawPr2([...groups.flatMap(g => g[1]), ...other]);
   }
   $('pr-opts-btn').onclick = () => { const o = $('pr-opts'), open = o.hidden; o.hidden = !open; $('pr-opts-btn').setAttribute('aria-expanded', open); $('pr-opts-btn').textContent = open ? 'Done' : 'Options'; };
   function filterTopics() {
@@ -1797,6 +1798,77 @@
     });
   }
   $('topic-filter').oninput = filterTopics;
+  // ---------- Practise picker: short-name topic list (tap to pick), dot points with tick boxes beside it ----------
+  const PR2_SHORT = { 'Working with Functions': 'Functions', 'Graphing Techniques': 'Graphing', 'Trigonometry and Measure of Angles': 'Angles',
+    'Trigonometric Identities and Equations': 'Trig identities', 'Trigonometric Functions and Graphs': 'Trig graphs', 'Introduction to Differentiation': 'Intro to calculus',
+    'Exponential and Logarithmic Functions': 'Logs', 'Differential Calculus': 'Derivatives', 'Applications of Differentiation': 'Applications', 'Integral Calculus': 'Integration',
+    'Sequences and Series': 'Series', 'Financial Mathematics': 'Finance', 'Discrete Probability Distributions': 'Discrete', 'Descriptive Statistics and Bivariate Data': 'Statistics',
+    'Continuous Probability Distributions': 'Continuous', 'The Normal Distribution': 'Normal' };
+  const PR2_SYM = { 'Working with Functions': 'f(x)', 'Graphing Techniques': 'g(x)', 'Trigonometry and Measure of Angles': 'θ', 'Trigonometric Identities and Equations': 'sec',
+    'Trigonometric Functions and Graphs': 'sin', 'Introduction to Differentiation': 'f′', 'Differential Calculus': 'y′', 'Applications of Differentiation': 'f″', 'Discrete Probability Distributions': 'E(X)',
+    'Continuous Probability Distributions': 'pdf', 'The Normal Distribution': 'z', 'Descriptive Statistics and Bivariate Data': 'x̄' };
+  const pr2Short = (t) => { const n = topicName(t); return PR2_SHORT[n] || n.replace(/^(introduction to|the|working with)\s+/i, ''); };
+  const pr2Sym = (t) => PR2_SYM[topicName(t)] || t5Symbol(t)[0];
+  let pr2 = { list: [], cur: null, q: '', screen: 'list' };
+  function drawPr2(list) {
+    const box = $('pr2'); if (!box) return;
+    if (list) { pr2.list = list; if (!list.includes(pr2.cur)) pr2.cur = [...state.topics].find(t => list.includes(t)) || list[0] || null; }
+    const q = pr2.q.trim().toLowerCase();
+    const shown = pr2.list.filter(t => !q || topicName(t).toLowerCase().includes(q) || pr2Short(t).toLowerCase().includes(q));
+    const row = (t) => {
+      const on = state.topics.has(t), sel = state.steps.get(t), steps = topicSteps(t) || [], sym = pr2Sym(t);
+      return `<button type="button" class="pr2-t${on ? ' on' : ''}${t === pr2.cur ? ' open' : ''}" data-t="${esc(t)}" aria-pressed="${on}" title="${esc(topicName(t))}">
+        <span class="pr2-sym${sym.length > 4 ? ' xs' : sym.length > 2 ? ' sm' : sym === '∫' ? ' lg' : ''}">${esc(sym)}</span><span class="pr2-n">${esc(pr2Short(t))}</span>
+        ${sel?.size ? `<span class="pr2-c">${sel.size}/${steps.length}</span>` : ''}</button>`;
+    };
+    const t = pr2.cur, steps = t ? topicSteps(t) || [] : [], sel = t && state.steps.get(t), whole = t && state.topics.has(t) && !sel?.size;
+    box.classList.toggle('show-topic', pr2.screen === 'topic');
+    box.innerHTML = `<aside class="pr2-l">
+        <label class="pr2-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="pr2-q" type="search" placeholder="Search" aria-label="Search topics" value="${esc(pr2.q)}" autocomplete="off"></label>
+        <div class="pr2-list">${shown.map(row).join('') || '<p class="small muted">No topic matches that.</p>'}</div>
+      </aside>
+      <section class="pr2-r">${!t ? '' : `
+        <div class="pr2-h"><button type="button" class="pr2-back" aria-label="Back to topics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><h2>${esc(topicName(t))}</h2></div>
+        <div class="pr2-dots">${steps.length ? steps.map(([id, lab]) => { const ok = state.topics.has(t) && (whole || sel?.has(id));
+          return `<button type="button" class="pr2-d${ok ? ' on' : ''}" data-s="${esc(id)}" aria-pressed="${ok}"><i aria-hidden="true">${ok ? '✓' : ''}</i><span>${esc(lab)}</span></button>`; }).join('')
+          : '<p class="small muted">No dot points for this topic yet.</p>'}</div>`}
+      </section>`;
+    const inp = $('pr2-q');
+    inp.oninput = () => { pr2.q = inp.value; const pos = inp.selectionStart; drawPr2(); const i2 = $('pr2-q'); i2.focus(); i2.setSelectionRange(pos, pos); };
+    box.querySelectorAll('.pr2-t').forEach(b => b.onclick = () => {
+      const tt = b.dataset.t;
+      if (!state.topics.has(tt)) { state.topics.add(tt); state.steps.delete(tt); pr2.cur = tt; }   // tap: take the whole topic and show its dot points
+      else if (pr2.cur === tt) { state.topics.delete(tt); state.steps.delete(tt); }               // tap the open one again: drop it
+      else pr2.cur = tt;                                                                            // already picked: just open it
+      if (matchMedia('(max-width: 640px)').matches) pr2.screen = 'topic';
+      drawPr2(); startSummary();
+    });
+    box.querySelector('.pr2-back')?.addEventListener('click', () => { pr2.screen = 'list'; drawPr2(); });
+    box.querySelectorAll('.pr2-d').forEach(b => b.onclick = () => {
+      const id = b.dataset.s, all = steps.map(x => x[0]);
+      let cur = state.topics.has(t) ? (sel?.size ? new Set(sel) : new Set(all)) : new Set();
+      cur.has(id) ? cur.delete(id) : cur.add(id);
+      if (!cur.size) { state.topics.delete(t); state.steps.delete(t); }
+      else { state.topics.add(t); cur.size === all.length ? state.steps.delete(t) : state.steps.set(t, cur); }
+      drawPr2(); startSummary();
+    });
+  }
+  // bottom bar: Textbook / Trial / HSC and how many, driving the existing options
+  function pr2Kind() { const o = state.opts; return o.type === 'quick' ? 'quick' : o.diff === 'HSC' ? 'hsc' : 'trial'; }
+  const optClick = (opt, v) => document.querySelector(`.seg[data-opt="${opt}"] button[data-v="${v}"]`)?.click();
+  function drawPr2Bar() {
+    const k = $('pr2-kind'); if (!k) return;
+    k.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.k === pr2Kind()));
+    $('pr2-n').textContent = state.opts.count;
+  }
+  $('pr2-kind')?.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-k]'); if (!b) return;
+    if (b.dataset.k === 'quick') optClick('type', 'quick');
+    else { optClick('type', 'all'); optClick('diff', b.dataset.k === 'hsc' ? 'HSC' : 'all'); }
+    drawPr2Bar();
+  });
+  $('pr2-less')?.addEventListener('click', () => { const c = state.opts.count; optClick('count', c > 10 ? 10 : 5); drawPr2Bar(); });
+  $('pr2-more')?.addEventListener('click', () => { const c = state.opts.count; optClick('count', c < 10 ? 10 : 20); drawPr2Bar(); });
   function startSummary() {
     const n = state.topics.size, o = state.opts;
     const type = { all: '', mcq: ' multiple choice', short: ' written', quick: ` quick ${QFMT_NAME[o.qfmt || 'mcq']}` }[o.type] || '';
@@ -1804,7 +1876,8 @@
     $('start-summary').textContent = n ? `${o.count}${type} questions${o.pace ? ', timed' : ''} · ${dots ? `${dots} dot point${dots === 1 ? '' : 's'}` : `${n} topic${n === 1 ? '' : 's'}`}` : 'Tick a topic to start';
     const names = [...state.topics].map(topicName).sort();
     $('pr-picked').textContent = !n ? '' : (names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`) + (o.diff === 'HSC' ? ' · HSC exams only' : o.diff !== 'all' ? ` · ${o.diff.toLowerCase()} papers` : '');
-    $('start').disabled = !n;
+    $('start').disabled = false; $('start').textContent = n ? 'Start' : 'Pick for me';   // nothing picked: Start picks for you
+    drawPr2Bar?.();
     $('pr-bar').classList.toggle('ready', !!n);
     $('topics-none').hidden = !n;
   }
@@ -1821,7 +1894,7 @@
 
   $('start').onclick = async () => {
     $('home-error').hidden = true;
-    if (!state.topics.size) { $('home-error').textContent = 'Pick at least one topic.'; $('home-error').hidden = false; return; }
+    if (!state.topics.size) { $('pr-smart').click(); return; }
     $('start').disabled = true;
     try {
       await buildSet({ allowSkipped: true });
