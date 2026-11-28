@@ -5555,7 +5555,7 @@
       <small class="fr-st">${f.done_today ? 'Done today' : 'Not yet'}</small>${(f.me ? battleWins() : int(f.wins)) ? `<small class="fr-rank">${rankOf(f.me ? battleWins() : int(f.wins))}</small>` : ''}</div>`;
   // Home: you, then every friend in one list; online friends first (green dot), each with a duel button
   const HF_ADD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
-  const HF_DUEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M9.5 17.5 21 6V3h-3L6.5 14.5M11 19l-6-6M8 16l-4 4M5 21l-2-2"/></svg>';
+  const HF_DUEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M14.5 6.5 18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2"/></svg>';
   const hfRow = (f) => `<div class="hf-row${f.me ? ' me' : ''}"${f.me ? ' data-me="1"' : ` data-fid="${esc(f.friend_id)}"`} role="button" tabindex="0" aria-label="${esc(f.me ? 'Your profile' : f.name)}">
       <span class="hf-face">${petBadge(f, 'md')}${f.status ? `<i class="hf-on ${f.status}" aria-label="${f.status === 'idle' ? 'Idle' : 'Online'}" title="${f.status === 'idle' ? 'Idle' : 'Online'}"></i>` : ''}</span>
       <span class="hf-name">${esc(f.me ? (myName() || 'You').split(/\s+/)[0] : f.name)}</span>
