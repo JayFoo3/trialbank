@@ -82,3 +82,9 @@
 .pr2-years button.on { background: var(--biro); border-color: var(--biro); box-shadow: 0 3px 0 var(--biro-dark); color: #fff; }
 .pr-bar.book .pr2-count { visibility: hidden; }
 .pr2-d:not(.on) i:not(:empty) { color: var(--biro); border-color: var(--biro); }
+
+/* no sideways scrolling: long names truncate instead of widening the list */
+.pr2-list, .pr2-dots { grid-template-columns: minmax(0, 1fr); overflow-x: hidden; }
+.pr2-t, .pr2-d, .pr2-ex { min-width: 0; }
+.pr2-d span { min-width: 0; overflow-wrap: anywhere; }
+.pr2-n { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; }
