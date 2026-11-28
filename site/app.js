@@ -5556,6 +5556,26 @@
 
   // ---------- friends: add each other by code, see who has done today's 5 ----------
   state.friends = [];
+  // friend requests: signed photo links for anyone shown with a photo instead of a pet
+  async function signPhotos(list) {
+    const paths = list.map(f => f.photo).filter(Boolean);
+    if (!paths.length) return list;
+    const { data: urls } = await sb.storage.from('profile').createSignedUrls(paths, 3600);
+    (urls || []).forEach(u => list.filter(x => x.photo === u.path).forEach(f => { if (u.signedUrl) f.photoUrl = u.signedUrl; }));
+    return list;
+  }
+  async function loadRequests() {
+    if (!state.user || state.preview) return (state.frReqs = []);
+    const { data, error } = await sb.rpc('my_friend_requests');
+    if (error) { console.warn('friend requests', error.message); return (state.frReqs = []); }   // before friend_requests.sql is run
+    return (state.frReqs = await signPhotos(data || []));
+  }
+  async function answerRequest(id, accept) {
+    const { error } = await sb.rpc('respond_friend_request', { fid: id, accept });
+    if (error) { toast(esc(error.message.replace(/^.*?: /, ''))); return false; }
+    if (accept) { const r = (state.frReqs || []).find(x => x.id === id); toast(`You and <b>${esc(r?.name || 'them')}</b> are now friends.`); window.Juice?.sfx?.good?.(3); }
+    return true;
+  }
   async function loadFriends() {
     if (!state.user || state.preview) return (state.friends = []);
     const { data, error } = await sb.rpc('my_friends');
@@ -5582,6 +5602,8 @@
       <small class="fr-meta"><span class="fr-fl">${flame(int(f.streak))}</span>${int(f.streak)} · Lv ${int(f.level) || 1}</small>
       <small class="fr-st">${f.done_today ? 'Done today' : 'Not yet'}</small>${(f.me ? battleWins() : int(f.wins)) ? `<small class="fr-rank">${rankOf(f.me ? battleWins() : int(f.wins))}</small>` : ''}</div>`;
   // Home: you, then every friend in one list; online friends first (green dot), each with a duel button
+  const HF_YES = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+  const HF_NO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   const HF_ADD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
   const HF_DUEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2M14.5 6.5 18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2"/></svg>';
   const hfRow = (f) => `<div class="hf-row${f.me ? ' me' : ''}"${f.me ? ' data-me="1"' : ` data-fid="${esc(f.friend_id)}"`} role="button" tabindex="0" aria-label="${esc(f.me ? 'Your profile' : f.name)}">
@@ -5602,9 +5624,11 @@
     box.hidden = false;
     box.className = 'hf';
     fs.forEach(hfWatch);
-    await myLevel();
-    box.innerHTML = `<div class="hf-head"><h2>Friends</h2><button class="hf-add" id="hf-add" aria-label="Add a friend" title="Add a friend">${HF_ADD}</button></div>
-      ${hfRow(meRow())}${fs.length ? hfSorted().map(hfRow).join('') : '<div class="hf-invite"><button class="secondary" id="fr-invite">Invite a friend</button></div>'}`;
+    const [reqs] = await Promise.all([loadRequests(), myLevel()]);
+    const reqRow = (r) => `<div class="hf-row req" data-req="${esc(r.id)}"><span class="hf-face">${petBadge(r, 'md')}</span><span class="hf-name">${esc(r.name)}</span>
+      <button class="hf-yes" data-yes="${esc(r.id)}" aria-label="Accept ${esc(r.name)}" title="Accept">${HF_YES}</button><button class="hf-no" data-no="${esc(r.id)}" aria-label="Decline ${esc(r.name)}" title="Decline">${HF_NO}</button></div>`;
+    box.innerHTML = `<div class="hf-head"><h2>Friends</h2><button class="hf-add" id="hf-add" aria-label="Add a friend" title="Add a friend">${HF_ADD}${reqs.length ? `<i class="hf-badge">${reqs.length}</i>` : ''}</button></div>
+      ${reqs.map(reqRow).join('')}${hfRow(meRow())}${fs.length ? hfSorted().map(hfRow).join('') : '<div class="hf-invite"><button class="secondary" id="fr-invite">Invite a friend</button></div>'}`;
     $('hf-add').onclick = openFriends;
     if ($('fr-invite')) $('fr-invite').onclick = openFriends;
   }
@@ -5627,7 +5651,10 @@
     openPlayer(f);
     const d = document.getElementById('pc-duel'); if (d) d.click();
   }
-  $('friends').addEventListener('click', (ev) => {
+  $('friends').addEventListener('click', async (ev) => {
+    const yn = ev.target.closest('[data-yes],[data-no]');
+    if (yn) { yn.disabled = true; if (await answerRequest(yn.dataset.yes || yn.dataset.no, !!yn.dataset.yes)) drawFriends(); else yn.disabled = false; return; }
+    if (ev.target.closest('.hf-row.req')) return;
     const d = ev.target.closest('[data-duel]');
     if (d) { const f = state.friends.find(x => x.friend_id === d.dataset.duel); if (f) duelFriend(f); return; }
     const r = ev.target.closest('.hf-row'); if (!r) return;
@@ -5663,24 +5690,64 @@
   $('fr-open').onclick = () => openFriends();
   async function openFriends() {
     $('streak-pop').hidden = true;
+    const findable = state.user?.user_metadata?.prefs?.findable !== false;
     const m = mk('div', 'modal');
     m.innerHTML = `<div class="modal-card fr-card" role="dialog" aria-modal="true" aria-labelledby="fr-t">
       <h2 id="fr-t">Friends</h2>
-      <p class="small muted">Friends see your first name, your streak and whether you've done today's 5. Nothing else.</p>
-      <div class="fr-code"><span class="small muted">Your code</span><b id="fr-code">······</b><button class="primary" id="fr-share">Share invite</button></div>
-      <form class="fr-add" id="fr-add"><input id="fr-in" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="Their code" aria-label="Friend's code"><button class="secondary">Add</button></form>
+      <input class="fr-search" id="fr-q" type="search" maxlength="40" autocomplete="off" placeholder="Search by name" aria-label="Search for a student by name">
+      <div class="fr-found" id="fr-found"></div>
       <p class="error small" id="fr-err" hidden></p>
+      <div class="fr-reqs" id="fr-reqs"></div>
       <div class="fr-list" id="fr-list"></div>
+      <details class="fr-more"><summary>Add by code</summary>
+        <div class="fr-code"><span class="small muted">Your code</span><b id="fr-code">······</b><button class="primary" id="fr-share">Share invite</button></div>
+        <form class="fr-add" id="fr-add"><input id="fr-in" maxlength="10" autocomplete="off" autocapitalize="characters" placeholder="Their code" aria-label="Friend's code"><button class="secondary">Add</button></form>
+        <label class="fr-find"><input type="checkbox" id="fr-findable" ${findable ? 'checked' : ''}> Let people find me by name</label>
+      </details>
       <div class="row confirm-row"><button class="link" data-x>Done</button></div></div>`;
     const close = () => { m.remove(); document.removeEventListener('keydown', k); if (location.hash === '#profile') renderProfile(); else drawFriends(); };
     const k = (ev) => { if (ev.key === 'Escape') close(); };
     m.onclick = (ev) => { if (ev.target === m || ev.target.closest('[data-x]')) close(); };
     document.addEventListener('keydown', k); document.body.appendChild(m);
     const err = (msg) => { $('fr-err').textContent = msg; $('fr-err').hidden = !msg; };
+    const ACT = { none: ['Add', 'primary', 'add'], sent: ['Sent', 'secondary', 'cancel'], received: ['Accept', 'primary', 'accept'], friend: ['Friends', 'link', ''] };
+    const foundRow = (r) => { const [label, cls, act] = ACT[r.status] || ACT.none;
+      return `<div class="fr-li">${petBadge(r, 'sm')}<b>${esc(r.name)} <span class="small muted">Lv ${int(r.level) || 1}</span></b>${act ? `<button class="${cls} small" data-act="${act}" data-id="${esc(r.id)}">${label}</button>` : `<span class="small muted">${label}</span>`}</div>`; };
+    let qTimer = 0, qSeq = 0;
+    const search = async () => {
+      const q = $('fr-q').value.trim(), seq = ++qSeq;
+      if (q.length < 2) { $('fr-found').innerHTML = ''; return; }
+      const { data, error } = await sb.rpc('search_students', { q });
+      if (seq !== qSeq) return;   // a newer search is on its way
+      if (error) return err(error.message.replace(/^.*?: /, ''));
+      err('');
+      const rows = await signPhotos(data || []);
+      $('fr-found').innerHTML = rows.length ? rows.map(foundRow).join('') : '<p class="small muted">No one by that name.</p>';
+    };
+    $('fr-q').oninput = () => { clearTimeout(qTimer); qTimer = setTimeout(search, 250); };
+    $('fr-found').onclick = async (ev) => {
+      const b = ev.target.closest('[data-act]'); if (!b) return;
+      b.disabled = true; err('');
+      const id = b.dataset.id, act = b.dataset.act;
+      const { data, error } = act === 'cancel' ? await sb.rpc('cancel_friend_request', { fid: id })
+        : act === 'accept' ? await sb.rpc('respond_friend_request', { fid: id, accept: true })
+        : await sb.rpc('send_friend_request', { fid: id });
+      if (error) { b.disabled = false; return err(error.message.replace(/^.*?: /, '')); }
+      if (act === 'accept' || data === 'friends') { window.Juice?.sfx?.good?.(3); list(); }
+      search();
+    };
+    const reqs = async () => {
+      const rs = await loadRequests();
+      $('fr-reqs').innerHTML = rs.map(r => `<div class="fr-li">${petBadge(r, 'sm')}<b>${esc(r.name)}</b><button class="primary small" data-yes="${esc(r.id)}">Accept</button><button class="link small" data-no="${esc(r.id)}">Decline</button></div>`).join('');
+    };
+    $('fr-reqs').onclick = async (ev) => {
+      const b = ev.target.closest('[data-yes],[data-no]'); if (!b) return;
+      b.disabled = true;
+      if (await answerRequest(b.dataset.yes || b.dataset.no, !!b.dataset.yes)) { reqs(); list(); } else b.disabled = false;
+    };
     const list = async () => {
       const fs = await loadFriends();
-      $('fr-list').innerHTML = fs.length ? fs.map(f => `<div class="fr-li">${petBadge(f, 'sm')}<b>${esc(f.name)} <span class="small muted">Lv ${int(f.level) || 1} · ${int(f.streak)} day streak</span></b><span class="small muted">${f.done_today ? 'Done today' : 'Not yet today'}</span><button class="link small" data-rm="${esc(f.friend_id)}" data-n="${esc(f.name)}">Remove</button></div>`).join('')
-        : '<p class="small muted">No friends added yet.</p>';
+      $('fr-list').innerHTML = fs.length ? fs.map(f => `<div class="fr-li">${petBadge(f, 'sm')}<b>${esc(f.name)} <span class="small muted">Lv ${int(f.level) || 1}</span></b><button class="link small" data-rm="${esc(f.friend_id)}" data-n="${esc(f.name)}">Remove</button></div>`).join('') : '';
     };
     $('fr-list').onclick = async (ev) => {
       const b = ev.target.closest('[data-rm]'); if (!b) return;
@@ -5694,7 +5761,9 @@
       if (error) return err(error.message.replace(/^.*?: /, ''));
       $('fr-in').value = ''; toast(`You and <b>${esc(data)}</b> are now friends.`); window.Juice?.sfx?.good?.(3); list();
     };
-    list();
+    $('fr-findable').onchange = () => savePrefs({ ...(state.user?.user_metadata?.prefs || {}), findable: $('fr-findable').checked });
+    reqs(); list();
+    $('fr-q').focus();
     try {
       const code = await friendCode(); $('fr-code').textContent = code;
       $('fr-share').onclick = async () => {
@@ -5702,7 +5771,7 @@
         if (navigator.share) { try { await navigator.share({ title: 'Trialbank', text, url }); return; } catch (e) { if (e.name === 'AbortError') return; } }
         try { await navigator.clipboard.writeText(`${text}: ${url}`); toast('Invite link copied.'); } catch { toast(`Your link: ${esc(url)}`, 9000); }
       };
-    } catch (e) { $('fr-code').textContent = '?'; err(e.message); }
+    } catch (e) { $('fr-code').textContent = '?'; }
   }
   async function acceptInvite() {
     if (!state.user || state.preview) return;

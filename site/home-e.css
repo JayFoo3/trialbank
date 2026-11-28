@@ -41,3 +41,22 @@
   .hf-lv { display: none; }
   .hf-row { padding: 10px 14px; gap: 12px; }
 }
+
+/* friend requests on the home list: accept / decline, and a count on the + button */
+.hf-add { position: relative; }
+.hf-badge { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px;
+  background: var(--biro); color: #fff; font-style: normal; font-size: .75rem; font-weight: 900; display: grid; place-items: center; border: 2px solid var(--paper); }
+.hf-row.req { background: var(--biro-soft); cursor: default; }
+.hf-yes, .hf-no { flex: none; width: 44px; height: 44px; padding: 0; display: grid; place-items: center; }
+.hf-yes { background: var(--biro); border-color: var(--biro); color: #fff; box-shadow: 0 3px 0 var(--biro-dark); }
+.hf-no { color: var(--muted); box-shadow: 0 3px 0 var(--rule); }
+.hf-yes svg, .hf-no svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+/* the Friends window: search by name first */
+.fr-search { width: 100%; box-sizing: border-box; margin: 10px 0 4px; font-size: 1.05rem; }
+.fr-found:not(:empty), .fr-reqs:not(:empty) { margin-bottom: 10px; }
+.fr-reqs:not(:empty) { padding: 4px 10px; border-radius: var(--r); background: var(--biro-soft); }
+.fr-li button.small { flex: none; padding: 6px 12px; }
+.fr-more { margin-top: 12px; }
+.fr-more summary { cursor: pointer; font-weight: 800; color: var(--muted); padding: 6px 0; }
+.fr-find { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: .92rem; color: var(--muted); }
