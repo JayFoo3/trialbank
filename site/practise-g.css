@@ -67,3 +67,18 @@
 
 /* switched off for now: Make a paper, Prep for a test, and Your papers on Practise */
 #cp-card, #an-card, #tp-mine { display: none !important; }
+
+/* admins: Margaret under Textbook, real HSC years under HSC; the old cards are folded in */
+#tb-card, #hr-card { display: none !important; }
+.pr2-ex { display: grid; }
+.pr2-ex .pr2-d em { margin-left: auto; font-style: normal; font-size: .8rem; font-weight: 800; color: var(--muted); background: var(--bg); border-radius: 99px; padding: 2px 9px; align-self: center; }
+.pr2-ex.open > .pr2-d { background: var(--hover); }
+.pr2-qs { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 12px 12px 46px; }
+.pr2-qn { width: 44px; height: 40px; padding: 0; border-radius: 10px; border: 2px solid var(--rule); box-shadow: 0 3px 0 var(--rule); background: var(--paper); font-weight: 800; }
+.pr2-qn.on { background: var(--biro); border-color: var(--biro); box-shadow: 0 3px 0 var(--biro-dark); color: #fff; }
+.pr2[data-mode="book"] .pr2-sym { font-family: var(--display); font-style: normal; font-weight: 900; }
+.pr2-years { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 12px; }
+.pr2-years button { border-radius: 99px; padding: 6px 14px; font-weight: 800; border: 2px solid var(--rule); box-shadow: 0 3px 0 var(--rule); background: var(--paper); }
+.pr2-years button.on { background: var(--biro); border-color: var(--biro); box-shadow: 0 3px 0 var(--biro-dark); color: #fff; }
+.pr-bar.book .pr2-count { visibility: hidden; }
+.pr2-d:not(.on) i:not(:empty) { color: var(--biro); border-color: var(--biro); }

@@ -1670,8 +1670,8 @@
     }
   }
   async function renderBuild() {
-    drawTextbook().catch(err => console.warn('textbook', err));
-    drawReal().catch(err => console.warn('real hsc', err));
+    drawTextbook().then(() => { drawPr2(); startSummary(); }).catch(err => console.warn('textbook', err));
+    drawReal().then(() => { drawPr2(); startSummary(); }).catch(err => console.warn('real hsc', err));
     $('open-syllabus').hidden = !SYLLABUS[state.subject];
     $('pr-error').hidden = true;
     const [counts, { data: mine }] = await Promise.all([loadTopicCounts(), sb.from('my_topic_stats').select('*').eq('subject', state.subject)]);
@@ -1809,9 +1809,54 @@
     'Continuous Probability Distributions': 'pdf', 'The Normal Distribution': 'z', 'Descriptive Statistics and Bivariate Data': 'x̄' };
   const pr2Short = (t) => { const n = topicName(t); return PR2_SHORT[n] || n.replace(/^(introduction to|the|working with)\s+/i, ''); };
   const pr2Sym = (t) => PR2_SYM[topicName(t)] || t5Symbol(t)[0];
-  let pr2 = { list: [], cur: null, q: '', screen: 'list' };
+  let pr2 = { list: [], cur: null, q: '', screen: 'list', ch: null, ex: null, bk: new Set(), years: new Set() };
+  // admins only: Textbook shows Margaret's chapters, HSC adds the real HSC papers by year
+  const pr2Mode = () => !adminOn() || state.preview ? 'topics'
+    : pr2Kind() === 'quick' && tbRows?.length ? 'book'
+    : pr2Kind() === 'hsc' && state.subject === 'Adv' && hrRows?.length ? 'real' : 'topics';
+  const BOOK_SHORT = { 'Sequences and Series': 'Sequences & series', 'Trigonometric Functions': 'Trig functions', 'Derivatives and Primitives': 'Derivatives',
+    'Graphical Applications of Differentiation': 'Graphing calculus', 'Applications of Calculus': 'Calculus in use', 'Applications of Vectors': 'Vectors in use',
+    'Discrete Probability Distributions': 'Discrete', 'Annuities and Loans': 'Annuities', 'Differential Equations': 'Diff equations',
+    'Continuous Probability Distributions': 'Continuous', 'Binomial Distributions': 'Binomial' };
+  const chName = (ch) => BOOK_CH[ch - 1] || 'Chapter ' + ch;
+  const chShort = (ch) => { const n = chName(ch); return BOOK_SHORT[n] || n.replace(/^Practice Set /, 'Practice '); };
+  function drawBook(box) {
+    const byCh = {}; tbRows.forEach(q => (byCh[bookCh(q)] = byCh[bookCh(q)] || []).push(q));
+    const chs = Object.keys(byCh).map(Number).sort((a, b) => a - b);
+    if (!chs.includes(pr2.ch)) pr2.ch = chs[0];
+    const q = pr2.q.trim().toLowerCase();
+    const shown = chs.filter(c => !q || chName(c).toLowerCase().includes(q) || chShort(c).toLowerCase().includes(q) || String(c) === q);
+    const nPicked = (qs) => qs.filter(x => pr2.bk.has(x.id)).length;
+    const row = (c) => { const k = nPicked(byCh[c]);
+      return `<button type="button" class="pr2-t${k ? ' on' : ''}${c === pr2.ch ? ' open' : ''}" data-ch="${c}" title="${esc(chName(c))}"><span class="pr2-sym${c > 9 ? ' sm' : ''}">${c}</span><span class="pr2-n">${esc(chShort(c))}</span>${k ? `<span class="pr2-c">${k}</span>` : ''}</button>`; };
+    const exs = {}; (byCh[pr2.ch] || []).forEach(x => (exs[bookEx(x)] = exs[bookEx(x)] || []).push(x));
+    const exRow = ([ex, qs]) => { const k = nPicked(qs), all = k === qs.length, open = pr2.ex === ex;
+      return `<div class="pr2-ex${open ? ' open' : ''}"><button type="button" class="pr2-d${all ? ' on' : ''}" data-ex="${esc(ex)}"><i aria-hidden="true" data-all>${all ? '✓' : k ? '–' : ''}</i><span>${esc(ex.replace(/^Exercise /, ''))}</span><em>${k ? k + '/' : ''}${qs.length}</em></button>
+        ${open ? `<div class="pr2-qs">${qs.sort((a, b) => bookQ(a) - bookQ(b)).map(x => `<button type="button" class="pr2-qn${pr2.bk.has(x.id) ? ' on' : ''}" data-q="${esc(x.id)}">${bookQ(x)}</button>`).join('')}</div>` : ''}</div>`; };
+    box.innerHTML = `<aside class="pr2-l">${pr2SearchHtml()}<div class="pr2-list">${shown.map(row).join('') || '<p class="small muted">Nothing matches that.</p>'}</div></aside>
+      <section class="pr2-r"><div class="pr2-h"><button type="button" class="pr2-back" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><h2>${esc(chName(pr2.ch))}</h2></div>
+        <div class="pr2-dots">${Object.entries(exs).map(exRow).join('')}</div></section>`;
+    pr2Search();
+    box.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => { pr2.ch = Number(b.dataset.ch); pr2.ex = null; if (matchMedia('(max-width: 640px)').matches) pr2.screen = 'topic'; drawPr2(); });
+    box.querySelectorAll('[data-ex]').forEach(b => b.onclick = (ev) => {
+      const qs = exs[b.dataset.ex];
+      if (ev.target.closest('[data-all]')) { const all = qs.every(x => pr2.bk.has(x.id)); qs.forEach(x => all ? pr2.bk.delete(x.id) : pr2.bk.add(x.id)); }
+      else pr2.ex = pr2.ex === b.dataset.ex ? null : b.dataset.ex;
+      drawPr2(); startSummary();
+    });
+    box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const id = b.dataset.q; pr2.bk.has(id) ? pr2.bk.delete(id) : pr2.bk.add(id); drawPr2(); startSummary(); });
+    box.querySelector('.pr2-back')?.addEventListener('click', () => { pr2.screen = 'list'; drawPr2(); });
+  }
+  const pr2SearchHtml = () => `<label class="pr2-q"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="pr2-q" type="search" placeholder="Search" aria-label="Search" value="${esc(pr2.q)}" autocomplete="off"></label>`;
+  function pr2Search() { const inp = $('pr2-q'); inp.oninput = () => { pr2.q = inp.value; const pos = inp.selectionStart; drawPr2(); const i2 = $('pr2-q'); i2.focus(); i2.setSelectionRange(pos, pos); }; }
+  function pr2Years() {
+    const ys = [...new Set(hrRows.map(hrYearOf))].sort((a, b) => b - a);
+    return `<div class="pr2-years" role="group" aria-label="Years"><button type="button" class="${pr2.years.size ? '' : 'on'}" data-y="">Any year</button>${ys.map(y => `<button type="button" class="${pr2.years.has(y) ? 'on' : ''}" data-y="${y}">${y}</button>`).join('')}</div>`;
+  }
   function drawPr2(list) {
     const box = $('pr2'); if (!box) return;
+    box.dataset.mode = pr2Mode();
+    if (pr2Mode() === 'book') { if (list) pr2.list = list; box.classList.toggle('show-topic', pr2.screen === 'topic'); drawBook(box); return; }
     if (list) { pr2.list = list; if (!list.includes(pr2.cur)) pr2.cur = [...state.topics].find(t => list.includes(t)) || list[0] || null; }
     const q = pr2.q.trim().toLowerCase();
     const shown = pr2.list.filter(t => !q || topicName(t).toLowerCase().includes(q) || pr2Short(t).toLowerCase().includes(q));
@@ -1828,7 +1873,7 @@
         <div class="pr2-list">${shown.map(row).join('') || '<p class="small muted">No topic matches that.</p>'}</div>
       </aside>
       <section class="pr2-r">${!t ? '' : `
-        <div class="pr2-h"><button type="button" class="pr2-back" aria-label="Back to topics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><h2>${esc(topicName(t))}</h2></div>
+        <div class="pr2-h"><button type="button" class="pr2-back" aria-label="Back to topics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><h2>${esc(topicName(t))}</h2></div>${pr2Mode() === 'real' ? pr2Years() : ''}
         <div class="pr2-dots">${steps.length ? steps.map(([id, lab]) => { const ok = state.topics.has(t) && (whole || sel?.has(id));
           return `<button type="button" class="pr2-d${ok ? ' on' : ''}" data-s="${esc(id)}" aria-pressed="${ok}"><i aria-hidden="true">${ok ? '✓' : ''}</i><span>${esc(lab)}</span></button>`; }).join('')
           : '<p class="small muted">No dot points for this topic yet.</p>'}</div>`}
@@ -1844,6 +1889,7 @@
       drawPr2(); startSummary();
     });
     box.querySelector('.pr2-back')?.addEventListener('click', () => { pr2.screen = 'list'; drawPr2(); });
+    box.querySelectorAll('[data-y]').forEach(b => b.onclick = () => { const y = Number(b.dataset.y); if (!y) pr2.years.clear(); else pr2.years.has(y) ? pr2.years.delete(y) : pr2.years.add(y); drawPr2(); });
     box.querySelectorAll('.pr2-d').forEach(b => b.onclick = () => {
       const id = b.dataset.s, all = steps.map(x => x[0]);
       let cur = state.topics.has(t) ? (sel?.size ? new Set(sel) : new Set(all)) : new Set();
@@ -1859,13 +1905,14 @@
   function drawPr2Bar() {
     const k = $('pr2-kind'); if (!k) return;
     k.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.k === pr2Kind()));
+    $('pr-bar').classList.toggle('book', pr2Mode() === 'book');
     $('pr2-n').textContent = state.opts.count;
   }
   $('pr2-kind')?.addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-k]'); if (!b) return;
     if (b.dataset.k === 'quick') optClick('type', 'quick');
     else { optClick('type', 'all'); optClick('diff', b.dataset.k === 'hsc' ? 'HSC' : 'all'); }
-    drawPr2Bar();
+    drawPr2Bar(); drawPr2(); startSummary();
   });
   $('pr2-less')?.addEventListener('click', () => { const c = state.opts.count; optClick('count', c > 10 ? 10 : 5); drawPr2Bar(); });
   $('pr2-more')?.addEventListener('click', () => { const c = state.opts.count; optClick('count', c < 10 ? 10 : 20); drawPr2Bar(); });
@@ -1877,6 +1924,7 @@
     const names = [...state.topics].map(topicName).sort();
     $('pr-picked').textContent = !n ? '' : (names.length <= 3 ? names.join(', ') : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`) + (o.diff === 'HSC' ? ' · HSC exams only' : o.diff !== 'all' ? ` · ${o.diff.toLowerCase()} papers` : '');
     $('start').disabled = false; $('start').textContent = n ? 'Start' : 'Pick for me';   // nothing picked: Start picks for you
+    if (typeof pr2Mode === 'function' && pr2Mode() === 'book') { const k = pr2.bk.size; $('start').textContent = k ? `Start ${k}` : 'Pick questions'; $('start').disabled = !k; }
     drawPr2Bar?.();
     $('pr-bar').classList.toggle('ready', !!n);
     $('topics-none').hidden = !n;
@@ -1894,6 +1942,15 @@
 
   $('start').onclick = async () => {
     $('home-error').hidden = true;
+    const mode = pr2Mode();
+    if (mode === 'book') { const qs = tbRows.filter(q => pr2.bk.has(q.id)).sort((a, b) => bookCh(a) - bookCh(b) || bookQ(a) - bookQ(b)); if (qs.length) busy(async () => { await startSet(qs.map(q => ({ ...q }))); }); return; }
+    if (mode === 'real') {   // real HSC questions: picked topics (or all), picked years (or all)
+      const names = new Set([...state.topics].map(topicName));
+      let pool = hrRows.filter(q => (!state.topics.size || state.topics.has(q.topic) || names.has(topicName(q.topic))) && (!pr2.years.size || pr2.years.has(hrYearOf(q))));
+      if (!pool.length) { $('home-error').textContent = 'No HSC questions for that yet.'; $('home-error').hidden = false; return; }
+      pool = shuffle([...pool]).slice(0, state.opts.count);
+      busy(async () => { await startSet(pool.map(q => ({ ...q }))); }); return;
+    }
     if (!state.topics.size) { $('pr-smart').click(); return; }
     $('start').disabled = true;
     try {
